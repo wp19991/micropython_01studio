@@ -1,6 +1,6 @@
 .. _micropython_lib:
 
-MicroPython libraries
+MicroPython 相关库
 =====================
 
 .. warning::
