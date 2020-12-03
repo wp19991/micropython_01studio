@@ -84,7 +84,7 @@ The :mod:`network` module::
 一旦网络建立成功，就可以通过 :mod:`socket <usocket>` 模块创捷和使用 TCP/UDP socket通讯。 
 
 延时和时间
-----------------
+------------
 
 Use the :mod:`time <utime>` module::
 
@@ -312,7 +312,7 @@ See :ref:`machine.RTC <machine.RTC>` ::
     machine.deepsleep()
 
 单总线驱动（OneWire）
---------------
+---------------------
 
 单总线驱动允许通过软件在各个引脚上实现::
 
@@ -341,7 +341,7 @@ See :ref:`machine.RTC <machine.RTC>` ::
 ``convert_temp()`` 模块.
 
 NeoPixel 彩灯驱动
----------------
+------------------
 
 Use the ``neopixel`` module::
 
@@ -418,6 +418,6 @@ WebREPL (通过WebSockets的REPL, 可以通过浏览器使用) 是ESP8266端口�
 请先使用ESP8266 AP方式)。
 
 除了终端/命令符的访问方式, WebREPL同时允许传输文件 (包含上传和下载)。Web客户端有相应的
-功能按钮，也可以通过 ``webrepl_cli.py``模块上存储的命令行进行操作。
+功能按钮，也可以通过 ``webrepl_cli.py`` 模块上存储的命令行进行操作。
 
 有关将文件传输到ESP8266其他支持的替代方法，请参阅MicroPython论坛。

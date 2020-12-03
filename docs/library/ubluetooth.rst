@@ -1,35 +1,40 @@
-:mod:`ubluetooth` --- 低功耗蓝牙
+:mod:`ubluetooth` --- low-level Bluetooth
 =========================================
 
 .. module:: ubluetooth
-   :synopsis: 无线低功耗蓝牙功能
+   :synopsis: Low-level Bluetooth radio functionality
 
 This module provides an interface to a Bluetooth controller on a board.
 Currently this supports Bluetooth Low Energy (BLE) in Central, Peripheral,
-Broadcaster, and Observer roles, as well as GATT Server and Client. A device
-may operate in multiple roles concurrently.
+Broadcaster, and Observer roles, as well as GATT Server and Client and L2CAP
+connection-oriented-channels. A device may operate in multiple roles
+concurrently.
+
+This API is intended to match the low-level Bluetooth protocol and provide
+building-blocks for higher-level abstractions such as specific device types.
 
 .. note:: This module is still under development and its classes, functions,
           methods and constants are subject to change.
 
-BLE 类
+class BLE
 ---------
 
-函数
+Constructor
 -----------
 
 .. class:: BLE()
 
-    返回单个BLE对象。
+    Returns the singleton BLE object.
 
-配置
+Configuration
 -------------
 
 .. method:: BLE.active([active], /)
 
-    无线低功耗蓝牙（BLE）的状态（可选项）, 返回当前状态。
+    Optionally changes the active state of the BLE radio, and returns the
+    current state.
 
-    在使用其他任何一个库之前必须开启无线低功耗蓝牙（BLE）。
+    The radio must be made active before using any other methods on this class.
 
 .. method:: BLE.config('param', /)
             BLE.config(*, param=value, ...)
@@ -39,9 +44,7 @@ BLE 类
     queried at a time.  To set values use the keyword syntax, and one ore more
     parameter can be set at a time.
 
-
-
-    通过*name*获取一个配置值. 现支持以下值:
+    Currently supported values are:
 
     - ``'mac'``: The current address in use, depending on the current address mode.
       This returns a tuple of ``(addr_type, addr)``.
@@ -70,23 +73,21 @@ BLE 类
       Increasing this allows better handling of bursty incoming data (for
       example scan results) and the ability to receive larger characteristic values.
 
-    - ``'mtu'``: Get/set the MTU that will be used during an MTU exchange. The
+    - ``'mtu'``: Get/set the MTU that will be used during a ATT MTU exchange. The
       resulting MTU will be the minimum of this and the remote device's MTU.
-      MTU exchange will not happen automatically (unless the remote device initiates
+      ATT MTU exchange will not happen automatically (unless the remote device initiates
       it), and must be manually initiated with
       :meth:`gattc_exchange_mtu<BLE.gattc_exchange_mtu>`.
       Use the ``_IRQ_MTU_EXCHANGED`` event to discover the MTU for a given connection.
 
-事件处理
+Event Handling
 --------------
 
 .. method:: BLE.irq(handler, /)
 
-    注册一个BLE栈回调事件. *handler*需要两个对象, ``event`` (执行的函数)和``data``
-    (特定事件的一组值).
-
-    *trigger*（可选项）让你设置你的程序的目标事件。 默认设置为所有事件。
-
+    Registers a callback for events from the BLE stack. The *handler* takes two
+    arguments, ``event`` (which will be one of the codes below) and ``data``
+    (which is an event-specific tuple of values).
 
     **Note:** As an optimisation to prevent unnecessary allocations, the ``addr``,
     ``adv_data``, ``char_data``, ``notify_data``, and ``uuid`` entries in the
@@ -105,61 +106,58 @@ BLE 类
     used elsewhere in the program.  And to print data from within the IRQ handler,
     ``print(bytes(addr))`` will be needed.
 
-
     An event handler showing all possible events::
-
-    一个事件处理展示所有可能的事件::
 
         def bt_irq(event, data):
             if event == _IRQ_CENTRAL_CONNECT:
-                # 一个中央单元连接到这个外围设备
+                # A central has connected to this peripheral.
                 conn_handle, addr_type, addr = data
             elif event == _IRQ_CENTRAL_DISCONNECT:
-                # 一个中央单元与这个外围设备断开链接
+                # A central has disconnected from this peripheral.
                 conn_handle, addr_type, addr = data
             elif event == _IRQ_GATTS_WRITE:
-                # 中央单元已写入此特征或描述符
+                # A client has written to this characteristic or descriptor.
                 conn_handle, attr_handle = data
             elif event == _IRQ_GATTS_READ_REQUEST:
-                # 中央单元发布消息，这是一个硬中断请求
-                # 返回None值以拒绝读取
-                # 请注意：该事件不支持ESP32
+                # A client has issued a read. Note: this is a hard IRQ.
+                # Return None to deny the read.
+                # Note: This event is not supported on ESP32.
                 conn_handle, attr_handle = data
             elif event == _IRQ_SCAN_RESULT:
-                # 单次扫描结果
+                # A single scan result.
                 addr_type, addr, adv_type, rssi, adv_data = data
             elif event == _IRQ_SCAN_DONE:
-                # 扫描过程完成或者被手动停止
+                # Scan duration finished or manually stopped.
                 pass
             elif event == _IRQ_PERIPHERAL_CONNECT:
-                # 一个成功的gap_connect()
+                # A successful gap_connect().
                 conn_handle, addr_type, addr = data
             elif event == _IRQ_PERIPHERAL_DISCONNECT:
-                # 与已连接的外围设备断开
+                # Connected peripheral has disconnected.
                 conn_handle, addr_type, addr = data
             elif event == _IRQ_GATTC_SERVICE_RESULT:
-                # 为gattc_discover_services()找到的每个服务调用
+                # Called for each service found by gattc_discover_services().
                 conn_handle, start_handle, end_handle, uuid = data
             elif event == _IRQ_GATTC_SERVICE_DONE:
                 # Called once service discovery is complete.
                 # Note: Status will be zero on success, implementation-specific value otherwise.
                 conn_handle, status = data
             elif event == _IRQ_GATTC_CHARACTERISTIC_RESULT:
-                # 为gattc_discover_services()找到的每个特征调用
+                # Called for each characteristic found by gattc_discover_services().
                 conn_handle, def_handle, value_handle, properties, uuid = data
             elif event == _IRQ_GATTC_CHARACTERISTIC_DONE:
                 # Called once service discovery is complete.
                 # Note: Status will be zero on success, implementation-specific value otherwise.
                 conn_handle, status = data
             elif event == _IRQ_GATTC_DESCRIPTOR_RESULT:
-                # 为gattc_discover_descriptors()找到的每个描述符调用
+                # Called for each descriptor found by gattc_discover_descriptors().
                 conn_handle, dsc_handle, uuid = data
             elif event == _IRQ_GATTC_DESCRIPTOR_DONE:
                 # Called once service discovery is complete.
                 # Note: Status will be zero on success, implementation-specific value otherwise.
                 conn_handle, status = data
             elif event == _IRQ_GATTC_READ_RESULT:
-                # 已完成的gattc_read()
+                # A gattc_read() has completed.
                 conn_handle, value_handle, char_data = data
             elif event == _IRQ_GATTC_READ_DONE:
                 # A gattc_read() has completed.
@@ -169,23 +167,40 @@ BLE 类
             elif event == _IRQ_GATTC_WRITE_DONE:
                 # A gattc_write() has completed.
                 # Note: The value_handle will be zero on btstack (but present on NimBLE).
-                # Note: Status will be zero on success, implementation-specific value otherwise.               
+                # Note: Status will be zero on success, implementation-specific value otherwise.
                 conn_handle, value_handle, status = data
             elif event == _IRQ_GATTC_NOTIFY:
-                # 外部设备已发送通知请求
+                # A server has sent a notify request.
                 conn_handle, value_handle, notify_data = data
             elif event == _IRQ_GATTC_INDICATE:
-                # 外部设备已发送指示请求
+                # A server has sent an indicate request.
                 conn_handle, value_handle, notify_data = data
             elif event == _IRQ_GATTS_INDICATE_DONE:
                 # A client has acknowledged the indication.
                 # Note: Status will be zero on successful acknowledgment, implementation-specific value otherwise.
                 conn_handle, value_handle, status = data
             elif event == _IRQ_MTU_EXCHANGED:
-                # MTU exchange complete (either initiated by us or the remote device).
+                # ATT MTU exchange complete (either initiated by us or the remote device).
                 conn_handle, mtu = data
+            elif event == _IRQ_L2CAP_ACCEPT:
+                # A new channel has been accepted.
+                # Return a non-zero integer to reject the connection, or zero (or None) to accept.
+                conn_handle, cid, psm, our_mtu, peer_mtu = data
+            elif event == _IRQ_L2CAP_CONNECT:
+                # A new channel is now connected (either as a result of connecting or accepting).
+                conn_handle, cid, psm, our_mtu, peer_mtu = data
+            elif event == _IRQ_L2CAP_DISCONNECT:
+                # Existing channel has disconnected (status is zero), or a connection attempt failed (non-zero status).
+                conn_handle, cid, psm, status = data
+            elif event == _IRQ_L2CAP_RECV:
+                # New data is available on the channel. Use l2cap_recvinto to read.
+                conn_handle, cid = data
+            elif event == _IRQ_L2CAP_SEND_READY:
+                # A previous l2cap_send that returned False has now completed and the channel is ready to send again.
+                # If status is non-zero, then the transmit buffer overflowed and the application should re-send the data.
+                conn_handle, cid, status = data
 
-以下是事件码::
+The event codes are::
 
     from micropython import const
     _IRQ_CENTRAL_CONNECT = const(1)
@@ -209,43 +224,52 @@ BLE 类
     _IRQ_GATTC_INDICATE = const(19)
     _IRQ_GATTS_INDICATE_DONE = const(20)
     _IRQ_MTU_EXCHANGED = const(21)
+    _IRQ_L2CAP_ACCEPT = const(22)
+    _IRQ_L2CAP_CONNECT = const(23)
+    _IRQ_L2CAP_DISCONNECT = const(24)
+    _IRQ_L2CAP_RECV = const(25)
+    _IRQ_L2CAP_SEND_READY = const(26)
 
-为了节省固件的空间, 这些内容没有包含在:mod:`ubluetooth` 模块，需自行从上面的列表中选择你所
-需要的事件码到你的程序中。
+In order to save space in the firmware, these constants are not included on the
+:mod:`ubluetooth` module. Add the ones that you need from the list above to your
+program.
 
 
-广播规则（对外宣传者）
+Broadcaster Role (Advertiser)
 -----------------------------
 
 .. method:: BLE.gap_advertise(interval_us, adv_data=None, *, resp_data=None, connectable=True)
 
-    在指定时间间隔开始广播(**微**\ 秒). 该间隔将会精确到625us（微妙）。
-    将*interval_us*设为``None``以停止广播。
+    Starts advertising at the specified interval (in **micro**\ seconds). This
+    interval will be rounded down to the nearest 625us. To stop advertising, set
+    *interval_us* to ``None``.
 
-    *adv_data*和*resp_data*可以是任何可实现的缓冲协议 (例如``bytes``, ``bytearray``, ``str``)。
-    *adv_data*包含于任何广播里, *resp_data* 是对已激活的扫描仪的回复。
+    *adv_data* and *resp_data* can be any type that implements the buffer
+    protocol (e.g. ``bytes``, ``bytearray``, ``str``). *adv_data* is included
+    in all broadcasts, and *resp_data* is send in reply to an active scan.
 
-    说明：如果*adv_data* (或*resp_data*)是``None``, 接下来传递给上一个对``gap_advertise``调用
-    的值将会被再次使用。
-    This allows a broadcaster to resume advertising 这就意味着只要``gap_advertise(interval_us)``
-    就可以让广播恢复对外宣传.
-    提供一个空的``bytes``以清除广播负载，例如``b''``.
+    **Note:** if *adv_data* (or *resp_data*) is ``None``, then the data passed
+    to the previous call to ``gap_advertise`` will be re-used. This allows a
+    broadcaster to resume advertising with just ``gap_advertise(interval_us)``.
+    To clear the advertising payload pass an empty ``bytes``, i.e. ``b''``.
 
 
-观察者角色（扫描仪）
+Observer Role (Scanner)
 -----------------------
 
 .. method:: BLE.gap_scan(duration_ms, interval_us=1280000, window_us=11250, active=False, /)
 
-    持续扫描一段时间(**毫**\ 秒)。
+    Run a scan operation lasting for the specified duration (in **milli**\ seconds).
 
-    如果要让开发版一直扫描，请将*duration_ms*设置为``0``.
+    To scan indefinitely, set *duration_ms* to ``0``.
 
-    如果要停止扫描，将*duration_ms*设置为``None``.
+    To stop scanning, set *duration_ms* to ``None``.
 
-    扫描仪将每*interval_us*微秒运行*window_us*微秒，共*duration_ms*毫秒。
-    默认选项分别为 1.28 秒和11.25毫秒(后台扫描).
-
+    Use *interval_us* and *window_us* to optionally configure the duty cycle.
+    The scanner will run for *window_us* **micro**\ seconds every *interval_us*
+    **micro**\ seconds for a total of *duration_ms* **milli**\ seconds. The default
+    interval and window are 1.28 seconds and 11.25 milliseconds respectively
+    (background scanning).
 
     For each scan result the ``_IRQ_SCAN_RESULT`` event will be raised, with event
     data ``(addr_type, addr, adv_type, rssi, adv_data)``.
@@ -261,8 +285,6 @@ BLE 类
         * 0x02 - ADV_SCAN_IND - scannable undirected advertising
         * 0x03 - ADV_NONCONN_IND - non-connectable undirected advertising
         * 0x04 - SCAN_RSP - scan response
-
-    当扫描停止时(由于扫描过程结束或者明确地停止)，会引发``_IRQ_SCAN_COMPLETE``事件
 
     ``active`` can be set ``True`` if you want to receive scan responses in the results.
 
@@ -311,43 +333,53 @@ Central & Peripheral Roles
     Returns ``False`` if the connection handle wasn't connected, and ``True``
     otherwise.
 
-外围角色 (GATT服务器)
------------------------------
 
-一个蓝牙外设已经有一套已经注册好的服务。每个服务可能包含带有一个值的特征，
-特征也包含了自带值的描述符。
+GATT Server
+-----------
 
-这些值都存储在本地，并由服务注册期间生成的“值句柄”访问。他们也被远程中央设备读取
-或写入。另外，外围设备可以通过连接句柄将特征“通知”到连接的中央设备。
+A GATT server has a set of registered services. Each service may contain
+characteristics, which each have a value. Characteristics can also contain
+descriptors, which themselves have values.
 
-特征和描述有一个20字节的缺省最大值。
-任何通过中央单元写入的内容将会被截断到此长度。然而，
-任何一次本地写入将会增加最大尺寸，因此如果你想允许从中心向给定特征进行更大的写入,
-在注册之后请使用:meth:`gatts_write<BLE.gatts_write>`。
-例如：``gatts_write(char_handle, bytes(100))``
+These values are stored locally, and are accessed by their "value handle" which
+is generated during service registration. They can also be read from or written
+to by a remote client device. Additionally, a server can "notify" a
+characteristic to a connected client via a connection handle.
+
+A device in either central or peripheral roles may function as a GATT server,
+however in most cases it will be more common for a peripheral device to act
+as the server.
+
+Characteristics and descriptors have a default maximum size of 20 bytes.
+Anything written to them by a client will be truncated to this length. However,
+any local write will increase the maximum size, so if you want to allow larger
+writes from a client to a given characteristic, use
+:meth:`gatts_write<BLE.gatts_write>` after registration. e.g.
+``gatts_write(char_handle, bytes(100))``.
 
 .. method:: BLE.gatts_register_services(services_definition, /)
 
     Configures the server with the specified services, replacing any
     existing services.
 
+    *services_definition* is a list of **services**, where each **service** is a
+    two-element tuple containing a UUID and a list of **characteristics**.
 
-    *services_definition*是一个**服务**列表，每一个**服务**是一个包含两
-    个元素的元组，包含了一个UUID和一整个列表的**特征**。
+    Each **characteristic** is a two-or-three-element tuple containing a UUID, a
+    **flags** value, and optionally a list of *descriptors*.
 
-    每个**特征** 是一个由两到三个元素的元组t，包含一个UUID，一个**flags**值，
-    以及可选的*descriptors*列表。
-
-    每个**描述符**是一个包含两个元素的元组，包含一个UUID和一个**flags**。
+    Each **descriptor** is a two-element tuple containing a UUID and a **flags**
+    value.
 
     The **flags** are a bitwise-OR combination of the
     :data:`ubluetooth.FLAG_READ`, :data:`ubluetooth.FLAG_WRITE` and
     :data:`ubluetooth.FLAG_NOTIFY` values defined below.
 
-    返回的是是一列表(一个服务一个元素)的元组(每一个元素有值句柄). 
-    特征和描述符句柄按定义顺序展平到同一元组中。
+    The return value is a list (one element per service) of tuples (each element
+    is a value handle). Characteristics and descriptor handles are flattened
+    into the same tuple, in the order that they are defined.
 
-    下面的示例注册了两个服务(心跳和Nordic通用异步收发器)::
+    The following example registers two services (Heart Rate, and Nordic UART)::
 
         HR_UUID = bluetooth.UUID(0x180D)
         HR_CHAR = (bluetooth.UUID(0x2A37), bluetooth.FLAG_READ | bluetooth.FLAG_NOTIFY,)
@@ -359,21 +391,20 @@ Central & Peripheral Roles
         SERVICES = (HR_SERVICE, UART_SERVICE,)
         ( (hr,), (tx, rx,), ) = bt.gatts_register_services(SERVICES)
 
-    这里有三个值句柄(``hr``, ``tx``, ``rx``)可用于:meth:`gatts_read <BLE.gatts_read>`, 
+    The three value handles (``hr``, ``tx``, ``rx``) can be used with
     :meth:`gatts_read <BLE.gatts_read>`, :meth:`gatts_write <BLE.gatts_write>`, :meth:`gatts_notify <BLE.gatts_notify>`, and
     :meth:`gatts_indicate <BLE.gatts_indicate>`.
 
-    **提示：** 注册服务前对外显示必须被停止。
+    **Note:** Advertising must be stopped before registering services.
 
 .. method:: BLE.gatts_read(value_handle, /)
 
-    读取此句柄的本地值(要么是由:meth:`gatts_write <BLE.gatts_write>`编写的，
-    要么是由远程中央单元编写的).
+    Reads the local value for this handle (which has either been written by
+    :meth:`gatts_write <BLE.gatts_write>` or by a remote client).
 
 .. method:: BLE.gatts_write(value_handle, data, /)
 
-
-    写入此句柄的本地值，该值可以被中央单元读取。
+    Writes the local value for this handle, which can be read by a client.
 
 .. method:: BLE.gatts_notify(conn_handle, value_handle, data=None, /)
 
@@ -398,37 +429,17 @@ Central & Peripheral Roles
 
 .. method:: BLE.gatts_set_buffer(value_handle, len, append=False, /)
 
-    设置以字节为单位的值的内部缓冲区大小。这将限制可接收的最大可能写操作。
-    默认值是20。
+    Sets the internal buffer size for a value in bytes. This will limit the
+    largest possible write that can be received. The default is 20.
 
-    将*append*设为``True`` 将所有远程写入追加，而不是替换，当前的值。
-    大部分*len*字节可以通过这个方式缓冲。
-    当你使用:meth:`gatts_read <BLE.gatts_read>`，这个值将在读取后被清除。
-    此功能在实现Nordic UART服务时非常有用。
+    Setting *append* to ``True`` will make all remote writes append to, rather
+    than replace, the current value. At most *len* bytes can be buffered in
+    this way. When you use :meth:`gatts_read <BLE.gatts_read>`, the value will
+    be cleared after reading. This feature is useful when implementing something
+    like the Nordic UART Service.
 
 GATT Client
 -----------
-
-中央处理规则(GATT客户端)
---------------------------
-
-.. method:: BLE.gap_connect(addr_type, addr, scan_duration_ms=2000, /)
-
-    连接到外设。
-
-    连接成功后, 将引发``_IRQ_PERIPHERAL_CONNECT``事件。
-
-.. method:: BLE.gap_disconnect(conn_handle)
-
-    断开指定的连接句柄。
-
-    断开成功后，将引发``_IRQ_PERIPHERAL_DISCONNECT``事件。
-
-    如果链接句柄，返回``False``，``True``则相反。
-
-.. method:: BLE.gattc_discover_services(conn_handle, [uuid])
-
-    查询连接的外围设备以获取其服务。
 
 A GATT client can discover and read/write characteristics on a remote GATT server.
 
@@ -448,7 +459,7 @@ device name from the device information service).
 
 .. method:: BLE.gattc_discover_characteristics(conn_handle, start_handle, end_handle, uuid=None, /)
 
-    查询连接的外围设备以获取指定范围内的特征。
+    Query a connected server for characteristics in the specified range.
 
     Optionally specify a characteristic *uuid* to query for that
     characteristic only.
@@ -461,22 +472,23 @@ device name from the device information service).
 
 .. method:: BLE.gattc_discover_descriptors(conn_handle, start_handle, end_handle, /)
 
-    查询连接的外设以查找指定范围内的描述符。
+    Query a connected server for descriptors in the specified range.
 
     For each descriptor discovered, the ``_IRQ_GATTC_DESCRIPTOR_RESULT`` event
     will be raised, followed by ``_IRQ_GATTC_DESCRIPTOR_DONE`` on completion.
 
 .. method:: BLE.gattc_read(conn_handle, value_handle, /)
 
-    查询连接的外设以查找指定范围内的描述符。对连接的外设发出远程读取以
-    获取指定的特征或描述符句柄。
+    Issue a remote read to a connected server for the specified
+    characteristic or descriptor handle.
 
     When a value is available, the ``_IRQ_GATTC_READ_RESULT`` event will be
     raised. Additionally, the ``_IRQ_GATTC_READ_DONE`` will be raised.
 
 .. method:: BLE.gattc_write(conn_handle, value_handle, data, mode=0, /)
 
-    为指定的特征或描述符句柄向连接的外围设备发出远程写入。
+    Issue a remote write to a connected server for the specified
+    characteristic or descriptor handle.
 
     The argument *mode* specifies the write behaviour, with the currently
     supported values being:
@@ -504,6 +516,88 @@ device name from the device information service).
     peripheral initiating the MTU exchange. NimBLE works for both roles.
 
 
+L2CAP connection-oriented-channels
+----------------------------------
+
+    This feature allows for socket-like data exchange between two BLE devices.
+    Once the devices are connected via GAP, either device can listen for the
+    other to connect on a numeric PSM (Protocol/Service Multiplexer).
+
+    **Note:** This is currently only supported when using the NimBLE stack on
+    STM32 and Unix (not ESP32). Only one L2CAP channel may be active at a given
+    time (i.e. you cannot connect while listening).
+
+    Active L2CAP channels are identified by the connection handle that they were
+    established on and a CID (channel ID).
+
+    Connection-oriented channels have built-in credit-based flow control. Unlike
+    ATT, where devices negotiate a shared MTU, both the listening and connecting
+    devices each set an independent MTU which limits the maximum amount of
+    outstanding data that the remote device can send before it is fully consumed
+    in :meth:`l2cap_recvinto <BLE.l2cap_recvinto>`.
+
+.. method:: BLE.l2cap_listen(psm, mtu, /)
+
+    Start listening for incoming L2CAP channel requests on the specified *psm*
+    with the local MTU set to *mtu*.
+
+    When a remote device initiates a connection, the ``_IRQ_L2CAP_ACCEPT``
+    event will be raised, which gives the listening server a chance to reject
+    the incoming connection (by returning a non-zero integer).
+
+    Once the connection is accepted, the ``_IRQ_L2CAP_CONNECT`` event will be
+    raised, allowing the server to obtain the channel id (CID) and the local and
+    remote MTU.
+
+    **Note:** It is not currently possible to stop listening.
+
+.. method:: BLE.l2cap_connect(conn_handle, psm, mtu, /)
+
+    Connect to a listening peer on the specified *psm* with local MTU set to *mtu*.
+
+    On successful connection, the the ``_IRQ_L2CAP_CONNECT`` event will be
+    raised, allowing the client to obtain the CID and the local and remote (peer) MTU.
+
+    An unsuccessful connection will raise the ``_IRQ_L2CAP_DISCONNECT`` event
+    with a non-zero status.
+
+.. method:: BLE.l2cap_disconnect(conn_handle, cid, /)
+
+    Disconnect an active L2CAP channel with the specified *conn_handle* and
+    *cid*.
+
+.. method:: BLE.l2cap_send(conn_handle, cid, buf, /)
+
+    Send the specified *buf* (which must support the buffer protocol) on the
+    L2CAP channel identified by *conn_handle* and *cid*.
+
+    The specified buffer cannot be larger than the remote (peer) MTU, and no
+    more than twice the size of the local MTU.
+
+    This will return ``False`` if the channel is now "stalled", which means that
+    :meth:`l2cap_send <BLE.l2cap_send>` must not be called again until the
+    ``_IRQ_L2CAP_SEND_READY`` event is received (which will happen when the
+    remote device grants more credits, typically after it has received and
+    processed the data).
+
+.. method:: BLE.l2cap_recvinto(conn_handle, cid, buf, /)
+
+    Receive data from the specified *conn_handle* and *cid* into the provided
+    *buf* (which must support the buffer protocol, e.g. bytearray or
+    memoryview).
+
+    Returns the number of bytes read from the channel.
+
+    If *buf* is None, then returns the number of bytes available.
+
+    **Note:** After receiving the ``_IRQ_L2CAP_RECV`` event, the application should
+    continue calling :meth:`l2cap_recvinto <BLE.l2cap_recvinto>` until no more
+    bytes are available in the receive buffer (typically up to the size of the
+    remote (peer) MTU).
+
+    Until the receive buffer is empty, the remote device will not be granted
+    more channel credits and will be unable to send any more data.
+
 
 class UUID
 ----------
@@ -514,15 +608,15 @@ Constructor
 
 .. class:: UUID(value, /)
 
-    创建具有指定**值**的UUID实例。
+    Creates a UUID instance with the specified **value**.
 
-    **值**可以是：
+    The **value** can be either:
 
-    - 16位整数 例如 ``0x2908``.
-    - 128位UUID字符串 例如 ``'6E400001-B5A3-F393-E0A9-E50E24DCCA9E'``.
+    - A 16-bit integer. e.g. ``0x2908``.
+    - A 128-bit UUID string. e.g. ``'6E400001-B5A3-F393-E0A9-E50E24DCCA9E'``.
 
 
-常数
+Constants
 ---------
 
 .. data:: ubluetooth.FLAG_READ

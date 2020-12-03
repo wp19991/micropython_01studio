@@ -102,7 +102,7 @@ The :mod:`network` module::
         print('network config:', wlan.ifconfig())
 
 一旦网络建立成功，你就可以通过 :mod:`socket <usocket>` 模块创建和使用 TCP/UDP sockets 通讯,
-以及通过 ``urequests``模块非常方便地发送 HTTP 请求。
+以及通过 ``urequests`` 模块非常方便地发送 HTTP 请求。
 
 延时和时间
 ----------------
@@ -292,10 +292,10 @@ has the same methods as software SPI above::
     vspi = SPI(2, baudrate=80000000, polarity=0, phase=0, bits=8, firstbit=0, sck=Pin(18), mosi=Pin(23), miso=Pin(19))
 
 SoftI2C总线
--------
+----------------
 
 I2C总线分软件和硬件对象，硬件可以定义0和1，通过配置可以在任意引脚上实现改功能，
-详情请看:ref:`machine.SoftI2C <machine.SoftI2C>` 类模块::
+详情请看 :ref:`machine.SoftI2C <machine.SoftI2C>` 类模块::
 
     from machine import Pin, SoftI2C
 
@@ -315,7 +315,7 @@ I2C总线分软件和硬件对象，硬件可以定义0和1，通过配置可以
     i2c.writeto(0x3a, buf)  # 写入缓冲区数据到从机
 
 Hardware I2C bus
-----------------
+-----------------
 
 There are two hardware I2C peripherals with identifiers 0 and 1.  Any available
 output-capable pins can be used for SCL and SDA but the defaults are given
@@ -374,7 +374,7 @@ See :ref:`machine.RTC <machine.RTC>` ::
     p1 = Pin(4, Pin.OUT, None)
 
 RMT
----
+----
 
 The RMT is ESP32-specific and allows generation of accurate digital pulses with
 12.5ns resolution.  See :ref:`esp32.RMT <esp32.RMT>` for details.  Usage is::
@@ -388,7 +388,7 @@ The RMT is ESP32-specific and allows generation of accurate digital pulses with
     r.write_pulses((1, 20, 2, 40), start=0) # Send 0 for 100ns, 1 for 2000ns, 0 for 200ns, 1 for 4000ns
 
 单总线驱动（Onewire）
---------------
+---------------------
 
 单总线驱动允许通过软件在各个引脚上实现::
 
@@ -413,10 +413,10 @@ The RMT is ESP32-specific and allows generation of accurate digital pulses with
     for rom in roms:
         print(ds.read_temp(rom))
 
-确保数据引脚连接了 4.7k 的上拉电阻。另外请注意每次采集温度都需要用到 ``convert_temp()``模块。
+确保数据引脚连接了 4.7k 的上拉电阻。另外请注意每次采集温度都需要用到 ``convert_temp()`` 模块。
 
 NeoPixel 彩灯驱动
----------------
+------------------
 
 Use the ``neopixel`` module::
 
@@ -434,10 +434,9 @@ Use the ``neopixel`` module::
     import esp
     esp.neopixel_write(pin, grb_buf, is800khz)
 
-.. 警告::
-   默认情况下， ``NeoPixel`` 被配置成控制更常用的 *800kHz*单元设备。用户可以通过使用替代的定时器
-   来说控制其他频率的设备 (通常是 400kHz)。 可以通过使用定时器 ``timing=0`` 当构建``NeoPixel`` 对象的时候。
-
+.. Warning::
+   默认情况下 ``NeoPixel`` 被配置成控制更常用的 *800kHz* 单元设备。用户可以通过使用替代的定时器
+   来说控制其他频率的设备 (通常是 400kHz)。 可以通过使用定时器 ``timing=0`` 当构建 ``NeoPixel`` 对象的时候。
 
 电容触摸
 ----------------
@@ -490,7 +489,7 @@ DHT 温湿度驱动允许通过软件在各个引脚上实现::
     d.humidity()    # eg. 41.3 (% RH)
 
 WebREPL (Web浏览器交互提示)
-----------------------------------------
+-------------------------------
 
 WebREPL (通过WebSockets的REPL, 可以通过浏览器使用) 是ESP8266端口实验的功能。
 可以从 https://github.com/micropython/webrepl 下载并打开html文件运行。
@@ -513,6 +512,6 @@ WebREPL (通过WebSockets的REPL, 可以通过浏览器使用) 是ESP8266端口�
 特殊情况， 请先使用ESP32 AP方式)。
 
 除了终端/命令符的访问方式, WebREPL同时允许传输文件 (包含上传和下载)。Web客户端有相应的
-功能按钮，也可以通过 ``webrepl_cli.py``模块上存储的命令行进行操作。
+功能按钮，也可以通过 ``webrepl_cli.py`` 模块上存储的命令行进行操作。
 
 有关将文件传输到ESP32其他支持的替代方法，请参阅MicroPython论坛。

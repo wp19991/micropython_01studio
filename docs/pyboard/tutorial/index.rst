@@ -27,7 +27,7 @@ the tutorial through in the order below.
    power_ctrl.rst
 
 Tutorials requiring extra components（教程需要的其他元器件）
-------------------------------------
+-------------------------------------------------------------
 
 .. toctree::
    :maxdepth: 1
@@ -40,7 +40,7 @@ Tutorials requiring extra components（教程需要的其他元器件）
    lcd160cr_skin.rst
 
 Tips, tricks and useful things to know（你必须知道的贴士，技巧和有用的信息。）
---------------------------------------
+-------------------------------------------------------------------------------
 
 .. toctree::
    :maxdepth: 1
