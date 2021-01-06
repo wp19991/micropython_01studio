@@ -1,4 +1,4 @@
-#define MICROPY_HW_BOARD_NAME       "Columbus V1.0"
+#define MICROPY_HW_BOARD_NAME       "01Studio Columbus"
 #define MICROPY_HW_MCU_NAME         "STM32F407ZGT6"
 #define	MICROPY_HW_FLASH_FS_LABEL		"COLUMBUS"
 
