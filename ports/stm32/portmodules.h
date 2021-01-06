@@ -31,6 +31,16 @@ extern const mp_obj_module_t stm_module;
 extern const mp_obj_module_t mp_module_uos;
 extern const mp_obj_module_t mp_module_utime;
 extern const mp_obj_module_t mp_module_usocket;
+//01studio
+extern const mp_obj_module_t tftlcd_module;
+extern const mp_obj_module_t touch_module;
+extern const mp_obj_module_t audio_module;
+extern const mp_obj_module_t video_module;
+extern const mp_obj_module_t sensor_module;
+extern const mp_obj_module_t gui_module;
+
+
+
 
 // additional helper functions exported by the modules
 

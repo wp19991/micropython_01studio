@@ -126,7 +126,8 @@ STATIC const mp_rom_map_elem_t mp_module_network_globals_table[] = {
     { MP_ROM_QSTR(MP_QSTR___name__), MP_ROM_QSTR(MP_QSTR_network) },
 
     #if defined(MICROPY_HW_ETH_MDC)
-    { MP_ROM_QSTR(MP_QSTR_LAN), MP_ROM_PTR(&network_lan_type) },
+   // { MP_ROM_QSTR(MP_QSTR_LAN), MP_ROM_PTR(&network_lan_type) },
+    { MP_ROM_QSTR(MP_QSTR_Ethernet), MP_ROM_PTR(&network_lan_type) },
     #endif
     #if MICROPY_PY_NETWORK_CYW43
     { MP_ROM_QSTR(MP_QSTR_WLAN), MP_ROM_PTR(&mp_network_cyw43_type) },

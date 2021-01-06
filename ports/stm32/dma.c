@@ -33,6 +33,12 @@
 #include "systick.h"
 #include "dma.h"
 #include "irq.h"
+#if MICROPY_HW_WM8978
+#include "wm8978.h"
+#endif
+#if MICROPY_HW_OV2640
+#include "ov2640.h"
+#endif
 
 #define DMA_IDLE_ENABLED()  (dma_idle.enabled != 0)
 #define DMA_SYSTICK_LOG2    (3)
@@ -102,7 +108,7 @@ static const DMA_InitTypeDef dma_init_struct_spi_i2c = {
     .PeriphBurst = DMA_PBURST_INC4
     #endif
 };
-
+    
 #if ENABLE_SDIO && !defined(STM32H7)
 // Parameters to dma_init() for SDIO tx and rx.
 static const DMA_InitTypeDef dma_init_struct_sdio = {
@@ -235,6 +241,7 @@ static const uint8_t dma_irqn[NSTREAM] = {
 // DMA1 streams
 const dma_descr_t dma_I2C_1_RX = { DMA1_Stream0, DMA_CHANNEL_1, dma_id_0,   &dma_init_struct_spi_i2c };
 const dma_descr_t dma_SPI_3_RX = { DMA1_Stream2, DMA_CHANNEL_0, dma_id_2,   &dma_init_struct_spi_i2c };
+
 #if defined(STM32F7)
 const dma_descr_t dma_I2C_4_RX = { DMA1_Stream2, DMA_CHANNEL_2, dma_id_2,   &dma_init_struct_spi_i2c };
 #endif
@@ -609,20 +616,37 @@ void DMA1_Stream2_IRQHandler(void) {
     }
     IRQ_EXIT(DMA1_Stream2_IRQn);
 }
-void DMA1_Stream3_IRQHandler(void) {
+
+  void DMA1_Stream3_IRQHandler(void) {
     IRQ_ENTER(DMA1_Stream3_IRQn);
+    #if MICROPY_HW_WM8978
+    if(__HAL_DMA_GET_FLAG(&I2S2_RXDMA_Handler,DMA_FLAG_TCIF3_7)!=RESET) 
+    {
+        __HAL_DMA_CLEAR_FLAG(&I2S2_RXDMA_Handler,DMA_FLAG_TCIF3_7);   
+				i2s_rx_callback();
+    } 
+    #endif
+        
     if (dma_handle[dma_id_3] != NULL) {
         HAL_DMA_IRQHandler(dma_handle[dma_id_3]);
     }
     IRQ_EXIT(DMA1_Stream3_IRQn);
 }
-void DMA1_Stream4_IRQHandler(void) {
+ void DMA1_Stream4_IRQHandler(void) {
     IRQ_ENTER(DMA1_Stream4_IRQn);
+    #if MICROPY_HW_WM8978
+  	 if(__HAL_DMA_GET_FLAG(&I2S2_TXDMA_Handler,DMA_FLAG_TCIF0_4)!=RESET) 
+		 {
+				 __HAL_DMA_CLEAR_FLAG(&I2S2_TXDMA_Handler,DMA_FLAG_TCIF0_4);		 
+				 i2s_tx_callback();
+		 } 
+     #endif
     if (dma_handle[dma_id_4] != NULL) {
         HAL_DMA_IRQHandler(dma_handle[dma_id_4]);
     }
     IRQ_EXIT(DMA1_Stream4_IRQn);
 }
+
 void DMA1_Stream5_IRQHandler(void) {
     IRQ_ENTER(DMA1_Stream5_IRQn);
     if (dma_handle[dma_id_5] != NULL) {
@@ -653,6 +677,14 @@ void DMA2_Stream0_IRQHandler(void) {
 }
 void DMA2_Stream1_IRQHandler(void) {
     IRQ_ENTER(DMA2_Stream1_IRQn);
+
+		#if MICROPY_HW_OV2640
+		if(__HAL_DMA_GET_FLAG(&DMADMCI_Handler,DMA_FLAG_TCIF1_5)!=RESET)
+			{
+				__HAL_DMA_CLEAR_FLAG(&DMADMCI_Handler,DMA_FLAG_TCIF1_5);
+				dcmi_rx_callback();
+			} 
+		#endif
     if (dma_handle[dma_id_9] != NULL) {
         HAL_DMA_IRQHandler(dma_handle[dma_id_9]);
     }

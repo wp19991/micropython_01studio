@@ -1,7 +1,7 @@
 # Select the board to build for: if not given on the command line,
 # then default to PYBV10.
 BOARD ?= PYBV10
-
+#BOARD ?= COLUMBUS
 # If the build directory is not given, make it reflect the board name.
 BUILD ?= build-$(BOARD)
 
@@ -94,7 +94,7 @@ CFLAGS_MCU_l4 = $(CFLAGS_CORTEX_M) -mtune=cortex-m4 -mcpu=cortex-m4
 CFLAGS_MCU_h7 = $(CFLAGS_CORTEX_M) -mtune=cortex-m7 -mcpu=cortex-m7
 CFLAGS_MCU_wb = $(CFLAGS_CORTEX_M) -mtune=cortex-m4 -mcpu=cortex-m4
 
-CFLAGS += $(INC) -Wall -Wpointer-arith -Werror -Wdouble-promotion -Wfloat-conversion -std=gnu99 -nostdlib $(CFLAGS_MOD) $(CFLAGS_EXTRA)
+CFLAGS += $(INC) -Wall -Wpointer-arith -Wall -Wdouble-promotion -Wfloat-conversion -std=gnu99 -nostdlib $(CFLAGS_MOD) $(CFLAGS_EXTRA)
 CFLAGS += -D$(CMSIS_MCU)
 CFLAGS += $(CFLAGS_MCU_$(MCU_SERIES))
 CFLAGS += $(COPT)
@@ -336,8 +336,82 @@ SRC_C += \
 	servo.c \
 	dac.c \
 	adc.c \
+	sram.c \
+	modtftlcd.c \
+	modtouch.c \
+	modaudio.c \
+	modvideo.c \
+	modsensor.c \
+	modgui.c \
+	lcd43m.c \
+	gt1151.c \
+	wm8978.c \
+	ov2640.c \
+	video.c \
+	gui_button.c \
+	machine_neopixel.c \
 	$(wildcard $(BOARD_DIR)/*.c)
 
+ifeq ($(MICROPY_PY_PICLIB),1)
+#pic
+SRC_C += $(addprefix $(BOARD_DIR)/picture/,\
+	piclib.c \
+	tjpgd.c \
+	bmp.c \
+	)
+
+INC += -I$(BOARD_DIR)/picture
+endif
+#mp3
+ifeq ($(MICROPY_PY_MP3),1)
+SRC_O += $(addprefix $(BOARD_DIR)/helix-v100/real/arm/,\
+	asmmisc_gcc.o \
+	asmpoly_thumb2_gcc.o \
+	)
+SRC_C += $(wildcard $(BOARD_DIR)/helix-v100/real/*.c)
+SRC_C += $(wildcard $(BOARD_DIR)/helix-v100/*.c)
+INC += -I$(BOARD_DIR)/helix-v100/real
+INC += -I$(BOARD_DIR)/helix-v100/pub
+INC += -I$(BOARD_DIR)/helix-v100
+endif
+#
+ifeq ($(MICROPY_PY_VIDEO),1)
+SRC_C += $(addprefix $(BOARD_DIR)/mjpeg/jpeg/,\
+	jaricom.c \
+	jcomapi.c \
+	jutils.c \
+	jerror.c \
+	jmemmgr.c \
+	jdapimin.c \
+	jdapistd.c \
+	jdarith.c \
+	jdmaster.c \
+	jdinput.c \
+	jdmarker.c \
+	jdhuff.c \
+	jdmainct.c \
+	jdcoefct.c \
+	jdpostct.c \
+	jddctmgr.c \
+	jidctfst.c \
+	jidctflt.c \
+	jidctint.c \
+	jdsample.c \
+	jdcolor.c \
+	jquant1.c \
+	jquant2.c \
+	jdmerge.c \
+	jmemnobs.c \
+	wrppm.c \
+	)
+
+SRC_C += $(BOARD_DIR)/mjpeg/avi.c
+SRC_C += $(BOARD_DIR)/mjpeg/mjpeg.c
+
+INC += -I$(BOARD_DIR)/mjpeg/jpeg
+INC += -I$(BOARD_DIR)/mjpeg
+endif
+#------------------------------------------------------endif
 SRC_CXX += \
 	$(SRC_MOD_CXX)
 
@@ -407,6 +481,8 @@ HAL_SRC_C += $(addprefix $(HAL_DIR)/Src/stm32$(MCU_SERIES)xx_,\
 	hal_sdram.c \
 	hal_dma_ex.c \
 	hal_dcmi.c \
+	hal_i2s.c \
+	hal_i2s_ex.c \
 	)
 endif
 

@@ -201,6 +201,27 @@
 #ifndef MICROPY_PY_NETWORK
 #define MICROPY_PY_NETWORK          (1)
 #endif
+//01studio
+#ifndef MICROPY_ENABLE_TFTLCD
+#define MICROPY_ENABLE_TFTLCD          (0)
+#endif
+#ifndef MICROPY_ENABLE_TOUCH
+#define MICROPY_ENABLE_TOUCH           (0)
+#endif
+#ifndef MICROPY_ENABLE_AUDIO
+#define MICROPY_ENABLE_AUDIO           (0)
+#endif
+#ifndef MICROPY_ENABLE_VIDEO
+#define MICROPY_ENABLE_VIDEO           (0)
+#endif
+#ifndef MICROPY_ENABLE_SENSOR
+#define MICROPY_ENABLE_SENSOR           (0)
+#endif
+#ifndef MICROPY_ENABLE_GUI
+#define MICROPY_ENABLE_GUI           (0)
+#endif
+
+
 
 // fatfs configuration used in ffconf.h
 #define MICROPY_FATFS_ENABLE_LFN       (1)
@@ -245,6 +266,14 @@ extern const struct _mp_obj_module_t mp_module_utime;
 extern const struct _mp_obj_module_t mp_module_usocket;
 extern const struct _mp_obj_module_t mp_module_network;
 extern const struct _mp_obj_module_t mp_module_onewire;
+//01studio
+extern const struct _mp_obj_module_t tftlcd_module;
+extern const struct _mp_obj_module_t touch_module;
+extern const struct _mp_obj_module_t audio_module;
+extern const struct _mp_obj_module_t video_module;
+extern const struct _mp_obj_module_t sensor_module;
+extern const struct _mp_obj_module_t gui_module;
+
 
 #if MICROPY_PY_STM
 #define STM_BUILTIN_MODULE               { MP_ROM_QSTR(MP_QSTR_stm), MP_ROM_PTR(&stm_module) },
@@ -269,6 +298,39 @@ extern const struct _mp_obj_module_t mp_module_onewire;
 #define NETWORK_BUILTIN_MODULE
 #endif
 
+
+#if MICROPY_ENABLE_TFTLCD
+#define TFTLCD_MODULE              { MP_ROM_QSTR(MP_QSTR_tftlcd), MP_ROM_PTR(&tftlcd_module) },
+#else
+#define TFTLCD_MODULE
+#endif
+#if MICROPY_ENABLE_TOUCH
+#define TOUCH_MODULE              { MP_ROM_QSTR(MP_QSTR_touch), MP_ROM_PTR(&touch_module) },
+#else
+#define TOUCH_MODULE
+#endif
+#if MICROPY_ENABLE_AUDIO
+#define AUDIO_MODULE              { MP_ROM_QSTR(MP_QSTR_audio), MP_ROM_PTR(&audio_module) },
+#else
+#define AUDIO_MODULE
+#endif
+#if MICROPY_ENABLE_VIDEO
+#define VIDEO_MODULE              { MP_ROM_QSTR(MP_QSTR_video), MP_ROM_PTR(&video_module) },
+#else
+#define VIDEO_MODULE
+#endif
+#if MICROPY_ENABLE_SENSOR
+#define SENSOR_MODULE              { MP_ROM_QSTR(MP_QSTR_sensor), MP_ROM_PTR(&sensor_module) },
+#else
+#define SENSOR_MODULE
+#endif
+#if MICROPY_ENABLE_GUI
+#define GUI_MODULE              { MP_ROM_QSTR(MP_QSTR_gui), MP_ROM_PTR(&gui_module) },
+#else
+#define GUI_MODULE
+#endif
+
+
 #define MICROPY_PORT_BUILTIN_MODULES \
     { MP_ROM_QSTR(MP_QSTR_umachine), MP_ROM_PTR(&machine_module) }, \
     { MP_ROM_QSTR(MP_QSTR_pyb), MP_ROM_PTR(&pyb_module) }, \
@@ -278,6 +340,12 @@ extern const struct _mp_obj_module_t mp_module_onewire;
     SOCKET_BUILTIN_MODULE \
     NETWORK_BUILTIN_MODULE \
     { MP_ROM_QSTR(MP_QSTR__onewire), MP_ROM_PTR(&mp_module_onewire) }, \
+		TFTLCD_MODULE \
+		TOUCH_MODULE \
+		AUDIO_MODULE \
+		VIDEO_MODULE \
+		SENSOR_MODULE \
+		GUI_MODULE \
 
 // extra constants
 #define MICROPY_PORT_CONSTANTS \
@@ -285,7 +353,13 @@ extern const struct _mp_obj_module_t mp_module_onewire;
     { MP_ROM_QSTR(MP_QSTR_machine), MP_ROM_PTR(&machine_module) }, \
     { MP_ROM_QSTR(MP_QSTR_pyb), MP_ROM_PTR(&pyb_module) }, \
     STM_BUILTIN_MODULE \
-
+    TFTLCD_MODULE \
+    TOUCH_MODULE \
+    AUDIO_MODULE \
+    VIDEO_MODULE \
+    SENSOR_MODULE \
+    GUI_MODULE \
+    
 #define MP_STATE_PORT MP_STATE_VM
 
 #if MICROPY_SSL_MBEDTLS
@@ -307,6 +381,18 @@ struct _mp_bluetooth_btstack_root_pointers_t;
 #define MICROPY_PORT_ROOT_POINTER_BLUETOOTH_BTSTACK struct _mp_bluetooth_btstack_root_pointers_t *bluetooth_btstack_root_pointers;
 #else
 #define MICROPY_PORT_ROOT_POINTER_BLUETOOTH_BTSTACK
+#endif
+
+#if MICROPY_ENABLE_VIDEO
+#define MICROPY_PORT_ROOT_VIDEO struct _video_video_obj_t *video_obj_rom; 
+#else
+#define MICROPY_PORT_ROOT_VIDEO
+#endif
+
+#if MICROPY_ENABLE_GUI
+#define MICROPY_PORT_ROOT_GUI struct _gui_button_obj_t *gui_btn_obj_all[GUI_BTN_NUM_MAX];
+#else
+#define MICROPY_PORT_ROOT_GUI
 #endif
 
 #define MICROPY_PORT_ROOT_POINTERS \
@@ -336,6 +422,11 @@ struct _mp_bluetooth_btstack_root_pointers_t;
     \
     /* pointers to all CAN objects (if they have been created) */ \
     struct _pyb_can_obj_t *pyb_can_obj_all[MICROPY_HW_MAX_CAN]; \
+    \
+    struct _fs_user_mount_t *fs_user_mount; \
+    \
+    MICROPY_PORT_ROOT_VIDEO \
+    MICROPY_PORT_ROOT_GUI \
     \
     /* list of registered NICs */ \
     mp_obj_list_t mod_network_nic_list; \
