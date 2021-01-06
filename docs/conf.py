@@ -68,6 +68,7 @@ master_doc = 'index'
 project = 'MicroPython'
 copyright = '2014-2020, Damien P. George, Paul Sokolovsky, and contributors'
 
+
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
 # built documents.
@@ -154,7 +155,7 @@ else:
 
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
-#html_logo = '../../logo/trans-logo.png'
+html_logo = 'static/01studio-white.png'
 
 # The name of an image file (within the static path) to use as favicon of the
 # docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32

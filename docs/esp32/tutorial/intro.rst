@@ -1,139 +1,122 @@
 .. _esp32_intro:
 
-Getting started with MicroPython on the ESP32
+ESP32 MicroPython上手指南
 =============================================
 
-Using MicroPython is a great way to get the most of your ESP32 board.  And
-vice versa, the ESP32 chip is a great platform for using MicroPython.  This
-tutorial will guide you through setting up MicroPython, getting a prompt, using
-WebREPL, connecting to the network and communicating with the Internet, using
-the hardware peripherals, and controlling some external components.
+使用MicroPython是一种充分使用ESP32开发板最好的方式。并且ESP32芯片是使用MicroPython
+最好的平台。该教程将指导你如何使用ESP32上的MicroPython，从输出提示，使用WebREPL，
+连接网络并与网络通信，使用硬件外设，以及控制扩展组件。
 
-Let's get started!
+让我们开始吧！
 
-Requirements
+准备工作
 ------------
 
-The first thing you need is a board with an ESP32 chip.  The MicroPython
-software supports the ESP32 chip itself and any board should work.  The main
-characteristic of a board is how the GPIO pins are connected to the outside
-world, and whether it includes a built-in USB-serial convertor to make the
-UART available to your PC.
+你需要一块ESP32开发板。MicroPython支持ESP32芯片本身，从而可运行于任何一块搭载ESP32
+芯片的开发板上。改板子的主要特征在于GPIO针脚是连接外界的，并且它包含了一个内置的
+USB串口转换器，该转换器可以使你的电脑通过UART（Universal Asynchronous Receiver/
+Transmitter，通用异步收发传输器)来连接你的开发板。
 
-Names of pins will be given in this tutorial using the chip names (eg GPIO2)
-and it should be straightforward to find which pin this corresponds to on your
-particular board.
 
-Powering the board
+为方便你找到开发板上对应的针脚，本教程将使用芯片上的针脚名(例如GPIO2)。
+
+给开发板供电
 ------------------
 
-If your board has a USB connector on it then most likely it is powered through
-this when connected to your PC.  Otherwise you will need to power it directly.
-Please refer to the documentation for your board for further details.
+通常大部分开发板都可以使用电脑给。否则你需要直接给开发板供电（为防止因电流或者电压
+过大导致开发板损坏）。
+请参考开发版所对应的文档以获取更多信息。
 
-Getting the firmware
+获取固件
 --------------------
 
-The first thing you need to do is download the most recent MicroPython firmware 
-.bin file to load onto your ESP32 device. You can download it from the  
-`MicroPython downloads page <https://micropython.org/download#esp32>`_.
-From here, you have 3 main choices:
+你要做的的一件事就是下载适用于ESP32的MicroPython的固件（.bin）。
+你可以从官网（传送门：https://micropython.org/download#esp32）获取固件。
+你有三种选择：
 
-* Stable firmware builds
-* Daily firmware builds
-* Daily firmware builds with SPIRAM support
+* 稳定版固件
+* 每日更新版固件
+* 支持SPIRAM的每日更新版固件
 
-If you are just starting with MicroPython, the best bet is to go for the Stable
-firmware builds. If you are an advanced, experienced MicroPython ESP32 user
-who would like to follow development closely and help with testing new
-features, there are daily builds.  If your board has SPIRAM support you can
-use either the standard firmware or the firmware with SPIRAM support, and in
-the latter case you will have access to more RAM for Python objects.
+如果你刚开始使用MicroPython，为了保险起见，我们建议你使用稳定版固件。
+如果你是ESP32老用户或者专家，想要跟随着开发进度的步伐，那么你可以使用每日构建版
+固件。
+如果你的开发板有SPIRAM，你可以选择标准固件或者支持SPIRAM的固件，可以为Python获得
+更多的内存容量。
 
-Deploying the firmware
+刷入固件
 ----------------------
 
-Once you have the MicroPython firmware you need to load it onto your ESP32 device.
-There are two main steps to do this: first you need to put your device in
-bootloader mode, and second you need to copy across the firmware.  The exact
-procedure for these steps is highly dependent on the particular board and you will
-need to refer to its documentation for details.
+当你准备好固件以后，你就可以将固件刷入你的ESP32开发板，当然如果要将固件刷入ESP32，
+你还有两步路要走：
+第一步——将你的开发板调整到bootloader模式，第二步就是将固件拷入。
+这些步骤的具体步骤取决于你的的开发板，您需要参考其文档以获取更多信息。
 
-Fortunately, most boards have a USB connector, a USB-serial convertor, and the DTR
-and RTS pins wired in a special way then deploying the firmware should be easy as
-all steps can be done automatically.  Boards that have such features
-include the Adafruit Feather HUZZAH32, M5Stack, Wemos LOLIN32, and TinyPICO
-boards, along with the Espressif DevKitC, PICO-KIT, WROVER-KIT dev-kits.
+辛运的是，大部分的板子都有USB连接器,一个USB-串口转换器,以及DTR
+和RTS针脚以特殊的方式连接，从而可以轻松成刷入固件。
+具有此类功能的电路板包括Adafruit Feather HUZZAH32，M5Stack，Wemos LOLIN32，TinyPICO
+开发板,以及乐鑫的DevKitC, PICO-KIT, WROVER-KIT开发套件s.
 
-For best results it is recommended to first erase the entire flash of your
-device before putting on new MicroPython firmware.
+为获得最好的效果，建议在刷入MicroPython固件之前先进行擦除操作。
 
-Currently we only support esptool.py to copy across the firmware.  You can find
-this tool here: `<https://github.com/espressif/esptool/>`__, or install it
-using pip::
+目前我们只支持通过esptool.py刷入固件。你可以从乐鑫官方Github上获取该工具。
+ （传送门：https://github.com/espressif/esptool/），或者通过pip安装::
 
     pip install esptool
 
-Versions starting with 1.3 support both Python 2.7 and Python 3.4 (or newer).
-An older version (at least 1.2.1 is needed) works fine but will require Python
-2.7.
+从1.3版本开始支持Python 2.7和Python 3.4（及以上）版本。
+更早的版本(至少需要1.2.1版本)也能刷固件，但是需要Python 2.7版本。
 
-Using esptool.py you can erase the flash with the command::
+请注意：自2020年1月1日起，Python官方不再支持Python 2。届时，Python
+核心开发人员将不再提供错误修复版或安全更新等内容。建议使用支持Python
+3的esptool版本（1.3版本及以上）。
+
+你可以输入以下命令以进行擦除工作::
 
     esptool.py --port /dev/ttyUSB0 erase_flash
 
-And then deploy the new firmware using::
+输入以下命令来刷入固件::
 
     esptool.py --chip esp32 --port /dev/ttyUSB0 write_flash -z 0x1000 esp32-20180511-v1.9.4.bin
 
-Notes:
+提示:
 
-* You might need to change the "port" setting to something else relevant for your
-  PC
-* You may need to reduce the baudrate if you get errors when flashing
-  (eg down to 115200 by adding ``--baud 115200`` into the command)
-* For some boards with a particular FlashROM configuration you may need to
-  change the flash mode (eg by adding ``-fm dio`` into the command)
-* The filename of the firmware should match the file that you have
+* 您可能需要将“端口”设置更改为与你的PC相关的其他设置。
+* 如果你在刷固件的过程中出现问题，你需要调低波特率。
+  (例：往你的命令里添加 ``--baud 115200`` 以将频段降低至115200)
+* 对于某些具有特定Flash ROM配置的板，您可能需要更改flash模式。
+  (例：将 ``-fm dio`` 添加到你的命令里)
+* 固件的文件名应该与你准备的文件匹配。
 
-If the above commands run without error then MicroPython should be installed on
-your board!
+如果没有任何报错信息，那么恭喜你，你成功地将MicroPython刷入ESP32
 
-Serial prompt
+串行命令符
 -------------
 
-Once you have the firmware on the device you can access the REPL (Python prompt)
-over UART0 (GPIO1=TX, GPIO3=RX), which might be connected to a USB-serial
-convertor, depending on your board.  The baudrate is 115200.
+一旦你的设备上有固件，就可以使用USB-串口转换器的UART0(GPIO1=TX, GPIO3=RX)
+访问REPL (Python命令符)，这取决于你的开发板。频段为115200。
 
-From here you can now follow the ESP8266 tutorial, because these two Espressif chips
-are very similar when it comes to using MicroPython on them.  The ESP8266 tutorial
-is found at :ref:`esp8266_tutorial` (but skip the Introduction section).
+你可以更随着ESP8266教程，因为这两块乐鑫芯片，当你用MicroPython的时候非常相似。
+ESP8266教程传送门：:ref:`esp8266_tutorial` (跳过介绍部分)
 
-Troubleshooting installation problems
+编译时出了问题怎么办？
 -------------------------------------
 
-If you experience problems during flashing or with running firmware immediately
-after it, here are troubleshooting recommendations:
+如果在闪存或立即运行固件时遇到问题，你可以参考下面的故障排除建议：
 
-* Be aware of and try to exclude hardware problems.  There are 2 common
-  problems: bad power source quality, and worn-out/defective FlashROM.
-  Speaking of power source, not just raw amperage is important, but also low
-  ripple and noise/EMI in general.  The most reliable and convenient power
-  source is a USB port.
+* 注意并尝试排除硬件问题。常见的问题有2个：电源质量差，FlashROM磨损/损坏。
+  说到电源，电流是非常重要的。当然，低纹波噪声或者EMI也很重要。
+  最可靠、最方便的电源是USB接口。
 
-* The flashing instructions above use flashing speed of 460800 baud, which is
-  good compromise between speed and stability. However, depending on your
-  module/board, USB-UART convertor, cables, host OS, etc., the above baud
-  rate may be too high and lead to errors. Try a more common 115200 baud
-  rate instead in such cases.
+* 上面的闪烁指令使用460800波特的闪烁速度，这是速度和稳定性之间的良好折衷。
+  但是，取决于您的模块或者开发板、USB-UART转换器、电缆、主机操作系统等，
+  上述波特率可能过高并导致错误。在这种情况下，请尝试更常见的115200波特率。
 
-* To catch incorrect flash content (e.g. from a defective sector on a chip),
-  add ``--verify`` switch to the commands above.
+* 为捕捉不正确的flash内容(例：芯片上有缺陷的扇区),
+  请往你的命令里添加 ``--verify`` 。
 
-* If you still experience problems with flashing the firmware please
-  refer to esptool.py project page, https://github.com/espressif/esptool
-  for additional documentation and a bug tracker where you can report problems.
+* 如果依旧有问题，请参考乐鑫提供的官方文档以及专门报告问题的BUG跟踪器。
+  传送门：https://github.com/espressif/esptool
 
-* If you are able to flash the firmware but the ``--verify`` option returns
-  errors even after multiple retries the you may have a defective FlashROM chip.
+* 如果你能刷固件但加上 ``--verify`` 后并多次重试后依旧报错，那么有可能是
+  你的Flash ROM出了问题，建议联系开发板供应商寻求帮助。
