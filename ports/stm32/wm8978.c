@@ -236,6 +236,27 @@ void wm8978_spk_vol(uint8_t volx)
 //-----------------------------------------------------------------------------------
 //初始化wm8978
 void wm8978_init(void) {
+	GPIO_InitTypeDef GPIO_Initure;
+
+	__HAL_RCC_SPI2_CLK_ENABLE();
+	__HAL_RCC_GPIOB_CLK_ENABLE();
+	__HAL_RCC_GPIOC_CLK_ENABLE();
+
+	GPIO_Initure.Pin=GPIO_PIN_12|GPIO_PIN_13;  
+	GPIO_Initure.Mode=GPIO_MODE_AF_PP;
+	GPIO_Initure.Pull=GPIO_PULLUP;    
+	GPIO_Initure.Speed=GPIO_SPEED_HIGH;
+	GPIO_Initure.Alternate=GPIO_AF5_SPI2;
+	HAL_GPIO_Init(GPIOB,&GPIO_Initure);
+
+	GPIO_Initure.Pin=GPIO_PIN_2|GPIO_PIN_3|GPIO_PIN_6; 
+	HAL_GPIO_Init(GPIOC,&GPIO_Initure);
+
+	GPIO_Initure.Pin=GPIO_PIN_2; 
+	GPIO_Initure.Alternate=GPIO_AF6_I2S2ext;
+	HAL_GPIO_Init(GPIOC,&GPIO_Initure); 
+	
+
     // start the I2C bus in master mode
     i2c_init(I2C1, MICROPY_HW_I2C1_SCL, MICROPY_HW_I2C1_SDA, 400000, I2C_TIMEOUT_MS);
 
@@ -268,6 +289,7 @@ void wm8978_init(void) {
 	wm8978_write_reg(14,1<<3);	//R14,ADC 128x采样率
 
 	wm8978_adda_cfg(1,0);			//开启DAC
+	//wm8978_adda_cfg(0,0);
 	wm8978_input_cfg(0,0,0);		//关闭输入通道
 	wm8978_output_cfg(1,0);			//开启DAC输出  
 	wm8978_hspk_vol(50,50);
@@ -347,11 +369,13 @@ void wav_i2s_dma_tx_callback(void) {
 		if((audiodev.status)==3 && bread < WAV_I2S_TX_DMA_BUFSIZE) {
 		 for(i=bread;i<WAV_I2S_TX_DMA_BUFSIZE-bread;i++) audiodev.i2sbuf2[i]=0; 
 		 	wav_stop();
+			wm8978_adda_cfg(0,0);
 		 	f_close(audiodev.file);
 			m_free(audiodev.i2sbuf1);
 			m_free(audiodev.i2sbuf2);
 			m_free(audiodev.file);
 		}
+
 	wav_get_curtime(audiodev.file , &wavctrl);
 }
 
@@ -423,15 +447,8 @@ void auido_deinit(void) {
 
 	HAL_DMA_DeInit(&I2S2_TXDMA_Handler); 
 	HAL_DMA_Init(&I2S2_RXDMA_Handler);
-
-	__SPI2_FORCE_RESET();
-	__SPI2_RELEASE_RESET();
-	__SPI2_CLK_DISABLE(); 
-
-	HAL_NVIC_DisableIRQ(DMA1_Stream4_IRQn);
-	HAL_NVIC_DisableIRQ(DMA1_Stream3_IRQn);
 }
-
+#if 0
 void HAL_I2S_MspInit(I2S_HandleTypeDef *hi2s)
 {
 	GPIO_InitTypeDef GPIO_Initure;
@@ -454,7 +471,7 @@ void HAL_I2S_MspInit(I2S_HandleTypeDef *hi2s)
 	GPIO_Initure.Alternate=GPIO_AF6_I2S2ext;
 	HAL_GPIO_Init(GPIOC,&GPIO_Initure); 
 }
-
+#endif
 
 const uint16_t I2S_PSC_TBL[][5]=
 {
@@ -521,7 +538,7 @@ void I2S2_TX_DMA_Init(uint8_t* buf0,uint8_t *buf1,uint32_t num)
     HAL_DMAEx_MultiBufferStart(&I2S2_TXDMA_Handler,(uint32_t)buf0,(uint32_t)&SPI2->DR,(uint32_t)buf1,num);
     __HAL_DMA_DISABLE(&I2S2_TXDMA_Handler);                         	
     mp_hal_delay_us(10);                                          
-    __HAL_DMA_ENABLE_IT(&I2S2_TXDMA_Handler,DMA_IT_TC);             	
+    __HAL_DMA_ENABLE_IT(&I2S2_TXDMA_Handler,DMA_IT_TC);         	
     __HAL_DMA_CLEAR_FLAG(&I2S2_TXDMA_Handler,DMA_FLAG_TCIF0_4);     		
     HAL_NVIC_SetPriority(DMA1_Stream4_IRQn,2,1);                    		
     HAL_NVIC_EnableIRQ(DMA1_Stream4_IRQn);
@@ -741,7 +758,6 @@ void wm8978_play_song(const char * file_name) {
 	res = wav_decode_init(&vfs_fat->fatfs , file_path , &wavctrl); 
 
 	if(res == FR_OK) {
-		
 		if(wavctrl.bps==16) {
 			WM8978_I2S_CFG(2,0);
 			audio_init(I2S_STANDARD_PHILIPS,I2S_MODE_MASTER_TX,I2S_CPOL_LOW,I2S_DATAFORMAT_16B_EXTENDED); 
@@ -784,15 +800,8 @@ STATIC mp_obj_t auido_wm8978_make_new(const mp_obj_type_t *type, size_t n_args, 
 	// check arguments
 	mp_arg_check_num(n_args, n_kw, 0, MP_OBJ_FUN_ARGS_MAX, true);
 	wm8978_init();
-	wm8978_hspk_vol(50,50);
-	wm8978_spk_vol(50);
-
-	wm8978_adda_cfg(1,0);
-	wm8978_input_cfg(0,0,0);
-	wm8978_output_cfg(1,0);
-
+	
   wm8978_obj_t *wm_obj;
-
   wm_obj = m_new_obj(wm8978_obj_t);
   wm_obj->base.type = &audio_wm8978_type;
   wm_obj->callback = mp_const_none;
@@ -819,7 +828,9 @@ STATIC mp_obj_t audio_wm8978_play(size_t n_args, const mp_obj_t *pos_args, mp_ma
 			audiodev.status = 3<<0;
 			__HAL_DMA_ENABLE(&I2S2_TXDMA_Handler);
 		}else if(strncmp(type , "mp3" , 3) == 0 ||strncmp(type , "MP3" , 3) == 0) {
+			//wm8978_adda_cfg(1,0);
 			mp3_play_song(audiodev.audioName);
+			//wm8978_adda_cfg(0,0);
 		}else{
 			mp_raise_ValueError(MP_ERROR_TEXT("play audio type error"));
 		}
@@ -847,11 +858,12 @@ STATIC mp_obj_t audio_wm8978_pause(size_t n_args, const mp_obj_t *pos_args, mp_m
 STATIC MP_DEFINE_CONST_FUN_OBJ_KW(audio_wm8978_pause_obj, 0, audio_wm8978_pause);
 //-----------------------------------------------------------------------------------
 STATIC mp_obj_t audio_wm8978_stop(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
-
 	if(audiodev.status != 0){
 		audiodev.status=0;
 		__HAL_DMA_DISABLE(&I2S2_TXDMA_Handler);//结束播放; 	
 		f_close(audiodev.file);
+		memset(audiodev.i2sbuf1,0,WAV_I2S_TX_DMA_BUFSIZE);
+		memset(audiodev.i2sbuf2,0,WAV_I2S_TX_DMA_BUFSIZE);
 		m_free(audiodev.i2sbuf1);
 		m_free(audiodev.i2sbuf2);
 		m_free(audiodev.file);
@@ -972,13 +984,20 @@ STATIC mp_obj_t audio_wm8978_record_stop(size_t n_args, const mp_obj_t *pos_args
 STATIC MP_DEFINE_CONST_FUN_OBJ_KW(audio_wm8978_record_stop_obj, 0, audio_wm8978_record_stop);
 //-----------------------------------------------------------------------------------
 
+STATIC mp_obj_t audio_wm8978_deinit(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
+	audiodev.status=0;
+	return mp_const_none;
+}
+STATIC MP_DEFINE_CONST_FUN_OBJ_KW(audio_wm8978_deinit_obj,0, audio_wm8978_deinit);
+//----------------------------------------------------------------------------------
+
 
 
 
 /******************************************************************************/
 STATIC const mp_rom_map_elem_t audio_wm8978_locals_dict_table[] = {
     { MP_ROM_QSTR(MP_QSTR__name__), MP_ROM_QSTR(MP_QSTR_wm8978) },
-
+    { MP_ROM_QSTR(MP_QSTR_deinit), MP_ROM_PTR(&audio_wm8978_deinit_obj) },
 		{ MP_ROM_QSTR(MP_QSTR_load), MP_ROM_PTR(&audio_wm8978_load_obj) },
 		{ MP_ROM_QSTR(MP_QSTR_play), MP_ROM_PTR(&audio_wm8978_play_obj) },
 		{ MP_ROM_QSTR(MP_QSTR_continue_play), MP_ROM_PTR(&audio_wm8978_continue_play_obj)},

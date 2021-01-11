@@ -904,7 +904,7 @@ if(lcddev.id==0x5510)
 		mp_hal_delay_us(50);
 		LCD43M_REG = (0x2C00); //01 studio
 	}
-#if 1 							    
+#if 1						    
 	FSMC_Bank1E->BWTR[6]&=~(0XF<<0);
 	FSMC_Bank1E->BWTR[6]&=~(0XF<<8);
 	FSMC_Bank1E->BWTR[6]|=3<<0;			 
@@ -998,10 +998,6 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_KW(tftlcd_lcd43m_clear_obj, 1, tftlcd_lcd43m_clea
 
 STATIC mp_obj_t tftlcd_lcd43m_drawp(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
     static const mp_arg_t drawp_args[] = {
-       // { MP_QSTR_x0,       MP_ARG_REQUIRED | MP_ARG_INT, {.u_int = 0} },
-       // { MP_QSTR_y0,       MP_ARG_REQUIRED | MP_ARG_INT, {.u_int = 0} },
-       //{ MP_QSTR_drawpcolor,   MP_ARG_REQUIRED | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL} },
-
 				{ MP_QSTR_x,       MP_ARG_INT, {.u_int = 0} },
         { MP_QSTR_y,       MP_ARG_INT, {.u_int = 0} },
         { MP_QSTR_color,    MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL} },
@@ -1029,13 +1025,6 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_KW(tftlcd_lcd43m_drawp_obj, 1, tftlcd_lcd43m_draw
 
 STATIC mp_obj_t tftlcd_lcd43m_drawL(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
     static const mp_arg_t drawL_args[] = {
-			#if 0
-        { MP_QSTR_x0,       MP_ARG_REQUIRED | MP_ARG_INT, {.u_int = 0} },
-        { MP_QSTR_y0,       MP_ARG_REQUIRED | MP_ARG_INT, {.u_int = 0} },
-        { MP_QSTR_sx,       MP_ARG_REQUIRED | MP_ARG_INT, {.u_int = 0} },
-        { MP_QSTR_sy,       MP_ARG_REQUIRED | MP_ARG_INT, {.u_int = 0} },
-        { MP_QSTR_drawLcolor,   MP_ARG_REQUIRED | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL} },
-        #endif
 				{ MP_QSTR_x0,        	MP_ARG_INT, {.u_int = 0} },
         { MP_QSTR_y0,       	MP_ARG_INT, {.u_int = 0} },
         { MP_QSTR_x1,       	MP_ARG_INT, {.u_int = 0} },
@@ -1077,16 +1066,6 @@ STATIC void dwRect(uint16_t x, uint16_t y, uint16_t width, uint16_t height, uint
 STATIC mp_obj_t tftlcd_lcd43m_drawRect(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
 
   STATIC const mp_arg_t Rect_args[] = {
-		#if 0
-    { MP_QSTR_x0,       MP_ARG_REQUIRED | MP_ARG_INT, {.u_int = 0} },
-    { MP_QSTR_y0,       MP_ARG_REQUIRED | MP_ARG_INT, {.u_int = 0} },
-    { MP_QSTR_width,    MP_ARG_REQUIRED | MP_ARG_INT, {.u_int = 0} },
-    { MP_QSTR_height,   MP_ARG_REQUIRED | MP_ARG_INT, {.u_int = 0} },
-    { MP_QSTR_Rectcolor,   MP_ARG_REQUIRED | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL} },
-    { MP_QSTR_border,   MP_ARG_KW_ONLY    | MP_ARG_INT, {.u_int = 1} }, 
-    { MP_QSTR_fillcolor,  MP_ARG_KW_ONLY | MP_ARG_OBJ,{.u_obj = MP_OBJ_NULL} }, 
-    #endif
-
 		{ MP_QSTR_x,        		MP_ARG_INT, {.u_int = 0} },
     { MP_QSTR_y,        		MP_ARG_INT, {.u_int = 0} },
     { MP_QSTR_width,     		MP_ARG_INT, {.u_int = 0} },
@@ -1135,16 +1114,6 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_KW(tftlcd_lcd43m_drawRect_obj, 1, tftlcd_lcd43m_d
 
 STATIC mp_obj_t tftlcd_lcd43m_drawCircle(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
   STATIC const mp_arg_t tft_allowed_args[] = {
-		#if 0
-    { MP_QSTR_x0,       MP_ARG_REQUIRED | MP_ARG_INT, {.u_int = 0} },
-    { MP_QSTR_y0,       MP_ARG_REQUIRED | MP_ARG_INT, {.u_int = 0} },
-    { MP_QSTR_radius,   MP_ARG_REQUIRED | MP_ARG_INT, {.u_int = 0} },
-    { MP_QSTR_Circlecolor,   MP_ARG_REQUIRED | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL} },
-    { MP_QSTR_border,   MP_ARG_KW_ONLY    | MP_ARG_INT, {.u_int = 1} }, 
-    { MP_QSTR_degrees,   MP_ARG_KW_ONLY    | MP_ARG_INT, {.u_int = 1} }, 
-    { MP_QSTR_startangle,   MP_ARG_KW_ONLY    | MP_ARG_INT, {.u_int = 1} }, 
-    { MP_QSTR_fillcolor,  MP_ARG_KW_ONLY | MP_ARG_OBJ,{.u_obj = MP_OBJ_NULL} }, 
-#endif
 	{ MP_QSTR_x, 			 			MP_ARG_INT, {.u_int = 0} },
 	{ MP_QSTR_y, 			 			MP_ARG_INT, {.u_int = 0} },
 	{ MP_QSTR_radius, 	 		MP_ARG_INT, {.u_int = 0} },
@@ -1197,15 +1166,6 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_KW(tftlcd_lcd43m_drawCircle_obj, 1, tftlcd_lcd43m
 STATIC mp_obj_t tftlcd_lcd43m_printStr(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
 
   STATIC const mp_arg_t tft_allowed_args[] = {
-		#if 0
-    { MP_QSTR_text,     MP_ARG_REQUIRED | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL} },
-    { MP_QSTR_x0,       MP_ARG_REQUIRED | MP_ARG_INT, {.u_int = 0} },
-    { MP_QSTR_y0,       MP_ARG_REQUIRED | MP_ARG_INT, {.u_int = 0} },
-    { MP_QSTR_Strcolor,   MP_ARG_REQUIRED | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL} },
-    { MP_QSTR_backcolor,  MP_ARG_KW_ONLY | MP_ARG_OBJ,{.u_obj = MP_OBJ_NULL} }, 
-    { MP_QSTR_size,     MP_ARG_KW_ONLY  | MP_ARG_INT, {.u_int = 2} }, 
-    #endif
-
 		{ MP_QSTR_text,     		MP_ARG_REQUIRED | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL} },
     { MP_QSTR_x,        		MP_ARG_REQUIRED |MP_ARG_INT, {.u_int = 0} },
     { MP_QSTR_y,        		MP_ARG_REQUIRED |MP_ARG_INT, {.u_int = 0} },

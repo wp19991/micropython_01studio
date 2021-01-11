@@ -43,6 +43,7 @@
 
 //#define OV2640_DEBUG 1
 
+uint8_t disp_dir = 0;
 #ifdef OV2640_DEBUG
 #define ov_printf(...) mp_printf(&mp_plat_print, __VA_ARGS__)
 #else
@@ -195,6 +196,8 @@ int sccb_read_reg(uint8_t reg, uint8_t *dat)
 //=========================================================================================
 void sccb_deinit()
 {
+	DCMI_Stop();
+
 	__HAL_RCC_DCMI_CLK_DISABLE();
 	HAL_NVIC_DisableIRQ(DCMI_IRQn);
 	HAL_NVIC_DisableIRQ(DMA2_Stream1_IRQn);
@@ -202,6 +205,15 @@ void sccb_deinit()
 	HAL_DCMI_Init(&DCMI_Handler); 
 	__HAL_DCMI_DISABLE_IT(&DCMI_Handler,DCMI_IT_FRAME);	
 	__HAL_DCMI_DISABLE(&DCMI_Handler);
+
+
+	mp_hal_pin_high(MICROPY_HW_DCMI_PWDN); //
+	mp_hal_pin_low(MICROPY_HW_DCMI_RESE); //
+
+	HAL_GPIO_DeInit(GPIOC, GPIO_PIN_6|GPIO_PIN_7|GPIO_PIN_8|GPIO_PIN_9|GPIO_PIN_11);
+	HAL_GPIO_DeInit(GPIOB, GPIO_PIN_6|GPIO_PIN_7);
+	HAL_GPIO_DeInit(GPIOE, GPIO_PIN_6|GPIO_PIN_5);
+	HAL_GPIO_DeInit(GPIOA, GPIO_PIN_6|GPIO_PIN_4);
 
 }
 //===================================================================================================================
@@ -376,6 +388,8 @@ void sw_sdcard_mode(void)
 	GPIO_InitTypeDef GPIO_Initure;
 
 	mp_hal_pin_high(MICROPY_HW_DCMI_PWDN);
+
+	HAL_GPIO_DeInit(GPIOC, GPIO_PIN_8|GPIO_PIN_9|GPIO_PIN_11);
 
 	GPIO_Initure.Pin=GPIO_PIN_8|GPIO_PIN_9|GPIO_PIN_11;  
 	GPIO_Initure.Mode=GPIO_MODE_AF_PP;      
@@ -702,9 +716,9 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_KW(sensor_ov2640_setframesize_obj, 1, sensor_ov26
 #if MICROPY_HW_LCD43M
 STATIC mp_obj_t sensor_ov2640_display(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
 
-	lcddev.dir = 2;
 	lcd43m_init();
-	LCD_Display_Dir(lcddev.dir);
+	disp_dir = lcddev.dir;
+	LCD_Display_Dir(2);
 	LCD_Clear(BLACK);
 
   display_w = resolution[framesize][0];
@@ -748,12 +762,11 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_KW(sensor_ov2640_display_obj,0, sensor_ov2640_dis
 STATIC mp_obj_t sensor_ov2640_display_stop(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
 	DCMI_Stop(); 		
 	ov2640_mode = 0;
-	
-	LCD_Fill(0,0,resolution[framesize][0]-1,resolution[framesize][1],BLACK);
-	//sw_sdcard_mode();		//切换为SD卡模式
-	//lcd43m_init();
-	//LCD_Display_Dir(lcddev.dir);
-	//LCD_Clear(BLACK);
+	lcddev.dir = disp_dir;
+	LCD_Display_Dir(lcddev.dir);
+	LCD_Clear(BLACK);
+	sw_sdcard_mode();		//切换为SD卡模式
+
 	return mp_const_none;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_KW(sensor_ov2640_display_stop_obj,0, sensor_ov2640_display_stop);
@@ -819,9 +832,9 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_KW(sensor_ov2640_fps_obj,0, sensor_ov2640_fps);
 
 //----------------------------------------------------------------------------------
 STATIC mp_obj_t sensor_ov2640_deinit(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
-	__HAL_DCMI_DISABLE_IT(&DCMI_Handler,DCMI_IT_FRAME);	
-	HAL_DMA_DeInit(&DMADMCI_Handler);
-	HAL_DCMI_DeInit(&DCMI_Handler);
+
+	sccb_deinit();
+	sw_sdcard_mode();
 
 	m_free(jpeg_buf0);
 	m_free(jpeg_buf1);

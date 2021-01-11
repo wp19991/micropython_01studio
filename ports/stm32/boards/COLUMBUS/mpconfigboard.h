@@ -170,7 +170,7 @@ extern struct _spi_bdev_t spi_bdev;
 #define MICROPY_HW_LED_ON(pin)     		(mp_hal_pin_high(pin))
 // USB config
 #define MICROPY_HW_USB_FS              (1)
-#define MICROPY_HW_USB_VBUS_DETECT_PIN (pin_A9)
+#define MICROPY_HW_USB_VBp	US_DETECT_PIN (pin_A9)
 #define MICROPY_HW_USB_OTG_ID_PIN      (pin_A10)
 // USRSW is pulled low. Pressing the button makes the input go high.
 #define MICROPY_HW_USRSW_PIN        (pin_E4)

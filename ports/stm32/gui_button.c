@@ -144,6 +144,8 @@ void btn_draw_arcbtn(_btn_obj * btnx,uint8_t sta)
 		int r = 0;  
 		uint16_t x=0,y=0;
 		uint16_t color = 0;
+		uint16_t backcolor = 0;
+		backcolor = lcddev.backcolor;
 		if(sta == BTN_PRES || sta==BTN_RELEASE)
 			{
 
@@ -175,6 +177,7 @@ void btn_draw_arcbtn(_btn_obj * btnx,uint8_t sta)
 				LCD_Fill(btnx->x,btnx->y+rlen,btnx->width,btnx->height-rlen,color); 
 				LCD_Fill(btnx->x+rlen,btnx->height-rlen,btnx->width-rlen,btnx->height,color);
 				gui_show_strmid(btnx->x,btnx->y,btnx->width,btnx->height,btnx->fcolor,btnx->font,btnx->label);
+				lcddev.backcolor = backcolor;
 			}
 }
 //---------------------------------------------------------------------------------
