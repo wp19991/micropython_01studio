@@ -130,8 +130,8 @@ To access platform-specific hardware use the appropriate library, e.g.
 :mod:`pyb` in the case of the Pyboard.
 
 
-Libraries specific to the pyboard
----------------------------------
+pyboard专用库
+----------------------------------
 
 The following libraries are specific to the pyboard.
 
@@ -140,9 +140,25 @@ The following libraries are specific to the pyboard.
 
   pyb.rst
   lcd160cr.rst
+  
+哥伦布专用库
+-----------------------------------
+
+The following libraries are specific to the columbus.
+
+.. toctree::
+  :maxdepth: 2
+
+  pyb.rst
+  columbus/tftlcd.rst
+  columbus/touch.rst
+  columbus/sensor.rst
+  columbus/audio.rst
+  columbus/video.rst
+  columbus/gui.rst
 
 
-Libraries specific to the WiPy
+WiPy专用库
 ------------------------------
 
 The following libraries and classes are specific to the WiPy.
@@ -155,7 +171,7 @@ The following libraries and classes are specific to the WiPy.
   machine.TimerWiPy.rst
 
 
-Libraries specific to the ESP8266 and ESP32
+ESP8266和ESP32专用库
 -------------------------------------------
 
 The following libraries are specific to the ESP8266 and ESP32.
