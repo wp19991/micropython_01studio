@@ -10,7 +10,7 @@
     :alt: 01Studio 4.3' LCD picture
     :width: 700px
 
-Further resources are available via the following links:
+相关资料请点击下面链接:
 
 * `01Studio 4.3' LCD 原理图 <http://bbs.01studio.org/micropython/sch/4_3LCD.pdf>`_ (PDF)
 

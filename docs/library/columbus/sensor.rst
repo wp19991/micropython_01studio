@@ -7,12 +7,12 @@
 这个模块用于控制摄像头。
 
 .. image:: http://www.01studio.org/micropython/picture/STM32_OV2640.png
-	:alt: 01Studio STM32 OV2640 Module picture
+    :alt: 01Studio STM32 OV2640 Module picture
     :width: 700px
 
-Further resources are available via the following links:
+相关资料请点击下面链接:
 
-* `01Studio STM32 OV2640摄像头模块原理图 <http://micropython.org/resources/STM32_OV2640.pdf>`_ (PDF)
+* `01Studio STM32 OV2640摄像头模块原理图 <http://bbs.01studio.org/micropython/sch/STM32_OV2640.pdf>`_ (PDF)
 
 OV2640 对象
 --------------
