@@ -174,7 +174,7 @@ STATIC mp_obj_t pyb_main(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_a
 }
 MP_DEFINE_CONST_FUN_OBJ_KW(pyb_main_obj, 1, pyb_main);
 
-#if MICROPY_HW_ENABLE_STORAGE
+#if MICROPY_HW_FLASH_MOUNT_AT_BOOT
 // avoid inlining to avoid stack usage within main()
 MP_NOINLINE STATIC bool init_flash_fs(uint reset_mode) {
     if (reset_mode == 3) {
@@ -184,34 +184,39 @@ MP_NOINLINE STATIC bool init_flash_fs(uint reset_mode) {
     // Default block device to entire flash storage
     mp_obj_t bdev = MP_OBJ_FROM_PTR(&pyb_flash_obj);
 
+    int ret;
+
     #if MICROPY_VFS_LFS1 || MICROPY_VFS_LFS2
 
-    // Try to detect the block device used for the main filesystem, based on the first block
-
-    uint8_t buf[FLASH_BLOCK_SIZE];
-    storage_read_blocks(buf, FLASH_PART1_START_BLOCK, 1);
-
+    // Try to detect the block device used for the main filesystem based on the
+    // contents of the superblock, which can be the first or second block.
     mp_int_t len = -1;
+    uint8_t buf[64];
+    for (size_t block_num = 0; block_num <= 1; ++block_num) {
+        ret = storage_readblocks_ext(buf, block_num, 0, sizeof(buf));
 
-    #if MICROPY_VFS_LFS1
-    if (memcmp(&buf[40], "littlefs", 8) == 0) {
-        // LFS1
-        lfs1_superblock_t *superblock = (void *)&buf[12];
-        uint32_t block_size = lfs1_fromle32(superblock->d.block_size);
-        uint32_t block_count = lfs1_fromle32(superblock->d.block_count);
-        len = block_count * block_size;
-    }
-    #endif
+        #if MICROPY_VFS_LFS1
+        if (ret == 0 && memcmp(&buf[40], "littlefs", 8) == 0) {
+            // LFS1
+            lfs1_superblock_t *superblock = (void *)&buf[12];
+            uint32_t block_size = lfs1_fromle32(superblock->d.block_size);
+            uint32_t block_count = lfs1_fromle32(superblock->d.block_count);
+            len = block_count * block_size;
+            break;
+        }
+        #endif
 
-    #if MICROPY_VFS_LFS2
-    if (memcmp(&buf[8], "littlefs", 8) == 0) {
-        // LFS2
-        lfs2_superblock_t *superblock = (void *)&buf[20];
-        uint32_t block_size = lfs2_fromle32(superblock->block_size);
-        uint32_t block_count = lfs2_fromle32(superblock->block_count);
-        len = block_count * block_size;
+        #if MICROPY_VFS_LFS2
+        if (ret == 0 && memcmp(&buf[8], "littlefs", 8) == 0) {
+            // LFS2
+            lfs2_superblock_t *superblock = (void *)&buf[20];
+            uint32_t block_size = lfs2_fromle32(superblock->block_size);
+            uint32_t block_count = lfs2_fromle32(superblock->block_count);
+            len = block_count * block_size;
+            break;
+        }
+        #endif
     }
-    #endif
 
     if (len != -1) {
         // Detected a littlefs filesystem so create correct block device for it
@@ -223,7 +228,7 @@ MP_NOINLINE STATIC bool init_flash_fs(uint reset_mode) {
 
     // Try to mount the flash on "/flash" and chdir to it for the boot-up directory.
     mp_obj_t mount_point = MP_OBJ_NEW_QSTR(MP_QSTR__slash_flash);
-    int ret = mp_vfs_mount_and_chdir_protected(bdev, mount_point);
+    ret = mp_vfs_mount_and_chdir_protected(bdev, mount_point);
 
     if (ret == -MP_ENODEV && bdev == MP_OBJ_FROM_PTR(&pyb_flash_obj) && reset_mode != 3) {
         // No filesystem, bdev is still the default (so didn't detect a possibly corrupt littlefs),
@@ -409,8 +414,9 @@ void stm32_main(uint32_t reset_mode) {
     // Enable 8-byte stack alignment for IRQ handlers, in accord with EABI
     SCB->CCR |= SCB_CCR_STKALIGN_Msk;
 
-    // Check if bootloader should be entered instead of main application
-    powerctrl_check_enter_bootloader();
+    // Hook for a board to run code at start up, for example check if a
+    // bootloader should be entered instead of the main application.
+    MICROPY_BOARD_STARTUP();
 
     // Enable caches and prefetch buffers
 
@@ -576,6 +582,10 @@ void stm32_main(uint32_t reset_mode) {
     uart_attach_to_repl(&pyb_uart_repl_obj, true);
     MP_STATE_PORT(pyb_uart_obj_all)[MICROPY_HW_UART_REPL - 1] = &pyb_uart_repl_obj;
 
+    boardctrl_state_t state;
+    state.reset_mode = reset_mode;
+    state.log_soft_reset = false;
+
     #endif
 
 soft_reset:
@@ -647,8 +657,8 @@ soft_reset:
     // Initialise the local flash filesystem.
     // Create it if needed, mount in on /flash, and set it as current dir.
     bool mounted_flash = false;
-    #if MICROPY_HW_ENABLE_STORAGE
-    mounted_flash = init_flash_fs(reset_mode);
+    #if MICROPY_HW_FLASH_MOUNT_AT_BOOT
+    mounted_flash = init_flash_fs(state.reset_mode);
     #endif
 
     bool mounted_sdcard = false;
@@ -706,6 +716,11 @@ soft_reset:
     led_state(3, 0);
     led_state(4, 0);
 
+    // Run boot.py (or whatever else a board configures at this stage).
+    if (MICROPY_BOARD_RUN_BOOT_PY(&state) == BOARDCTRL_GOTO_SOFT_RESET_EXIT) {
+        goto soft_reset_exit;
+    }
+
     // Now we initialise sub-systems that need configuration from boot.py,
     // or whose initialisation can be safely deferred until after running
     // boot.py.
@@ -754,6 +769,10 @@ soft_reset:
         if (!ret) {
             flash_error(3);
         }
+
+    // Run main.py (or whatever else a board configures at this stage).
+    if (MICROPY_BOARD_RUN_MAIN_PY(&state) == BOARDCTRL_GOTO_SOFT_RESET_EXIT) {
+        goto soft_reset_exit;
     }
 
     #if MICROPY_ENABLE_COMPILER

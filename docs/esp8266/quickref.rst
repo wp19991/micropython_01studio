@@ -359,6 +359,12 @@ Use the ``neopixel`` module::
     import esp
     esp.neopixel_write(pin, grb_buf, is800khz)
 
+.. Warning::
+   By default ``NeoPixel`` is configured to control the more popular *800kHz*
+   units. It is possible to use alternative timing to control other (typically
+   400kHz) devices by passing ``timing=0`` when constructing the
+   ``NeoPixel`` object.
+
 APA102 驱动
 -------------
 
