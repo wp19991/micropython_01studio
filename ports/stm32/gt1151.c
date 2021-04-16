@@ -503,13 +503,16 @@ STATIC void touch_gt1151_print(const mp_print_t *print, mp_obj_t self_in, mp_pri
 
 STATIC mp_obj_t touch_gt1151_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_kw, const mp_obj_t *all_args) {
 	static const mp_arg_t allowed_args[] = {
-			{ MP_QSTR_portrait, MP_ARG_INT, {.u_int = 1} },
+			{ MP_QSTR_portrait, MP_ARG_INT, {.u_int = 0} },
 	};
 	
 		mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
 		mp_arg_parse_all_kw_array(n_args, n_kw, all_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
 		
-		lcddev.dir = args[0].u_int;
+		if(args[0].u_int != 0)
+		{
+			lcddev.dir = args[0].u_int;
+		}
 		TP_Init();
 		is_init = 1;
 		gt1151_obj.base.type = &touch_gt1151_type;

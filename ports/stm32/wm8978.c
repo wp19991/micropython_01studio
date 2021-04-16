@@ -953,7 +953,6 @@ STATIC mp_obj_t audio_wm8978_record(size_t n_args, const mp_obj_t *pos_args, mp_
 			wm8978_output_cfg(0,1);
 			wm8978_spk_vol(0);
 			wm8978_mic_gain((uint8_t)(args[1].u_int * 0.63));
-
 			mp_get_buffer_raise(args[0].u_obj, &bufinfo, MP_BUFFER_READ);
 			char *str = bufinfo.buf;
 			mp_hal_delay_ms(1000);

@@ -363,7 +363,6 @@ SRC_C += $(addprefix $(BOARD_DIR)/picture/,\
 	tjpgd.c \
 	bmp.c \
 	)
-
 INC += -I$(BOARD_DIR)/picture
 endif
 #mp3
@@ -761,6 +760,9 @@ $(BUILD)/firmware.pack.dfu: $(BUILD)/firmware.dfu $(MBOOT_PACK_KEYS_FILE)
 
 $(BUILD)/firmware.hex: $(BUILD)/firmware.elf
 	$(call GENERATE_HEX,$@,$^)
+	
+$(BUILD)/firmware.bin: $(BUILD)/firmware.elf
+	$(call GENERATE_BIN,$@,$^)
 
 $(BUILD)/firmware.elf: $(OBJ)
 	$(call GENERATE_ELF,$@,$^)

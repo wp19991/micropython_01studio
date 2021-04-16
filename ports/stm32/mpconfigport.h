@@ -443,7 +443,7 @@ struct _mp_bluetooth_btstack_root_pointers_t;
 #define MICROPY_PORT_ROOT_GUI struct _gui_button_obj_t *gui_btn_obj_all[GUI_BTN_NUM_MAX];
 #else
 #define MICROPY_PORT_ROOT_GUI
-
+#endif
 
 #define MICROPY_PORT_ROOT_POINTERS \
     const char *readline_hist[8]; \
