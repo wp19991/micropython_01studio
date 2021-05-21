@@ -70,6 +70,17 @@ typedef struct
 	uint16_t clercolor; 	//清屏颜色
 }_lcd_dev;
 
+
+typedef struct
+{
+	uint8_t scan;
+	uint8_t gray;
+	uint16_t w;
+	uint16_t h;
+	uint8_t is565;
+	uint8_t rgb;
+}__attribute__((packed)) IMAGE2LCD; 
+
 //LCD参数
 extern _lcd_dev lcddev;	//管理LCD重要参数
 

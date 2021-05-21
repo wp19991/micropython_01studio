@@ -156,7 +156,7 @@ uint16_t LCD_ReadPoint(uint16_t x , uint16_t y)
   b = LCD43M_RAM;
   g = r & 0xFF;
   g <<= 8;
-  return (((r>>11)<<11)|((g>>10)<<5)|(b>>11));
+  return (uint16_t)(((r>>11)<<11)|(g>>5)|(b>>11));
 }
 
 
@@ -209,12 +209,29 @@ void LCD_Draw_ColorCircle(uint16_t x, uint16_t y, uint16_t r, uint16_t color)
 {
 
   int16_t a = 0, b = r;
-  int16_t d = 3 - (r << 1);
-		
+  //int16_t d = 3 - (r << 1);
+	uint16_t net_r = 0;
+
+	net_r = r;
+	if((x - r) < 0){
+		net_r = x;
+	}else if((x+r) > lcddev.width){
+		net_r = lcddev.width - x;
+	}
+	
+	if((y - net_r) < 0){
+		net_r = y;
+	}else if((y+net_r) > lcddev.height){
+		net_r = lcddev.height - y;
+	}	
+	
 	/* 如果圆在屏幕可见区域外，直接退出 */
-    if (x - r < 0 || x + r > lcddev.width || y - r < 0 || y + r > lcddev.height) 
-				return;
-		
+	if (x - net_r < 0 || x + net_r > lcddev.width || y - net_r < 0 || y + net_r > lcddev.height) 
+	{
+		return;
+	}
+	int16_t d = 3 - (net_r << 1);
+
 	/* 开始画圆 */
     while(a <= b)
     {
@@ -401,6 +418,32 @@ void LCD_DisplayStr(uint16_t x,uint16_t y,uint16_t width,uint16_t height,uint8_t
 }
 
 //==============================================================================
+uint32_t lcd_Pow(uint8_t m,uint8_t n)
+{
+	uint32_t result=1;	 
+	while(n--)result*=m;    
+	return result;
+}			 
+
+void LCD_displayNum(uint16_t x,uint16_t y,uint32_t num,uint8_t len,uint8_t size,uint16_t color)
+{         	
+	uint8_t t,temp;
+	uint8_t enshow=0;						   
+	for(t=0;t<len;t++)
+	{
+		temp=(num/lcd_Pow(10,len-t-1))%10;
+		if(enshow==0&&t<(len-1))
+		{
+			if(temp==0)
+			{
+				LCD_DisplayChar(x+(size/2)*t,y,' ',size,0,color);
+				continue;
+			}else enshow=1; 
+		 	 
+		}
+	 	LCD_DisplayChar(x+(size/2)*t,y,temp+'0',size,0,color); 
+	}
+} 
 
 //==============================================================================
 void lcd43m_init()
@@ -1230,6 +1273,61 @@ STATIC mp_obj_t tftlcd_lcd43m_printStr(size_t n_args, const mp_obj_t *pos_args, 
 STATIC MP_DEFINE_CONST_FUN_OBJ_KW(tftlcd_lcd43m_printStr_obj, 1, tftlcd_lcd43m_printStr);
 //------------------------------------------------------------------------------------------------------
 #if MICROPY_PY_PICLIB
+uint8_t is_sdcard = 0;
+
+//显示成功返回0，其他失败
+STATIC uint8_t display_cached(FATFS *fs, uint16_t x, uint16_t y, const char *filename)
+{
+	uint32_t readlen = 0;
+	uint8_t *databuf;    		//数据读取存 
+	uint8_t *hardbuf;    		//数据读取存 
+	UINT br;
+	IMAGE2LCD *image2lcd;
+	uint16_t display_w,display_h;
+	uint16_t *d_color;
+	
+	FIL* f_file;
+	f_file=(FIL *)m_malloc(sizeof(FIL));
+	hardbuf=(uint8_t*)m_malloc(8);
+
+	uint8_t res = f_open(fs,f_file,filename,FA_READ);
+	res = f_read(f_file,hardbuf,8,&br); //读取头信息
+	
+	if(res == 0){
+		image2lcd = (IMAGE2LCD *)hardbuf;
+		display_w = image2lcd->w;
+		display_h = image2lcd->h;
+		readlen = display_w * 2;
+		databuf=(uint8_t*)m_malloc(readlen);		//开辟readlen字节的内存区域
+		
+		if(databuf == NULL)
+		{
+			m_free(databuf);
+			res = 1;
+			goto error;
+		}else
+		{
+			for(uint16_t i=0; i < display_h; i++)
+			{
+				f_read(f_file,(uint8_t *)databuf,readlen,&br);
+				d_color = (uint16_t *)&databuf[0];
+				for(uint16_t j = 0; j < display_w; j++){
+					LCD_Fast_DrawPoint(x+j, y+i, *d_color);
+					d_color++;
+				}
+			}
+		}
+
+	}
+	
+error:
+	f_close(f_file);
+	
+	m_free(f_file);
+	m_free(hardbuf);
+	
+	return res;
+}
 
 STATIC mp_obj_t tftlcd_lcd43m_Picture(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
 
@@ -1237,6 +1335,7 @@ STATIC mp_obj_t tftlcd_lcd43m_Picture(size_t n_args, const mp_obj_t *pos_args, m
     { MP_QSTR_x,       MP_ARG_REQUIRED | MP_ARG_INT, {.u_int = 0} },
     { MP_QSTR_y,       MP_ARG_REQUIRED | MP_ARG_INT, {.u_int = 0} },
     { MP_QSTR_file,     MP_ARG_REQUIRED | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL} },
+    { MP_QSTR_cached, MP_ARG_KW_ONLY | MP_ARG_BOOL, {.u_bool = true} },
   };
 
   uint8_t arg_num = MP_ARRAY_SIZE(tft_allowed_args);
@@ -1263,8 +1362,25 @@ STATIC mp_obj_t tftlcd_lcd43m_Picture(size_t n_args, const mp_obj_t *pos_args, m
 				 mp_vfs_mount_t *vfs = MP_STATE_VM(vfs_mount_table);
 				 if(res == 1){
 					 vfs = vfs->next;
+					 is_sdcard = 1;
+				 }else{
+					 is_sdcard = 0;
 				 }
 				 fs_user_mount_t *vfs_fat = MP_OBJ_TO_PTR(vfs->obj);
+				 //---------------------------------------------------------------
+					 if(args[3].u_bool == true){
+						 
+						 uint8_t file_len = strlen(file_path);
+						 char *file_buf = (char *)m_malloc(file_len+7);  
+		 
+						 memset(file_buf, '\0', file_len+7);
+						 sprintf(file_buf,"%s%s",file_path,".cache");
+		 
+						 res = display_cached(&vfs_fat->fatfs, args[0].u_int, args[1].u_int, (const char *)file_buf);
+						 m_free(file_buf);
+						 if(!res) return mp_const_none;
+					 }
+				 //---------------------------------------------------------------
 
 				 piclib_init();
 				 
@@ -1294,6 +1410,178 @@ STATIC mp_obj_t tftlcd_lcd43m_Picture(size_t n_args, const mp_obj_t *pos_args, m
     return mp_const_none;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_KW(tftlcd_lcd43m_Picture_obj, 1, tftlcd_lcd43m_Picture);
+
+extern volatile uint8_t Is_FileReadOk;
+
+// cached file
+STATIC mp_obj_t tftlcd_lcd43g_CachePicture(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
+
+  STATIC const mp_arg_t tft_allowed_args[] = { 
+    { MP_QSTR_file,     MP_ARG_REQUIRED | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL} },
+		{ MP_QSTR_path,     MP_ARG_KW_ONLY 	| MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL} },
+		{ MP_QSTR_replace, 	MP_ARG_KW_ONLY 	| MP_ARG_BOOL,{.u_bool = false} },
+  };
+
+  uint8_t arg_num = MP_ARRAY_SIZE(tft_allowed_args);
+  mp_arg_val_t args[arg_num];
+  mp_arg_parse_all(n_args-1, pos_args+1, kw_args, arg_num, tft_allowed_args, args);
+	
+	uint8_t res=0;
+	while(Is_FileReadOk){
+		Is_FileReadOk = 0;
+		mp_hal_delay_ms(1000);
+	}
+	
+	char *path_buf = (char *)m_malloc(50);  //最大支持50字符
+	memset(path_buf, '\0', 50);
+	
+  if(args[0].u_obj !=MP_OBJ_NULL) 
+  {
+    mp_buffer_info_t bufinfo;
+    if (mp_obj_is_int(args[0].u_obj)) {
+      mp_raise_ValueError(MP_ERROR_TEXT("CachePicture parameter error,should is .cache"));
+    } 
+		else 
+		{
+			mp_get_buffer_raise(args[0].u_obj, &bufinfo, MP_BUFFER_READ);
+
+			const char *file_path = mp_obj_str_get_str(get_path(bufinfo.buf ,&res));
+			const char *ftype = mp_obj_str_get_str(file_type(file_path));
+			 mp_vfs_mount_t *vfs = MP_STATE_VM(vfs_mount_table);
+			 
+			 if(res == 1){
+				 vfs = vfs->next;
+				 is_sdcard = 1;
+			 }else{
+			 	is_sdcard = 0;
+			 }
+			fs_user_mount_t *vfs_fat = MP_OBJ_TO_PTR(vfs->obj);
+
+			piclib_init();
+			if(strncmp(ftype,"jpg",3) == 0 || strncmp(ftype,"jpeg",4) == 0)
+			{
+				res = jpg_decode(&vfs_fat->fatfs,file_path, 0, 0 ,1);
+				if(res){
+					printf("jpg_decode err:%d\r\n",res);
+					return mp_const_none;
+				}
+			}
+			else if(strncmp(ftype , "bmp" , 3) == 0)
+			{
+				res = stdbmp_decode(&vfs_fat->fatfs ,file_path, 0, 0) ;
+				printf("bmp_decode err:%d\r\n",res);
+				if(res)return mp_const_none;
+			}
+			else
+			{
+				mp_raise_ValueError(MP_ERROR_TEXT("picture file type error"));
+				return mp_const_none;
+			}
+//-----------------------------------------------------------
+			if(args[1].u_obj !=MP_OBJ_NULL)
+			{
+				mp_get_buffer_raise(args[1].u_obj, &bufinfo, MP_BUFFER_READ);
+				const char *path = mp_obj_str_get_str(get_path(bufinfo.buf ,&res));
+				const char *path_ftype = mp_obj_str_get_str(file_type(path));
+
+				if(strncmp(path_ftype , "cache" , 5))
+				{
+					mp_raise_ValueError(MP_ERROR_TEXT("CachePicture path file type error"));
+					return mp_const_none;
+				}
+				sprintf(path_buf,"%s",path);
+			}else
+			{
+				sprintf(path_buf,"%s%s",file_path,".cache");
+			}
+//------------------------------------------------
+			UINT bw;
+			FIL		*f_file;
+			uint16_t display_w,display_h;
+			uint16_t *r_buf;    		//数据读取存 
+			uint16_t i=0,j = 0;
+			uint8_t bar = 0;
+			uint8_t last_bar = 0;
+			f_file=(FIL *)m_malloc(sizeof(FIL));
+			if(f_file == NULL){
+				mp_raise_ValueError(MP_ERROR_TEXT("malloc f_file error"));
+			}
+
+			res = f_open(&vfs_fat->fatfs,f_file,path_buf,FA_READ);
+			f_close(f_file);
+			
+			if(args[2].u_bool == true || res != 0)
+			{
+				uint8_t hard_buf[8] = {0x00,0X10,0x00,0x00,0x00,0x00,0X01,0X1B};
+				hard_buf[2] = (uint8_t)picinfo.S_Width;
+				hard_buf[3] = (uint8_t)(picinfo.S_Width >> 8);
+				hard_buf[4] = (uint8_t)picinfo.S_Height;
+				hard_buf[5] = (uint8_t)(picinfo.S_Height >> 8);
+
+				printf("start loading:0%%\r\n");
+				
+				display_w = picinfo.S_Width;
+				display_h = picinfo.S_Height;
+
+				r_buf = (uint16_t *)m_malloc(display_w);
+				if(r_buf == NULL){
+					mp_raise_ValueError(MP_ERROR_TEXT("malloc r_buf error"));
+				}
+
+				res = f_open(&vfs_fat->fatfs,f_file,path_buf,FA_WRITE|FA_CREATE_ALWAYS);
+				if(res != FR_OK){
+					mp_raise_ValueError(MP_ERROR_TEXT("path_buf open file error"));
+				}
+				res=f_write(f_file,hard_buf,8,&bw);
+				if(res != FR_OK){
+					mp_raise_ValueError(MP_ERROR_TEXT("file write hard error"));
+				}
+				
+				for(i =0; i < display_h; i++)
+				{
+					for(j =0; j<display_w; j++){
+						r_buf[j] = LCD_ReadPoint(j , i);
+					}
+					res=f_write(f_file,(uint8_t *)r_buf,display_w*2,&bw);
+					if(res != FR_OK){
+						LCD_DisplayStr(0,0,12*17,25,24,"Cache Error!     ",RED);
+						mp_raise_ValueError(MP_ERROR_TEXT("file write hard error"));
+					}
+					bar = (i*100)/display_h;
+					if((bar != last_bar) && !(bar%10)) printf("loading:%d%%\r\n",bar);
+
+					if(i==25){
+						LCD_DisplayStr(0,0,12*17,25,24,"Image Caching:00%",RED);
+					}
+					if((i >= 25) && (bar != last_bar)){
+						LCD_displayNum(168,0,bar,2,24,RED);
+					}
+					last_bar = bar;
+					if(is_sdcard){
+						mp_hal_delay_ms(2);
+					}
+				}
+
+				LCD_DisplayStr(0,0,12*17,25,24,"Cache Done!      ",RED);
+				printf("cache done!\r\n");
+
+				f_close(f_file);
+				m_free(r_buf);
+			}
+			
+			f_sync(f_file);
+			m_free(f_file);
+			
+    }
+  }
+	else{
+      mp_raise_ValueError(MP_ERROR_TEXT("CachePicture parameter is empty"));
+  }
+	m_free(path_buf);
+  return mp_const_none;
+}
+STATIC MP_DEFINE_CONST_FUN_OBJ_KW(tftlcd_lcd43g_CachePicture_obj, 1, tftlcd_lcd43g_CachePicture);
+
 #endif
 
 //=======================================================================================================
@@ -1307,6 +1595,7 @@ STATIC const mp_rom_map_elem_t tftlcd_lcd43m_locals_dict_table[] = {
     { MP_ROM_QSTR(MP_QSTR_printStr), MP_ROM_PTR(&tftlcd_lcd43m_printStr_obj) },
     #if MICROPY_PY_PICLIB
     { MP_ROM_QSTR(MP_QSTR_Picture), MP_ROM_PTR(&tftlcd_lcd43m_Picture_obj) },
+    { MP_ROM_QSTR(MP_QSTR_CachePicture), MP_ROM_PTR(&tftlcd_lcd43g_CachePicture_obj) },
     #endif
 
 };

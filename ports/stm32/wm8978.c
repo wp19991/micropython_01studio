@@ -448,30 +448,6 @@ void auido_deinit(void) {
 	HAL_DMA_DeInit(&I2S2_TXDMA_Handler); 
 	HAL_DMA_Init(&I2S2_RXDMA_Handler);
 }
-#if 0
-void HAL_I2S_MspInit(I2S_HandleTypeDef *hi2s)
-{
-	GPIO_InitTypeDef GPIO_Initure;
-
-	__HAL_RCC_SPI2_CLK_ENABLE();
-	__HAL_RCC_GPIOB_CLK_ENABLE();
-	__HAL_RCC_GPIOC_CLK_ENABLE();
-
-	GPIO_Initure.Pin=GPIO_PIN_12|GPIO_PIN_13;  
-	GPIO_Initure.Mode=GPIO_MODE_AF_PP;
-	GPIO_Initure.Pull=GPIO_PULLUP;    
-	GPIO_Initure.Speed=GPIO_SPEED_HIGH;
-	GPIO_Initure.Alternate=GPIO_AF5_SPI2;
-	HAL_GPIO_Init(GPIOB,&GPIO_Initure);
-
-	GPIO_Initure.Pin=GPIO_PIN_2|GPIO_PIN_3|GPIO_PIN_6; 
-	HAL_GPIO_Init(GPIOC,&GPIO_Initure);
-
-	GPIO_Initure.Pin=GPIO_PIN_2; 
-	GPIO_Initure.Alternate=GPIO_AF6_I2S2ext;
-	HAL_GPIO_Init(GPIOC,&GPIO_Initure); 
-}
-#endif
 
 const uint16_t I2S_PSC_TBL[][5]=
 {
@@ -667,7 +643,7 @@ STATIC void wm8978_recorder(const char *name)
 	UINT bw;
 
 	const char *file_path = mp_obj_str_get_str(get_path(name ,&res));
-	//printf("recorder name path:->%s res:->%d\n" , file_path,res);
+
   wavsize = 0;
 #if 1
   	mp_vfs_mount_t *vfs = MP_STATE_VM(vfs_mount_table);
@@ -818,10 +794,10 @@ STATIC mp_obj_t audio_wm8978_play(size_t n_args, const mp_obj_t *pos_args, mp_ma
 
 	if(audiodev.status==0){
 		const char *type = mp_obj_str_get_str(file_type((const char *)audiodev.audioName));
-		mp_hal_delay_ms(1000);
+
 		while(Is_FileReadOk){
 			Is_FileReadOk = 0;
-			mp_hal_delay_ms(100);
+			mp_hal_delay_ms(1000);
 		}
 		if(strncmp(type , "wav" , 3) == 0 ||strncmp(type , "WAV" , 3) == 0) {
 			wm8978_play_song(audiodev.audioName);
@@ -955,10 +931,10 @@ STATIC mp_obj_t audio_wm8978_record(size_t n_args, const mp_obj_t *pos_args, mp_
 			wm8978_mic_gain((uint8_t)(args[1].u_int * 0.63));
 			mp_get_buffer_raise(args[0].u_obj, &bufinfo, MP_BUFFER_READ);
 			char *str = bufinfo.buf;
-			mp_hal_delay_ms(1000);
+
 			while(Is_FileReadOk){
 				Is_FileReadOk = 0;
-				mp_hal_delay_ms(100);
+				mp_hal_delay_ms(1000);
 			}
 			wm8978_recorder(str);
     }
