@@ -222,6 +222,10 @@
 #define mp_type_textio mp_type_vfs_lfs2_textio
 #endif
 
+//#define MICROPY_PY_LVGL             (1)
+//#define MICROPY_PY_LODEPNG          (1)
+//#define MICROPY_PY_LCDFB       (1)
+
 // use vfs's functions for import stat and builtin open
 #define mp_import_stat mp_vfs_import_stat
 #define mp_builtin_open mp_vfs_open
@@ -252,6 +256,26 @@ extern const struct _mp_obj_module_t tftlcd_module;
 //extern const struct _mp_obj_module_t video_module;
 //extern const struct _mp_obj_module_t sensor_module;
 extern const struct _mp_obj_module_t gui_module;
+
+//lvgl
+extern const struct _mp_obj_module_t mp_module_lvgl;
+extern const struct _mp_obj_module_t mp_module_lodepng;
+
+
+
+#if MICROPY_PY_LVGL
+#define MICROPY_PORT_LVGL_DEF \
+    { MP_OBJ_NEW_QSTR(MP_QSTR_lvgl), (mp_obj_t)&mp_module_lvgl },
+#else
+#define MICROPY_PORT_LVGL_DEF
+#endif
+
+#if MICROPY_PY_LODEPNG
+#define MICROPY_PORT_LODEPNG_DEF { MP_OBJ_NEW_QSTR(MP_QSTR_lodepng), (mp_obj_t)&mp_module_lodepng },
+#else
+#define MICROPY_PORT_LODEPNG_DEF
+#endif
+//end lvgl
 
 #if MICROPY_PY_USOCKET && MICROPY_PY_LWIP
 // usocket implementation provided by lwIP
@@ -297,6 +321,8 @@ extern const struct _mp_obj_module_t gui_module;
 		TOUCH_MODULE \
 		TFTLCD_MODULE \
 		GUI_MODULE \
+    MICROPY_PORT_LVGL_DEF \
+    MICROPY_PORT_LODEPNG_DEF \
     { MP_ROM_QSTR(MP_QSTR__onewire), MP_ROM_PTR(&mp_module_onewire) }, \
 
 // extra constants
@@ -308,6 +334,24 @@ extern const struct _mp_obj_module_t gui_module;
 		GUI_MODULE \
 
 #define MP_STATE_PORT MP_STATE_VM
+
+#if MICROPY_PY_LVGL
+#ifndef MICROPY_INCLUDED_PY_MPSTATE_H
+#define MICROPY_INCLUDED_PY_MPSTATE_H
+#include "lib/lv_bindings/lvgl/src/lv_misc/lv_gc.h"
+#undef MICROPY_INCLUDED_PY_MPSTATE_H
+#else
+#include "lib/lv_bindings/lvgl/src/lv_misc/lv_gc.h"
+#endif
+#else
+#define LV_ROOTS
+#endif
+
+#if MICROPY_PY_LCDFB
+#define LCDFB_ROOTS void* lcd_fb[2];
+#else
+#define LCDFB_ROOTS
+#endif
 
 #if MICROPY_SSL_MBEDTLS
 #define MICROPY_PORT_ROOT_POINTER_MBEDTLS void **mbedtls_memory;
@@ -338,6 +382,9 @@ struct _mp_bluetooth_btstack_root_pointers_t;
 #endif
 
 #define MICROPY_PORT_ROOT_POINTERS \
+    LV_ROOTS \
+    void *mp_lv_user_data; \
+		LCDFB_ROOTS \
     const char *readline_hist[8]; \
     \
     mp_obj_t pyb_hid_report_desc; \

@@ -241,6 +241,7 @@ STATIC mp_obj_t touch_tf54x6_make_new(const mp_obj_type_t *type, size_t n_args, 
 	ft_Init();
 	//TIM8_Config(30);
 	is_init = 1;
+	tp_dev.type = 1;
 	ft54x6_obj.base.type = &touch_ft_type;
 	return MP_OBJ_FROM_PTR(&touch_ft_type);
 }

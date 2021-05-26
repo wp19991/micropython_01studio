@@ -330,7 +330,7 @@ uint32_t uart_get_baudrate(pyb_uart_obj_t *self) {
 	SYSCLK_INFO Clock;
 	GetSysClockInfo(&Clock);
 
-	return (Clock.PCLK1Clock/(self->uartx->BRR << 4));
+	return (Clock.PCLK2Clock/(self->uartx->BRR << 4));
 }
 
 mp_uint_t uart_rx_any(pyb_uart_obj_t *self) {

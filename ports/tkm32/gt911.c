@@ -465,6 +465,7 @@ STATIC mp_obj_t touch_gt911_make_new(const mp_obj_type_t *type, size_t n_args, s
 	gt911_Init();
 
 	is_init = 1;
+	tp_dev.type = 2;
 	gt911_obj.base.type = &touch_gt911_type;
 	return MP_OBJ_FROM_PTR(&touch_gt911_type);
 }

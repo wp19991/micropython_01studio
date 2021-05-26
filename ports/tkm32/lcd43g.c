@@ -351,7 +351,7 @@ void lcd43g_init(void)
 		LTDC_Buf[i] = 0x0U;
 	}
 	mp_hal_pin_high(MICROPY_HW_LTDC_BL);
-	LCD_Display_Dir(1);
+
 }
 uint32_t rgb888tobgr888(uint32_t color)
 {

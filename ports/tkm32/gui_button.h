@@ -59,7 +59,6 @@ typedef struct
 
 extern void button_task(void);
 
-
 extern const mp_obj_type_t gui_button_type;
 
 MP_DECLARE_CONST_FUN_OBJ_VAR_BETWEEN(gui_button_task_handler_obj);

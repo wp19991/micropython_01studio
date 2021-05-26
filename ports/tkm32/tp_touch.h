@@ -35,6 +35,7 @@ typedef struct
 
 	volatile	uint8_t  sta;					//笔的状态 
 	volatile	uint8_t  dir;	
+	volatile	uint8_t  type; //1:FT,2:GT911	
 									//b7:按下1/松开0; 
 												//b6:0,没有按键按下;1,有按键按下. 
 									//b5:保留
@@ -49,7 +50,7 @@ extern const mp_obj_type_t touch_gt911_type;
 
 void gtxx_touch_down(int8_t id, uint16_t x, uint16_t y, uint8_t w);
 void gtxx_touch_up(int8_t id);
-
+extern void gt911_read_point(void);
 #endif
 
 /**

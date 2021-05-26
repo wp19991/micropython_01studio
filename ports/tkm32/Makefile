@@ -1,6 +1,14 @@
 # Select the board to build for: if not given on the command line,
 # then default to PYBV10.
 BOARD ?= TKM32
+LVGL ?= 0
+
+ifeq ($(LVGL),1)
+CFLAGS += -DMICROPY_PY_LVGL
+CFLAGS += -DMICROPY_PY_LODEPNG
+CFLAGS += -DMICROPY_PY_LCDFB
+LVGL_PORT_DIR = lvgl_port
+endif
 
 # If the build directory is not given, make it reflect the board name.
 BUILD ?= build-$(BOARD)
@@ -372,6 +380,11 @@ USBDEV_SRC_C += \
 USBCDC_SRC_C += \
 	$(wildcard $(USB_CDC_DIR)/src/*.c)
 	
+ifeq ($(LVGL),1)
+INC += -I$(LVGL_PORT_DIR)
+LIB_SRC_C += $(LVGL_PORT_DIR)/modlvport.c
+endif
+
 OBJ += $(PY_O)
 OBJ += $(addprefix $(BUILD)/, $(LIB_SRC_C:.c=.o))
 OBJ += $(LIBM_O)
