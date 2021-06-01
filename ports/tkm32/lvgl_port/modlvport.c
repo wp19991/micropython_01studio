@@ -23,9 +23,13 @@ STATIC mp_obj_t mp_lvlcd_framebuffer(mp_obj_t n_obj) {
 
 	if(fb[n]==NULL){
 		// allocation on extRAM with 1KB alignment to speed up LTDC burst access on AHB
+		
 		fb[n] = MP_STATE_PORT(lcd_fb[n]) = m_malloc(sizeof(lv_color_t) * w * h  + 1024);
 		fb[n] = (lv_color_t*)((uint32_t)fb[n] + 1024 - (uint32_t)fb[n] % 1024);
+		//fb[n] = MP_STATE_PORT(lcd_fb[n]) = m_malloc(sizeof(lv_color_t) * w * h);
+		//fb[n] = (lv_color_t*)((uint32_t)fb[n]);
 	}
+
 	return mp_obj_new_bytearray_by_ref(sizeof(lv_color_t) * w * h , (void *)fb[n]);
 }
 
@@ -75,18 +79,11 @@ STATIC void mp_lvlcd_flush(struct _disp_drv_t *disp_drv, const lv_area_t *area, 
 
 	int32_t x;
 	int32_t y;
-	// lv_coord_t hres = disp_drv->rotated == 0 ? disp_drv->hor_res : disp_drv->ver_res;
-	// lv_coord_t vres = disp_drv->rotated == 0 ? disp_drv->ver_res : disp_drv->hor_res;
-	// if (area->x2 < 0 || area->y2 < 0 || area->x1 > hres - 1 || area->y1 > vres - 1)
-	// {
-		// lv_disp_flush_ready(disp_drv);
-		// return;
-	// }
-	for(y = area->y1; y <= area->y2 && y < disp_drv->ver_res; y++)
-	{
-		for(x = area->x1; x <= area->x2; x++)
-		{
+
+	for(y = area->y1; y <= area->y2 && y < disp_drv->ver_res; y++){
+		for(x = area->x1; x <= area->x2; x++){
 			LCD_Fast_DrawPoint(x,y,lv_color_to32(*color_p));
+			//LTDC_Buf[lcddev.x_pixel*y+x] = lv_color_to32(*color_p);
 			color_p++;
 		}
 	}
@@ -97,24 +94,22 @@ STATIC bool mp_lv_touch_read(struct _lv_indev_drv_t *indev_drv, lv_indev_data_t 
     static lv_coord_t lastX = 0;
     static lv_coord_t lastY = 0;
 
-	if(tp_dev.type == 1){
-		touch_read_point();
-	}else if(tp_dev.type == 2){
-		gt911_read_point();
-	}
+		// if(tp_dev.type == 1){
+			// touch_read_point();
+		// }else if(tp_dev.type == 2){
+			// gt911_read_point();
+		// }
 		if(tp_dev.sta&TP_PRES_DOWN || tp_dev.sta&TP_PRES_MOVE)
 		{
 			lastX = tp_dev.x[0];
 			lastY = tp_dev.y[0];
-			data->point.x = lastX;
-			data->point.y = lastY;
 			data->state = LV_INDEV_STATE_PR;
+			// printf("lastX:%d,lastY:%d\r\n",lastX,lastY);
 		}else{
-			data->point.x = lastX;
-			data->point.y = lastY;
 			data->state = LV_INDEV_STATE_REL;
 		}
-
+		data->point.x = lastX;
+		data->point.y = lastY;
     return false;
 }
 

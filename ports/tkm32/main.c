@@ -325,7 +325,7 @@ void tkm32_main(uint32_t reset_mode) {
 		uart_attach_to_repl(&pyb_uart_repl_obj, 0);
     MP_STATE_PORT(pyb_uart_obj_all)[MICROPY_HW_UART_REPL - 1] = &pyb_uart_repl_obj;
     #endif
-		
+
     boardctrl_state_t state;
     state.reset_mode = reset_mode;
     state.log_soft_reset = false;

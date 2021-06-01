@@ -1148,6 +1148,10 @@ mp_obj_t tftlcd_lcd43g_CachePicture(size_t n_args, const mp_obj_t *pos_args, mp_
 	char *path_buf = (char *)m_malloc(50);  //最大支持50字符
 	memset(path_buf, '\0', 50);
 	
+	if(args[2].u_bool == false){
+		return mp_const_none;
+	}
+	
   if(args[0].u_obj !=MP_OBJ_NULL) 
   {
     mp_buffer_info_t bufinfo;
