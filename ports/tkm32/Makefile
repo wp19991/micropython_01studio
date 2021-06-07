@@ -260,8 +260,8 @@ $(LIBM_O): CFLAGS := $(filter-out -Wdouble-promotion -Wfloat-conversion, $(CFLAG
 endif
 
 EXTMOD_SRC_C += $(addprefix extmod/,\
-	modonewire.c \
         )
+#modonewire.c \
 
 DRIVERS_SRC_C += $(addprefix drivers/,\
 	bus/softspi.c \
@@ -326,12 +326,12 @@ SRC_C += \
 	modesp8285.c \
 	buffer.c \
 	my_sprintf.c \
-	dht.c \
 	spi.c \
 	modspi.c \
 	usb_cdc_port.c \
 	machine_Soft_i2c.c \
 	machine_neopixel.c \
+	dht.c \
 	$(wildcard $(BOARD_DIR)/*.c)
 	
 #pic
@@ -346,6 +346,7 @@ endif
 
 SRC_C += $(TKM_LIB_DIR)/sys/sys.c
 
+SRC_C += modonewire.c
 
 SRC_CXX += \
 	$(SRC_MOD_CXX)

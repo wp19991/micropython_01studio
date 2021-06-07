@@ -407,8 +407,11 @@ soft_reset:
 	{
 		USB_IO_Config();
 		USB_Interrupts_Config();//配置USB中断
-		//if(usb_mode && sdcard_is_flag){
+		#if 0
+		if(usb_mode && sdcard_is_flag){
+		#else
 		if(usb_mode){
+		#endif
 			MAL_Init(0);
 			USB_Init();//USB初始化
 		}else{
@@ -419,12 +422,18 @@ soft_reset:
 	
 	if(usb_mode_last != usb_mode)
 	{
-		//if(usb_mode && sdcard_is_flag){
+		#if 0
+		if(usb_mode && sdcard_is_flag){
+		#else
 		if(usb_mode){
+		#endif
 			MAL_Init(0);
 			USB_Init();//USB初始化
-		//}else if(!usb_mode){
+		#if 0
+		}else if(!usb_mode){
+		#else
 		}else{
+		#endif
 			USB_CDC_Init();
 		}	
 	}
@@ -467,7 +476,6 @@ soft_reset:
     if (MICROPY_BOARD_RUN_MAIN_PY(&state) == BOARDCTRL_GOTO_SOFT_RESET_EXIT) {
         goto soft_reset_exit;
     }
-
 //----------------------------------------------------------------------
 	#if MICROPY_ENABLE_COMPILER
 	// Main script is finished, so now go into REPL mode.
@@ -528,9 +536,12 @@ soft_reset_exit:
 
 void USB_IRQHandler(void)
 {
-	IRQ_ENTER(USB_IRQn);
-	//if(usb_mode && sdcard_is_flag){
+	IRQ_ENTER(USB_IRQn)
+	#if 0
+	if(usb_mode && sdcard_is_flag){
+	#else
 	if(usb_mode){
+	#endif
 		 USB_Istr();
 	}else{
 		USB_CDC_IRQHandler();

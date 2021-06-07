@@ -52,12 +52,12 @@
 #define MICROPY_HW_SDCARD_DETECT_PULL       (MP_HAL_PIN_PULL_NONE)
 #define MICROPY_HW_SDCARD_DETECT_PRESENT    (0)
 
-#define MICROPY_HW_UART_REPL        PYB_UART_2
-#define MICROPY_HW_UART_REPL_BAUD   115200
+//#define MICROPY_HW_UART_REPL        PYB_UART_2
+//#define MICROPY_HW_UART_REPL_BAUD   115200
 
 #define MICROPY_HW_UART1_NAME   "UART1"    // on RX / TX
-//#define MICROPY_HW_UART1_TX     (pin_A9)
-//#define MICROPY_HW_UART1_RX     (pin_A10)
+#define MICROPY_HW_UART1_TX     (pin_A9)
+#define MICROPY_HW_UART1_RX     (pin_A10)
 
 #define MICROPY_HW_UART2_NAME   "UART2"    // on RX / TX
 #define MICROPY_HW_UART2_TX     (pin_A2)

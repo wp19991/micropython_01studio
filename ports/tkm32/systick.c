@@ -133,16 +133,17 @@ void mp_hal_delay_ms(mp_uint_t Delay) {
 
 // delay for given number of microseconds
 void mp_hal_delay_us(mp_uint_t usec) {
-    if (query_irq() == IRQ_STATE_ENABLED) {
+/*     if (query_irq() == IRQ_STATE_ENABLED) {
         // IRQs enabled, so can use systick counter to do the delay
         uint32_t start = mp_hal_ticks_us();
         while (mp_hal_ticks_us() - start < usec) {
         }
-    } else {
+    } else  */
+		{
         // IRQs disabled, so need to use a busy loop for the delay
         // sys freq is always a multiple of 2MHz, so division here won't lose precision
         //const uint32_t ucount = HAL_RCC_GetSysClockFreq() / 2000000 * usec / 2;
-				const uint32_t ucount = 240000000 / 1000000 * usec / 2;
+				const uint32_t ucount = 120000000 / 1000000 * usec / 3;
         for (uint32_t count = 0; ++count <= ucount;) {
         }
     }
@@ -167,15 +168,15 @@ mp_uint_t mp_hal_ticks_ms(void) {
     return uwTick;
 }
 
-// The SysTick timer counts down at 168 MHz, so we can use that knowledge
+// The SysTick timer counts down at 240 MHz, so we can use that knowledge
 // to grab a microsecond counter.
 //
 // We assume that HAL_GetTickis returns milliseconds.
 mp_uint_t mp_hal_ticks_us(void) {
     mp_uint_t irq_state = disable_irq();
     uint32_t counter = SysTick->VAL;
-    uint32_t milliseconds = HAL_GetTick();
-		//uint32_t milliseconds = uwTick;
+    //uint32_t milliseconds = HAL_GetTick();
+		uint32_t milliseconds = uwTick;
     uint32_t status = SysTick->CTRL;
     enable_irq(irq_state);
 

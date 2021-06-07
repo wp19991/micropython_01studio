@@ -322,6 +322,7 @@ STATIC mp_obj_t pin_obj_init_helper(const pin_obj_t *self, size_t n_args, const 
 
     // get io mode
     uint mode = args[0].u_int;
+		
     if (!IS_GPIO_MODE(mode)) {
         mp_raise_msg_varg(&mp_type_ValueError, MP_ERROR_TEXT("invalid pin mode: %d"), mode);
     }
@@ -350,7 +351,9 @@ STATIC mp_obj_t pin_obj_init_helper(const pin_obj_t *self, size_t n_args, const 
     if (args[3].u_obj != MP_OBJ_NULL) {
         mp_hal_pin_write(self, mp_obj_is_true(args[3].u_obj));
     }
-
+if(mode == GPIO_Mode_Out_OD){
+	printf("mode:GPIO_Mode_Out_OD\r\n");
+}
 	GPIO_InitTypeDef GPIO_InitStructure;
 	GPIO_InitStructure.GPIO_Pin  =  self->pin_mask;
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_10MHz;
