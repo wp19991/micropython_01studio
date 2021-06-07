@@ -1147,11 +1147,7 @@ mp_obj_t tftlcd_lcd43g_CachePicture(size_t n_args, const mp_obj_t *pos_args, mp_
 
 	char *path_buf = (char *)m_malloc(50);  //最大支持50字符
 	memset(path_buf, '\0', 50);
-	
-	if(args[2].u_bool == false){
-		return mp_const_none;
-	}
-	
+
   if(args[0].u_obj !=MP_OBJ_NULL) 
   {
     mp_buffer_info_t bufinfo;
@@ -1170,6 +1166,24 @@ mp_obj_t tftlcd_lcd43g_CachePicture(size_t n_args, const mp_obj_t *pos_args, mp_
 				 vfs = vfs->next;
 			 }
 			fs_user_mount_t *vfs_fat = MP_OBJ_TO_PTR(vfs->obj);
+
+			//test file
+			FIL		*f_file;
+			f_file=(FIL *)m_malloc(sizeof(FIL));
+			if(f_file == NULL){
+				mp_raise_ValueError(MP_ERROR_TEXT("malloc f_file error"));
+			}
+			sprintf(path_buf,"%s%s",file_path,".cache");
+			res = f_open(&vfs_fat->fatfs,f_file,path_buf,FA_READ);
+			f_close(f_file);
+			f_sync(f_file);
+			if(res == FR_OK && args[2].u_bool == false){
+				return mp_const_none;
+			}else{
+				args[2].u_bool = true;
+			}
+
+		memset(path_buf, '\0', 50);
 
 printf("start loading->%s\r\n",file_path);
 
@@ -1212,16 +1226,16 @@ printf("start loading->%s\r\n",file_path);
 			}
 //------------------------------------------------
 			UINT bw;
-			FIL		*f_file;
+			//FIL		*f_file;
 			uint16_t display_w,display_h;
 			uint32_t *r_buf;    		//数据读取存 
 			uint16_t i=0,j = 0;
 			uint8_t bar = 0;
 			uint8_t last_bar = 0;
-			f_file=(FIL *)m_malloc(sizeof(FIL));
-			if(f_file == NULL){
-				mp_raise_ValueError(MP_ERROR_TEXT("malloc f_file error"));
-			}
+			// f_file=(FIL *)m_malloc(sizeof(FIL));
+			// if(f_file == NULL){
+				// mp_raise_ValueError(MP_ERROR_TEXT("malloc f_file error"));
+			// }
 			res = f_open(&vfs_fat->fatfs,f_file,path_buf,FA_READ);
 			f_close(f_file);
 			
