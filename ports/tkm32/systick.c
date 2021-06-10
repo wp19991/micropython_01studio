@@ -133,12 +133,12 @@ void mp_hal_delay_ms(mp_uint_t Delay) {
 
 // delay for given number of microseconds
 void mp_hal_delay_us(mp_uint_t usec) {
-/*     if (query_irq() == IRQ_STATE_ENABLED) {
+    if (query_irq() == IRQ_STATE_ENABLED) {
         // IRQs enabled, so can use systick counter to do the delay
         uint32_t start = mp_hal_ticks_us();
         while (mp_hal_ticks_us() - start < usec) {
         }
-    } else  */
+    } else 
 		{
         // IRQs disabled, so need to use a busy loop for the delay
         // sys freq is always a multiple of 2MHz, so division here won't lose precision
