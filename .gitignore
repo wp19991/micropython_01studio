@@ -43,3 +43,7 @@ user.props
 # Generated rst files
 ######################
 genrst/
+
+# MacOS desktop metadata files
+######################
+.DS_Store

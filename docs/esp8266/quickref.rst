@@ -135,6 +135,10 @@ Use the :mod:`time <utime>` module::
 同时请注意 Pin(16) 是一个特殊的引脚 (用于从深度睡眠模式中唤醒) 所以有可能不能使用高级的类模块如``Neopixel``.
 
 
+There's a higher-level abstraction :ref:`machine.Signal <machine.Signal>`
+which can be used to invert a pin. Useful for illuminating active-low LEDs
+using ``on()`` or ``value(1)``.
+
 UART (serial bus)
 -----------------
 
@@ -289,6 +293,17 @@ See :ref:`machine.RTC <machine.RTC>` ::
           currently not supported.
 
 
+WDT (Watchdog timer)
+--------------------
+
+See :ref:`machine.WDT <machine.WDT>`. ::
+
+    from machine import WDT
+
+    # enable the WDT
+    wdt = WDT()
+    wdt.feed()
+
 深度睡眠模式
 ---------------
 
@@ -402,6 +417,21 @@ DHT 温湿度驱动允许通过软件在各个引脚上实现::
     d.measure()
     d.temperature() # eg. 23.6 (°C)
     d.humidity()    # eg. 41.3 (% RH)
+
+
+SSD1306 driver
+--------------
+
+Driver for SSD1306 monochrome OLED displays. See tutorial :ref:`ssd1306`. ::
+
+    from machine import Pin, I2C
+    import ssd1306
+
+    i2c = I2C(scl=Pin(5), sda=Pin(4), freq=100000)
+    display = ssd1306.SSD1306_I2C(128, 64, i2c)
+
+    display.text('Hello World', 0, 0, 1)
+    display.show()
 
 WebREPL (Web浏览器交互提示)
 ----------------------------------------

@@ -168,9 +168,38 @@ Virtual timers are not currently supported on this port.
 
 * 部分引脚的pull值可以设置为 ``Pin.PULL_HOLD`` 以降低深度睡眠时候的功耗。
 
+UART (serial bus)
+-----------------
+
+See :ref:`machine.UART <machine.UART>`. ::
+
+    from machine import UART
+
+    uart1 = UART(1, baudrate=9600, tx=33, rx=32)
+    uart1.write('hello')  # write 5 bytes
+    uart1.read(5)         # read up to 5 bytes
+
+The ESP32 has three hardware UARTs: UART0, UART1 and UART2.
+They each have default GPIO assigned to them, however depending on your
+ESP32 variant and board, these pins may conflict with embedded flash,
+onboard PSRAM or peripherals.
+
+Any GPIO can be used for hardware UARTs using the GPIO matrix, so to avoid
+conflicts simply provide ``tx`` and ``rx`` pins when constructing. The default
+pins listed below.
+
+=====  =====  =====  =====
+\      UART0  UART1  UART2
+=====  =====  =====  =====
+tx     1      10     17
+rx     3      9      16
+=====  =====  =====  =====
+
 PWM (脉宽调制)
 ----------------------------
-
+There's a higher-level abstraction :ref:`machine.Signal <machine.Signal>`
+which can be used to invert a pin. Useful for illuminating active-low LEDs
+using ``on()`` or ``value(1)``.
 
 PWM 能在所有可输出引脚上实现。基频的范围可以从 1Hz 到 40MHz 但需要权衡: 随着基频的
 *增加* 占空分辨率 *下降*. 详情请参阅：
@@ -348,6 +377,18 @@ See :ref:`machine.RTC <machine.RTC>` ::
                                                  # 其中星期使用0-6表示星期一至星期日。
     rtc.datetime() # 获取当前日期和时间
 
+
+WDT (Watchdog timer)
+--------------------
+
+See :ref:`machine.WDT <machine.WDT>`. ::
+
+    from machine import WDT
+
+    # enable the WDT with a timeout of 5s (1s is the minimum)
+    wdt = WDT(timeout=5000)
+    wdt.feed()
+
 深度睡眠模式
 ---------------
 
@@ -373,6 +414,21 @@ See :ref:`machine.RTC <machine.RTC>` ::
   退出深度睡眠后，有必要恢复GPIO原来的状态 (例如：原来是输出引脚) ::
 
     p1 = Pin(4, Pin.OUT, None)
+
+SD card
+-------
+
+See :ref:`machine.SDCard <machine.SDCard>`. ::
+
+    import machine, uos
+
+    # Slot 2 uses pins sck=18, cs=5, miso=19, mosi=23
+    sd = machine.SDCard(slot=2)
+    uos.mount(sd, "/sd")  # mount
+
+    uos.listdir('/sd')    # list directory contents
+
+    uos.umount('/sd')     # eject
 
 RMT
 ----
@@ -416,10 +472,10 @@ The RMT is ESP32-specific and allows generation of accurate digital pulses with
 
 确保数据引脚连接了 4.7k 的上拉电阻。另外请注意每次采集温度都需要用到 ``convert_temp()`` 模块。
 
-NeoPixel 彩灯驱动
-------------------
+NeoPixel and APA106 driver
+--------------------------
 
-Use the ``neopixel`` module::
+Use the ``neopixel`` and ``apa106`` modules::
 
     from machine import Pin
     from neopixel import NeoPixel
@@ -430,6 +486,14 @@ Use the ``neopixel`` module::
     np.write()              # 写入数据
     r, g, b = np[0]         # 获取第一个灯珠的颜色
 
+The APA106 driver extends NeoPixel, but internally uses a different colour order::
+
+    from apa106 import APA106
+    ap = APA106(pin, 8)
+    r, g, b = ap[0]
+
+APA102 (DotStar) uses a different driver as it has an additional clock pin.
+
 低级别的 NeoPixel 驱动::
 
     import esp
@@ -438,6 +502,7 @@ Use the ``neopixel`` module::
 .. Warning::
    默认情况下 ``NeoPixel`` 被配置成控制更常用的 *800kHz* 单元设备。用户可以通过使用替代的定时器
    来说控制其他频率的设备 (通常是 400kHz)。 可以通过使用定时器 ``timing=0`` 当构建 ``NeoPixel`` 对象的时候。
+
 
 电容触摸
 ----------------
