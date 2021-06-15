@@ -12,15 +12,17 @@ typedef enum {
 extern const mp_obj_type_t machine_timer_type;
 extern const mp_obj_type_t machine_wdt_type;
 extern const mp_obj_type_t machine_pin_type;
-extern const mp_obj_type_t machine_touchpad_type;
 extern const mp_obj_type_t machine_adc_type;
+#ifndef CONFIG_IDF_TARGET_ESP32C3
+extern const mp_obj_type_t machine_touchpad_type;
 extern const mp_obj_type_t machine_dac_type;
+extern const mp_obj_type_t machine_sdcard_type;
+#endif
+extern const mp_obj_type_t machine_hw_spi_type;
 extern const mp_obj_type_t machine_pwm_type;
 extern const mp_obj_type_t machine_hw_i2c_type;
-extern const mp_obj_type_t machine_hw_spi_type;
 extern const mp_obj_type_t machine_uart_type;
 extern const mp_obj_type_t machine_rtc_type;
-extern const mp_obj_type_t machine_sdcard_type;
 
 void machine_init(void);
 void machine_deinit(void);

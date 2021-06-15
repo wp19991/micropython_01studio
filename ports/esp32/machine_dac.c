@@ -30,11 +30,12 @@
 #include "esp_log.h"
 
 #include "driver/gpio.h"
-#include "driver/dac.h"
-
 #include "py/runtime.h"
 #include "py/mphal.h"
 #include "modmachine.h"
+
+#ifndef CONFIG_IDF_TARGET_ESP32C3
+#include "driver/dac.h"
 
 typedef struct _mdac_obj_t {
     mp_obj_base_t base;
@@ -111,3 +112,4 @@ const mp_obj_type_t machine_dac_type = {
     .make_new = mdac_make_new,
     .locals_dict = (mp_obj_t)&mdac_locals_dict,
 };
+#endif

@@ -50,9 +50,13 @@ void check_esp_err(esp_err_t code);
 
 uint32_t mp_hal_ticks_us(void);
 __attribute__((always_inline)) static inline uint32_t mp_hal_ticks_cpu(void) {
-    uint32_t ccount;
+	#if CONFIG_IDF_TARGET_ESP32C3
+		return cpu_hal_get_cycle_count();
+	#else
+    uint32_t ccount = 0;
     __asm__ __volatile__ ("rsr %0,ccount" : "=a" (ccount));
     return ccount;
+	#endif
 }
 
 void mp_hal_delay_us(uint32_t);

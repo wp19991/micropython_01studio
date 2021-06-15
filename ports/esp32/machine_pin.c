@@ -153,7 +153,32 @@ STATIC const machine_pin_obj_t machine_pin_obj[] = {
     {{&machine_pin_type}, GPIO_NUM_44}, // U0RXD
     {{&machine_pin_type}, GPIO_NUM_45},
     {{&machine_pin_type}, GPIO_NUM_46},
-
+	
+	#elif CONFIG_IDF_TARGET_ESP32C3
+	
+    {{&machine_pin_type}, GPIO_NUM_0},
+    {{&machine_pin_type}, GPIO_NUM_1},
+    {{&machine_pin_type}, GPIO_NUM_2},
+    {{&machine_pin_type}, GPIO_NUM_3},
+    {{&machine_pin_type}, GPIO_NUM_4},
+    {{&machine_pin_type}, GPIO_NUM_5},
+    {{&machine_pin_type}, GPIO_NUM_6},
+    {{&machine_pin_type}, GPIO_NUM_7},
+    {{&machine_pin_type}, GPIO_NUM_8},
+    {{&machine_pin_type}, GPIO_NUM_9},
+    {{&machine_pin_type}, GPIO_NUM_10},
+    {{&machine_pin_type}, GPIO_NUM_11},
+    {{&machine_pin_type}, GPIO_NUM_12},
+    {{&machine_pin_type}, GPIO_NUM_13},
+    {{&machine_pin_type}, GPIO_NUM_14},
+    {{&machine_pin_type}, GPIO_NUM_15},
+    {{&machine_pin_type}, GPIO_NUM_16},
+    {{&machine_pin_type}, GPIO_NUM_17},
+    {{&machine_pin_type}, GPIO_NUM_18},
+    {{&machine_pin_type}, GPIO_NUM_19},
+	{{&machine_pin_type}, GPIO_NUM_20},
+	{{&machine_pin_type}, GPIO_NUM_21},
+	{{&machine_pin_type}, GPIO_NUM_22},
     #endif
 };
 
@@ -213,7 +238,11 @@ STATIC mp_obj_t machine_pin_obj_init_helper(const machine_pin_obj_t *self, size_
     // reset the pin to digital if this is a mode-setting init (grab it back from ADC)
     if (args[ARG_mode].u_obj != mp_const_none) {
         if (rtc_gpio_is_valid_gpio(self->id)) {
-            rtc_gpio_deinit(self->id);
+						#if CONFIG_IDF_TARGET_ESP32C3
+						gpio_reset_pin(self->id);
+						#else
+						rtc_gpio_deinit(self->id);
+						#endif
         }
     }
 
@@ -548,6 +577,31 @@ STATIC const machine_pin_irq_obj_t machine_pin_irq_object[] = {
     {{&machine_pin_irq_type}, GPIO_NUM_44},
     {{&machine_pin_irq_type}, GPIO_NUM_45},
 
+	#elif CONFIG_IDF_TARGET_ESP32C3
+
+    {{&machine_pin_irq_type}, GPIO_NUM_0},
+    {{&machine_pin_irq_type}, GPIO_NUM_1},
+    {{&machine_pin_irq_type}, GPIO_NUM_2},
+    {{&machine_pin_irq_type}, GPIO_NUM_3},
+    {{&machine_pin_irq_type}, GPIO_NUM_4},
+    {{&machine_pin_irq_type}, GPIO_NUM_5},
+    {{&machine_pin_irq_type}, GPIO_NUM_6},
+    {{&machine_pin_irq_type}, GPIO_NUM_7},
+    {{&machine_pin_irq_type}, GPIO_NUM_8},
+    {{&machine_pin_irq_type}, GPIO_NUM_9},
+    {{&machine_pin_irq_type}, GPIO_NUM_10},
+    {{&machine_pin_irq_type}, GPIO_NUM_11},
+    {{&machine_pin_irq_type}, GPIO_NUM_12},
+    {{&machine_pin_irq_type}, GPIO_NUM_13},
+    {{&machine_pin_irq_type}, GPIO_NUM_14},
+    {{&machine_pin_irq_type}, GPIO_NUM_15},
+    {{&machine_pin_irq_type}, GPIO_NUM_16},
+    {{&machine_pin_irq_type}, GPIO_NUM_17},
+    {{&machine_pin_irq_type}, GPIO_NUM_18},
+    {{&machine_pin_irq_type}, GPIO_NUM_19},
+    {{&machine_pin_irq_type}, GPIO_NUM_20},
+    {{&machine_pin_irq_type}, GPIO_NUM_21},
+    {{&machine_pin_irq_type}, GPIO_NUM_22},
     #endif
 };
 

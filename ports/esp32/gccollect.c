@@ -35,10 +35,14 @@
 #include "py/mpthread.h"
 #include "gccollect.h"
 #include "soc/cpu.h"
+
+#ifndef CONFIG_IDF_TARGET_ESP32C3
 #include "xtensa/hal.h"
+#endif
 
 
 static void gc_collect_inner(int level) {
+	#ifndef CONFIG_IDF_TARGET_ESP32C3
     if (level < XCHAL_NUM_AREGS / 8) {
         gc_collect_inner(level + 1);
         if (level != 0) {
@@ -52,7 +56,12 @@ static void gc_collect_inner(int level) {
         gc_collect_root((void **)sp, ((mp_uint_t)MP_STATE_THREAD(stack_top) - sp) / sizeof(uint32_t));
         return;
     }
-
+		#else
+		// collect on stack
+		volatile void* tmp;
+		volatile void* sp = &tmp;
+		gc_collect_root((void**)sp, ((mp_uint_t)MP_STATE_THREAD(stack_top) - (mp_uint_t)sp) / sizeof(void*));
+		#endif
     // trace root pointers from any threads
     #if MICROPY_PY_THREAD
     mp_thread_gc_others();

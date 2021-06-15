@@ -96,8 +96,11 @@ STATIC void machine_timer_print(const mp_print_t *print, mp_obj_t self_in, mp_pr
 STATIC mp_obj_t machine_timer_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_kw, const mp_obj_t *args) {
     mp_arg_check_num(n_args, n_kw, 1, 1, false);
     mp_uint_t group = (mp_obj_get_int(args[0]) >> 1) & 1;
+		#if CONFIG_IDF_TARGET_ESP32C3
+		mp_uint_t index = 0;
+		#else
     mp_uint_t index = mp_obj_get_int(args[0]) & 1;
-
+		#endif
     // Check whether the timer is already initialized, if so return it
     for (machine_timer_obj_t *t = MP_STATE_PORT(machine_timer_obj_head); t; t = t->next) {
         if (t->group == group && t->index == index) {

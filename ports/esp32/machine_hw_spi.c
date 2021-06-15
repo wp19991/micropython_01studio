@@ -183,7 +183,7 @@ STATIC void machine_hw_spi_init_internal(
         self->miso = miso;
         changed = true;
     }
-
+#ifndef CONFIG_IDF_TARGET_ESP32C3
     if (self->host != HSPI_HOST
         #ifdef VSPI_HOST
         && self->host != VSPI_HOST
@@ -191,7 +191,7 @@ STATIC void machine_hw_spi_init_internal(
         ) {
         mp_raise_msg_varg(&mp_type_ValueError, MP_ERROR_TEXT("SPI(%d) doesn't exist"), self->host);
     }
-
+#endif
     if (changed) {
         if (self->state == MACHINE_HW_SPI_STATE_INIT) {
             self->state = MACHINE_HW_SPI_STATE_DEINIT;
@@ -221,7 +221,10 @@ STATIC void machine_hw_spi_init_internal(
     // Initialize the SPI bus
 
     // Select DMA channel based on the hardware SPI host
-    int dma_chan = 0;
+		int dma_chan = 0;
+		#if CONFIG_IDF_TARGET_ESP32C3
+			dma_chan = 2;
+		#else
     if (self->host == HSPI_HOST) {
         dma_chan = 1;
     #ifdef VSPI_HOST
@@ -229,6 +232,7 @@ STATIC void machine_hw_spi_init_internal(
         dma_chan = 2;
     #endif
     }
+		#endif
 
     ret = spi_bus_initialize(self->host, &buscfg, dma_chan);
     switch (ret) {
@@ -402,6 +406,10 @@ mp_obj_t machine_hw_spi_make_new(const mp_obj_type_t *type, size_t n_args, size_
 
     machine_hw_spi_obj_t *self;
     const machine_hw_spi_default_pins_t *default_pins;
+		#if CONFIG_IDF_TARGET_ESP32C3
+        self = &machine_hw_spi_obj[0];
+        default_pins = &machine_hw_spi_default_pins[0];
+		#else
     if (args[ARG_id].u_int == HSPI_HOST) {
         self = &machine_hw_spi_obj[0];
         default_pins = &machine_hw_spi_default_pins[0];
@@ -409,6 +417,7 @@ mp_obj_t machine_hw_spi_make_new(const mp_obj_type_t *type, size_t n_args, size_
         self = &machine_hw_spi_obj[1];
         default_pins = &machine_hw_spi_default_pins[1];
     }
+		#endif
     self->base.type = &machine_hw_spi_type;
 
     machine_hw_spi_init_internal(

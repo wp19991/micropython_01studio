@@ -34,7 +34,10 @@
 #include "freertos/task.h"
 #include "esp_sleep.h"
 #include "esp_pm.h"
+
+#ifndef CONFIG_IDF_TARGET_ESP32C3
 #include "driver/touch_pad.h"
+#endif
 
 #if CONFIG_IDF_TARGET_ESP32
 #include "esp32/rom/rtc.h"
@@ -45,6 +48,9 @@
 #elif CONFIG_IDF_TARGET_ESP32S3
 #include "esp32s3/rom/rtc.h"
 #include "esp32s3/clk.h"
+#elif CONFIG_IDF_TARGET_ESP32C3
+#include "esp32c3/rom/rtc.h"
+#include "esp32c3/clk.h"
 #endif
 
 #include "py/obj.h"
@@ -84,6 +90,8 @@ STATIC mp_obj_t machine_freq(size_t n_args, const mp_obj_t *args) {
         esp_pm_config_esp32_t pm;
         #elif CONFIG_IDF_TARGET_ESP32S2
         esp_pm_config_esp32s2_t pm;
+		#elif CONFIG_IDF_TARGET_ESP32C3
+        esp_pm_config_esp32c3_t pm;
         #endif
         pm.max_freq_mhz = freq;
         pm.min_freq_mhz = freq;
@@ -116,7 +124,7 @@ STATIC mp_obj_t machine_sleep_helper(wake_type_t wake_type, size_t n_args, const
     if (expiry != 0) {
         esp_sleep_enable_timer_wakeup(((uint64_t)expiry) * 1000);
     }
-
+	#ifndef CONFIG_IDF_TARGET_ESP32C3
     if (machine_rtc_config.ext0_pin != -1 && (machine_rtc_config.ext0_wake_types & wake_type)) {
         esp_sleep_enable_ext0_wakeup(machine_rtc_config.ext0_pin, machine_rtc_config.ext0_level ? 1 : 0);
     }
@@ -132,7 +140,7 @@ STATIC mp_obj_t machine_sleep_helper(wake_type_t wake_type, size_t n_args, const
             mp_raise_msg(&mp_type_RuntimeError, MP_ERROR_TEXT("esp_sleep_enable_touchpad_wakeup() failed"));
         }
     }
-
+	#endif
     switch (wake_type) {
         case MACHINE_WAKE_SLEEP:
             esp_light_sleep_start();
@@ -277,13 +285,18 @@ STATIC const mp_rom_map_elem_t machine_module_globals_table[] = {
     { MP_ROM_QSTR(MP_QSTR_TouchPad), MP_ROM_PTR(&machine_touchpad_type) },
     #endif
     { MP_ROM_QSTR(MP_QSTR_ADC), MP_ROM_PTR(&machine_adc_type) },
-    { MP_ROM_QSTR(MP_QSTR_DAC), MP_ROM_PTR(&machine_dac_type) },
+		#ifndef CONFIG_IDF_TARGET_ESP32C3
+		{ MP_ROM_QSTR(MP_QSTR_DAC), MP_ROM_PTR(&machine_dac_type) },
+		#endif
+		{ MP_ROM_QSTR(MP_QSTR_SPI), MP_ROM_PTR(&machine_hw_spi_type) },
+		{ MP_ROM_QSTR(MP_QSTR_SoftSPI), MP_ROM_PTR(&mp_machine_soft_spi_type) },
+
     { MP_ROM_QSTR(MP_QSTR_I2C), MP_ROM_PTR(&machine_hw_i2c_type) },
     { MP_ROM_QSTR(MP_QSTR_SoftI2C), MP_ROM_PTR(&mp_machine_soft_i2c_type) },
     { MP_ROM_QSTR(MP_QSTR_PWM), MP_ROM_PTR(&machine_pwm_type) },
     { MP_ROM_QSTR(MP_QSTR_RTC), MP_ROM_PTR(&machine_rtc_type) },
-    { MP_ROM_QSTR(MP_QSTR_SPI), MP_ROM_PTR(&machine_hw_spi_type) },
-    { MP_ROM_QSTR(MP_QSTR_SoftSPI), MP_ROM_PTR(&mp_machine_soft_spi_type) },
+    
+    
     { MP_ROM_QSTR(MP_QSTR_UART), MP_ROM_PTR(&machine_uart_type) },
 
     // Reset reasons
@@ -300,8 +313,10 @@ STATIC const mp_rom_map_elem_t machine_module_globals_table[] = {
     { MP_ROM_QSTR(MP_QSTR_EXT0_WAKE), MP_ROM_INT(ESP_SLEEP_WAKEUP_EXT0) },
     { MP_ROM_QSTR(MP_QSTR_EXT1_WAKE), MP_ROM_INT(ESP_SLEEP_WAKEUP_EXT1) },
     { MP_ROM_QSTR(MP_QSTR_TIMER_WAKE), MP_ROM_INT(ESP_SLEEP_WAKEUP_TIMER) },
+		#ifndef CONFIG_IDF_TARGET_ESP32C3
     { MP_ROM_QSTR(MP_QSTR_TOUCHPAD_WAKE), MP_ROM_INT(ESP_SLEEP_WAKEUP_TOUCHPAD) },
     { MP_ROM_QSTR(MP_QSTR_ULP_WAKE), MP_ROM_INT(ESP_SLEEP_WAKEUP_ULP) },
+		#endif
 };
 
 STATIC MP_DEFINE_CONST_DICT(machine_module_globals, machine_module_globals_table);
