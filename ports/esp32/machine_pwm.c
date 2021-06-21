@@ -31,7 +31,24 @@
 #include "py/runtime.h"
 #include "modmachine.h"
 #include "mphalport.h"
+volatile
 
+
+typedef struct
+{
+  volatile uint32_t LEDC_CHX_CONF[12];
+  volatile uint32_t LEDC_CONF_REG; //全局配置寄存器 0x00D0 R/W
+	volatile uint32_t LEDC_CHX_HPOINT_REG[6];
+	volatile uint32_t LEDC_CHX_DUTY_REG[12];
+	volatile uint32_t	LEDC_TIMER_CONF_REG[8];
+	volatile uint32_t LEDC_INT_RAW_REG;
+	volatile uint32_t LEDC_INT_ST_REG;
+	volatile uint32_t LEDC_INT_ENA_REG;
+	volatile uint32_t LEDC_INT_CLR_REG;
+	volatile uint32_t LEDC_DATE_REG;
+}LEDC_TypeDef;
+#define MLEDC           ((LEDC_TypeDef *)DR_REG_LEDC_BASE)
+//------------------------------------------
 // Forward dec'l
 extern const mp_obj_type_t machine_pwm_type;
 
@@ -101,11 +118,17 @@ STATIC int set_freq(int newval) {
     // Configure the new resolution and frequency
     timer_cfg.duty_resolution = res;
     timer_cfg.freq_hz = newval;
+printf("freq:%d,ores:%d,res:%d,LEDC_APB_CLK_HZ:%d\r\n",newval,ores,res,LEDC_APB_CLK_HZ);
     if (ledc_timer_config(&timer_cfg) != ESP_OK) {
         timer_cfg.duty_resolution = ores;
         timer_cfg.freq_hz = oval;
         return 0;
     }
+		uint32_t ferqt = ledc_get_freq(PWMODE, PWTIMER);
+		printf("ferqt:%d\r\n",ferqt);
+		printf("uint32_t:%d\r\n",sizeof(uint32_t));
+		printf("LEDC_CONF_REG:0x%p\r\n",&MLEDC->LEDC_CONF_REG);
+		printf("LEDC_TIMER1_CONF_REG:0x%p\r\n",&MLEDC->LEDC_TIMER_CONF_REG[2]);
     return 1;
 }
 
@@ -122,6 +145,7 @@ STATIC void esp32_pwm_print(const mp_print_t *print, mp_obj_t self_in, mp_print_
     }
     mp_printf(print, ")");
 }
+
 
 STATIC void esp32_pwm_init_helper(esp32_pwm_obj_t *self,
     size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {

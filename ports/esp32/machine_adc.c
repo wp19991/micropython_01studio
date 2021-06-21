@@ -63,13 +63,14 @@ STATIC const madc_obj_t madc_obj[] = {
     {{&machine_adc_type}, GPIO_NUM_8, ADC1_CHANNEL_7},
     {{&machine_adc_type}, GPIO_NUM_9, ADC1_CHANNEL_8},
     {{&machine_adc_type}, GPIO_NUM_10, ADC1_CHANNEL_9},
-	#elif CONFIG_IDF_TARGET_ESP32C3
-	{{&machine_adc_type}, GPIO_NUM_0, ADC1_CHANNEL_0},
-	{{&machine_adc_type}, GPIO_NUM_1, ADC1_CHANNEL_1},
-	{{&machine_adc_type}, GPIO_NUM_2, ADC1_CHANNEL_2},
-	{{&machine_adc_type}, GPIO_NUM_3, ADC1_CHANNEL_3},
-	{{&machine_adc_type}, GPIO_NUM_4, ADC1_CHANNEL_4},
-    #endif
+		#elif CONFIG_IDF_TARGET_ESP32C3
+		{{&machine_adc_type}, GPIO_NUM_0, ADC1_CHANNEL_0},
+		{{&machine_adc_type}, GPIO_NUM_1, ADC1_CHANNEL_1},
+		{{&machine_adc_type}, GPIO_NUM_2, ADC1_CHANNEL_2},
+		{{&machine_adc_type}, GPIO_NUM_3, ADC1_CHANNEL_3},
+		{{&machine_adc_type}, GPIO_NUM_4, ADC1_CHANNEL_4},
+		{{&machine_adc_type}, GPIO_NUM_5, ADC2_CHANNEL_0},
+		#endif
 };
 
 STATIC uint8_t adc_bit_width;
@@ -81,13 +82,14 @@ STATIC mp_obj_t madc_make_new(const mp_obj_type_t *type, size_t n_args, size_t n
     if (!initialized) {
         #if CONFIG_IDF_TARGET_ESP32S2
         adc1_config_width(ADC_WIDTH_BIT_13);
-        #else
-        adc1_config_width(ADC_WIDTH_BIT_12);
+        #elif CONFIG_IDF_TARGET_ESP32C3
+				adc1_config_width(ADC_WIDTH_BIT_12);
+				#else
+				adc1_config_width(ADC_WIDTH_BIT_12);
         #endif
         adc_bit_width = 12;
         initialized = 1;
     }
-
     mp_arg_check_num(n_args, n_kw, 1, 1, true);
     gpio_num_t pin_id = machine_pin_get_id(args[0]);
     const madc_obj_t *self = NULL;
@@ -100,7 +102,16 @@ STATIC mp_obj_t madc_make_new(const mp_obj_type_t *type, size_t n_args, size_t n
     if (!self) {
         mp_raise_ValueError(MP_ERROR_TEXT("invalid Pin for ADC"));
     }
-    esp_err_t err = adc1_config_channel_atten(self->adc1_id, ADC_ATTEN_0db);
+		esp_err_t err;
+		#if CONFIG_IDF_TARGET_ESP32C3
+		if(pin_id == GPIO_NUM_5){
+			err = adc2_config_channel_atten(ADC2_CHANNEL_0, ADC_ATTEN_0db);
+		}else{
+			err = adc1_config_channel_atten(self->adc1_id, ADC_ATTEN_0db);
+		}
+		#else
+		err = adc1_config_channel_atten(self->adc1_id, ADC_ATTEN_0db);
+		#endif
     if (err == ESP_OK) {
         return MP_OBJ_FROM_PTR(self);
     }
@@ -115,7 +126,16 @@ STATIC void madc_print(const mp_print_t *print, mp_obj_t self_in, mp_print_kind_
 // read_u16()
 STATIC mp_obj_t madc_read_u16(mp_obj_t self_in) {
     madc_obj_t *self = MP_OBJ_TO_PTR(self_in);
-    uint32_t raw = adc1_get_raw(self->adc1_id);
+		uint32_t raw = 0;
+		#if CONFIG_IDF_TARGET_ESP32C3
+		if(self->gpio_id == GPIO_NUM_5){
+			adc2_get_raw(self->adc1_id,adc_bit_width,(int*)&raw);
+		}else{
+			raw = adc1_get_raw(self->adc1_id);
+		}
+		#else
+		raw = adc1_get_raw(self->adc1_id);
+		#endif
     // Scale raw reading to 16 bit value using a Taylor expansion (for 8 <= bits <= 16)
     uint32_t u16 = raw << (16 - adc_bit_width) | raw >> (2 * adc_bit_width - 16);
     return MP_OBJ_NEW_SMALL_INT(u16);
@@ -125,7 +145,16 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_1(madc_read_u16_obj, madc_read_u16);
 // Legacy method
 STATIC mp_obj_t madc_read(mp_obj_t self_in) {
     madc_obj_t *self = self_in;
-    int val = adc1_get_raw(self->adc1_id);
+		int val = 0;
+		#if CONFIG_IDF_TARGET_ESP32C3
+		if(self->gpio_id == GPIO_NUM_5){
+			adc2_get_raw(ADC2_CHANNEL_0,ADC_WIDTH_BIT_12,&val);
+		}else{
+			val = adc1_get_raw(self->adc1_id);
+		}
+		#else
+		val = adc1_get_raw(self->adc1_id);
+		#endif
     if (val == -1) {
         mp_raise_ValueError(MP_ERROR_TEXT("parameter error"));
     }
@@ -136,7 +165,16 @@ MP_DEFINE_CONST_FUN_OBJ_1(madc_read_obj, madc_read);
 STATIC mp_obj_t madc_atten(mp_obj_t self_in, mp_obj_t atten_in) {
     madc_obj_t *self = self_in;
     adc_atten_t atten = mp_obj_get_int(atten_in);
-    esp_err_t err = adc1_config_channel_atten(self->adc1_id, atten);
+		esp_err_t err;
+		#if CONFIG_IDF_TARGET_ESP32C3
+		if(self->gpio_id == GPIO_NUM_5){
+			err = adc2_config_channel_atten(self->adc1_id, atten);
+		}else{
+			err = adc1_config_channel_atten(self->adc1_id, atten);
+		}
+		#else
+		err = adc1_config_channel_atten(self->adc1_id, atten);
+		#endif
     if (err == ESP_OK) {
         return mp_const_none;
     }

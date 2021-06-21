@@ -178,7 +178,6 @@ STATIC const machine_pin_obj_t machine_pin_obj[] = {
     {{&machine_pin_type}, GPIO_NUM_19},
 	{{&machine_pin_type}, GPIO_NUM_20},
 	{{&machine_pin_type}, GPIO_NUM_21},
-	{{&machine_pin_type}, GPIO_NUM_22},
     #endif
 };
 
@@ -601,7 +600,6 @@ STATIC const machine_pin_irq_obj_t machine_pin_irq_object[] = {
     {{&machine_pin_irq_type}, GPIO_NUM_19},
     {{&machine_pin_irq_type}, GPIO_NUM_20},
     {{&machine_pin_irq_type}, GPIO_NUM_21},
-    {{&machine_pin_irq_type}, GPIO_NUM_22},
     #endif
 };
 
