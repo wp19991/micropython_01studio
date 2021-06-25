@@ -1,8 +1,7 @@
-set(IDF_TARGET esp32c3)
+set(IDF_TARGET esp32s2)
 
 set(SDKCONFIG_DEFAULTS
-    boards/sdkconfig.ble
-		boards/GENERIC_01STUDIO_C3/sdkconfig.board
+    boards/sdkconfig.base
 )
 
 if(NOT MICROPY_FROZEN_MANIFEST)

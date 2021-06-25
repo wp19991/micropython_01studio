@@ -3,10 +3,16 @@
 # This is a simple, convenience wrapper around idf.py (which uses cmake).
 
 # Select the board to build for, defaulting to GENERIC.
-BOARD ?= GENERIC_01STUDIO_C3
+BOARD ?= PYWIFI_C3
 
 # If the build directory is not given, make it reflect the board name.
 BUILD ?= build-$(BOARD)
+
+ifeq ($(BOARD),PYWIFI_C3)
+MAKEIMG = makeimg_c3.py
+else
+MAKEIMG = makeimg.py
+endif
 
 # Device serial settings.
 PORT ?= /dev/ttyUSB0
@@ -32,7 +38,7 @@ endif
 
 all:
 	idf.py $(IDFPY_FLAGS) build
-	@$(PYTHON) makeimg.py \
+	@$(PYTHON) $(MAKEIMG) \
 		$(BUILD)/bootloader/bootloader.bin \
 		$(BUILD)/partition_table/partition-table.bin \
     		$(BUILD)/micropython.bin \

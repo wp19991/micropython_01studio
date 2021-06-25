@@ -174,8 +174,13 @@ STATIC const machine_pin_obj_t machine_pin_obj[] = {
     {{&machine_pin_type}, GPIO_NUM_15},
     {{&machine_pin_type}, GPIO_NUM_16},
     {{&machine_pin_type}, GPIO_NUM_17},
+    #if CONFIG_USB_CDC_ENABLED
+    {{NULL}, -1}, // 19 is for native USB D-
+    {{NULL}, -1}, // 20 is for native USB D-
+    #else
     {{&machine_pin_type}, GPIO_NUM_18},
     {{&machine_pin_type}, GPIO_NUM_19},
+    #endif
 	{{&machine_pin_type}, GPIO_NUM_20},
 	{{&machine_pin_type}, GPIO_NUM_21},
     #endif
@@ -596,8 +601,13 @@ STATIC const machine_pin_irq_obj_t machine_pin_irq_object[] = {
     {{&machine_pin_irq_type}, GPIO_NUM_15},
     {{&machine_pin_irq_type}, GPIO_NUM_16},
     {{&machine_pin_irq_type}, GPIO_NUM_17},
+    #if CONFIG_USB_CDC_ENABLED
+    {{NULL}, -1}, // 19 is for native USB D-
+    {{NULL}, -1}, // 20 is for native USB D-
+    #else
     {{&machine_pin_irq_type}, GPIO_NUM_18},
     {{&machine_pin_irq_type}, GPIO_NUM_19},
+    #endif
     {{&machine_pin_irq_type}, GPIO_NUM_20},
     {{&machine_pin_irq_type}, GPIO_NUM_21},
     #endif

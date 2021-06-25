@@ -182,8 +182,7 @@ void RTC_GetData(RTC_DateTypeDef *sDate)
 				break;
 			}
     }
-
-	uint16_t leftSeconds = Second % SECOND_DAY;
+	uint32_t leftSeconds = Second % SECOND_DAY;
 	sDate->Hour = (uint8_t)(leftSeconds / SECOND_HOUR);
 	sDate->Minute = (uint8_t)((leftSeconds % SECOND_HOUR) / SECOND_MIN);
 	sDate->Second = (uint8_t)(leftSeconds % SECOND_MIN);
@@ -207,12 +206,10 @@ STATIC void RTC_SetData(RTC_DateTypeDef *sDate)
 	CurData += mon_yday[isLeepYear][sDate->Month - 1];
 
 	CurData += sDate->Date-1;
-
 	Second = CurData * SECOND_DAY;
 	Second += (sDate->Hour * SECOND_HOUR)+ (sDate->Minute * SECOND_MIN);
 	Second += sDate->Second;
 
-	
 	RCC->APB1ENR |= (1<<29); //enable PWREN
 	RCC->APB1ENR |= (1<<9); //enable BKPEN
 	PWR->CR |= (1<<8); //Enable DBP 关闭写保护
