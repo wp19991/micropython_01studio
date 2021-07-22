@@ -13,6 +13,21 @@ set(MICROPY_QSTRDEFS_PORT
     ${PROJECT_DIR}/qstrdefsport.h
 )
 
+if(MICROPY_PORT_PICLIB STREQUAL "y")
+	#add_compile_definitions("MICROPY_PORT_PICLIB")
+	#message("\n compile MICROPY_PY_PICLIB \n")
+	
+	set(MICROPY_INC_PICTURE
+    ${PROJECT_DIR}/picture
+	)
+	set(MICROPY_SOURCE_PICTURE
+    ${PROJECT_DIR}/picture/bmp.c
+		${PROJECT_DIR}/picture/piclib.c
+		${PROJECT_DIR}/picture/tjpgd.c
+	)
+
+endif()
+
 set(MICROPY_SOURCE_LIB
     ${MICROPY_DIR}/lib/littlefs/lfs1.c
     ${MICROPY_DIR}/lib/littlefs/lfs1_util.c
@@ -70,6 +85,12 @@ set(MICROPY_SOURCE_PORT
     ${PROJECT_DIR}/mpthreadport.c
     ${PROJECT_DIR}/machine_rtc.c
     ${PROJECT_DIR}/machine_sdcard.c
+		${PROJECT_DIR}/modtftlcd.c
+		${PROJECT_DIR}/ILI9341.c
+		${PROJECT_DIR}/modtouch.c
+		${PROJECT_DIR}/xpt2046.c
+		${PROJECT_DIR}/modgui.c
+		${PROJECT_DIR}/gui_button.c
 )
 
 set(MICROPY_SOURCE_QSTR
@@ -141,12 +162,14 @@ idf_component_register(
         ${MICROPY_SOURCE_LIB}
         ${MICROPY_SOURCE_DRIVERS}
         ${MICROPY_SOURCE_PORT}
+				${MICROPY_SOURCE_PICTURE}
     INCLUDE_DIRS
         ${MICROPY_INC_CORE}
         ${MICROPY_INC_USERMOD}
         ${MICROPY_PORT_DIR}
         ${MICROPY_BOARD_DIR}
         ${CMAKE_BINARY_DIR}
+				${MICROPY_INC_PICTURE}
     REQUIRES
         ${IDF_COMPONENTS}
 )

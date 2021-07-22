@@ -213,10 +213,10 @@ STATIC mp_obj_t touch_tf54x6_make_new(const mp_obj_type_t *type, size_t n_args, 
 	mp_arg_parse_all_kw_array(n_args, n_kw, all_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
 	
 	
-	//if(args[0].u_int != 0)
-	//{
+	if(args[0].u_int != 0)
+	{
 		tp_dev.dir = args[0].u_int;
-	//}
+	}
 	
 	switch (tp_dev.dir)
 	{

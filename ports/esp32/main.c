@@ -30,6 +30,14 @@
 #include <string.h>
 #include <stdarg.h>
 
+#include "extmod/vfs.h"
+#include "extmod/vfs_fat.h"
+
+#include "esp_vfs.h"
+
+#include "lib/littlefs/lfs2.h"
+#include "lib/littlefs/lfs2_util.h"
+
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "esp_system.h"
@@ -37,6 +45,7 @@
 #include "esp_task.h"
 #include "soc/cpu.h"
 #include "esp_log.h"
+#include "esp_task_wdt.h"
 
 #if CONFIG_IDF_TARGET_ESP32
 #include "esp32/spiram.h"
@@ -66,14 +75,37 @@
 #include "extmod/modbluetooth.h"
 #endif
 
+#if MICROPY_ENABLE_TFTLCD
+#include "modtftlcd.h"
+
+#if MICROPY_HW_LCD32
+#include "ILI9341.h"
+#endif
+
+#endif
+
+#define STRING_LIST(...) {__VA_ARGS__, ""}
+
 // MicroPython runs as a task under FreeRTOS
 #define MP_TASK_PRIORITY        (ESP_TASK_PRIO_MIN + 1)
 #define MP_TASK_STACK_SIZE      (16 * 1024)
+
+#include "py/stream.h"
+
+typedef struct _mp_obj_vfs_lfs2_t {
+    mp_obj_base_t base;
+    mp_vfs_blockdev_t blockdev;
+    bool enable_mtime;
+    vstr_t cur_dir;
+    struct lfs2_config config;
+    lfs2_t lfs;
+} mp_obj_vfs_lfs2_t;
 
 int vprintf_null(const char *format, va_list ap) {
     // do nothing: this is used as a log target during raw repl mode
     return 0;
 }
+
 
 void mp_task(void *pvParameter) {
     volatile uint32_t sp = (uint32_t)get_sp();
@@ -165,6 +197,10 @@ soft_reset:
 
 soft_reset_exit:
 
+		#if MICROPY_HW_LCD32
+		hw_spi_deinit_internal();
+		#endif
+		
     #if MICROPY_BLUETOOTH_NIMBLE
     mp_bluetooth_deinit();
     #endif

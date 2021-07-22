@@ -90,7 +90,7 @@ STATIC mp_obj_t machine_freq(size_t n_args, const mp_obj_t *args) {
         esp_pm_config_esp32_t pm;
         #elif CONFIG_IDF_TARGET_ESP32S2
         esp_pm_config_esp32s2_t pm;
-		#elif CONFIG_IDF_TARGET_ESP32C3
+				#elif CONFIG_IDF_TARGET_ESP32C3
         esp_pm_config_esp32c3_t pm;
         #endif
         pm.max_freq_mhz = freq;

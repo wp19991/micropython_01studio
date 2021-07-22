@@ -197,6 +197,37 @@ extern const struct _mp_obj_module_t mp_module_machine;
 extern const struct _mp_obj_module_t mp_module_network;
 extern const struct _mp_obj_module_t mp_module_onewire;
 
+//01studio
+extern const struct _mp_obj_module_t touch_module;
+extern const struct _mp_obj_module_t tftlcd_module;
+//extern const struct _mp_obj_module_t audio_module;
+//extern const struct _mp_obj_module_t video_module;
+//extern const struct _mp_obj_module_t sensor_module;
+extern const struct _mp_obj_module_t gui_module;
+
+#if MICROPY_ENABLE_TOUCH
+#define TOUCH_MODULE              { MP_ROM_QSTR(MP_QSTR_touch), MP_ROM_PTR(&touch_module) },
+#else
+#define TOUCH_MODULE
+#endif
+
+#if MICROPY_ENABLE_TFTLCD
+#define TFTLCD_MODULE              { MP_ROM_QSTR(MP_QSTR_tftlcd), MP_ROM_PTR(&tftlcd_module) },
+#else
+#define TFTLCD_MODULE
+#endif
+#if MICROPY_ENABLE_GUI
+#define GUI_MODULE              { MP_ROM_QSTR(MP_QSTR_gui), MP_ROM_PTR(&gui_module) },
+#else
+#define GUI_MODULE
+#endif
+
+#if MICROPY_ENABLE_GUI
+#define MICROPY_PORT_ROOT_GUI struct _gui_button_obj_t *gui_btn_obj_all[GUI_BTN_NUM_MAX];
+#else
+#define MICROPY_PORT_ROOT_GUI
+#endif
+//end
 #define MICROPY_PORT_BUILTIN_MODULES \
     { MP_OBJ_NEW_QSTR(MP_QSTR_esp), (mp_obj_t)&esp_module }, \
     { MP_OBJ_NEW_QSTR(MP_QSTR_esp32), (mp_obj_t)&esp32_module }, \
@@ -206,6 +237,9 @@ extern const struct _mp_obj_module_t mp_module_onewire;
     { MP_OBJ_NEW_QSTR(MP_QSTR_machine), (mp_obj_t)&mp_module_machine }, \
     { MP_OBJ_NEW_QSTR(MP_QSTR_network), (mp_obj_t)&mp_module_network }, \
     { MP_OBJ_NEW_QSTR(MP_QSTR__onewire), (mp_obj_t)&mp_module_onewire }, \
+		TOUCH_MODULE \
+		TFTLCD_MODULE \
+		GUI_MODULE \
 
 #define MP_STATE_PORT MP_STATE_VM
 
@@ -222,7 +256,8 @@ struct mp_bluetooth_nimble_root_pointers_t;
     const char *readline_hist[8]; \
     mp_obj_t machine_pin_irq_handler[40]; \
     struct _machine_timer_obj_t *machine_timer_obj_head; \
-    MICROPY_PORT_ROOT_POINTER_BLUETOOTH_NIMBLE
+    MICROPY_PORT_ROOT_POINTER_BLUETOOTH_NIMBLE \
+		MICROPY_PORT_ROOT_GUI \
 
 // type definitions for the specific machine
 

@@ -19,7 +19,7 @@
 
 #include "storage.h"
 #include "sdcard.h"
-#include "portmodules.h"
+
 #include "modmachine.h"
 #include "extmod/vfs.h"
 #include "extmod/utime_mphal.h"
