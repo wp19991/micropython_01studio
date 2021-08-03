@@ -202,7 +202,7 @@ extern const struct _mp_obj_module_t touch_module;
 extern const struct _mp_obj_module_t tftlcd_module;
 //extern const struct _mp_obj_module_t audio_module;
 //extern const struct _mp_obj_module_t video_module;
-//extern const struct _mp_obj_module_t sensor_module;
+extern const struct _mp_obj_module_t sensor_module;
 extern const struct _mp_obj_module_t gui_module;
 
 #if MICROPY_ENABLE_TOUCH
@@ -216,16 +216,20 @@ extern const struct _mp_obj_module_t gui_module;
 #else
 #define TFTLCD_MODULE
 #endif
-#if MICROPY_ENABLE_GUI
-#define GUI_MODULE              { MP_ROM_QSTR(MP_QSTR_gui), MP_ROM_PTR(&gui_module) },
-#else
-#define GUI_MODULE
-#endif
 
 #if MICROPY_ENABLE_GUI
+#define GUI_MODULE              { MP_ROM_QSTR(MP_QSTR_gui), MP_ROM_PTR(&gui_module) },
 #define MICROPY_PORT_ROOT_GUI struct _gui_button_obj_t *gui_btn_obj_all[GUI_BTN_NUM_MAX];
 #else
+#define GUI_MODULE
 #define MICROPY_PORT_ROOT_GUI
+#endif
+
+
+#if MICROPY_ENABLE_SENSOR
+#define SENSOR_MODULE              { MP_ROM_QSTR(MP_QSTR_sensor), MP_ROM_PTR(&sensor_module) },
+#else
+#define SENSOR_MODULE
 #endif
 //end
 #define MICROPY_PORT_BUILTIN_MODULES \
@@ -240,6 +244,7 @@ extern const struct _mp_obj_module_t gui_module;
 		TOUCH_MODULE \
 		TFTLCD_MODULE \
 		GUI_MODULE \
+		SENSOR_MODULE \
 
 #define MP_STATE_PORT MP_STATE_VM
 

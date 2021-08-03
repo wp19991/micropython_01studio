@@ -97,7 +97,7 @@ STATIC void disp_spi_init(ILI9341_t *self)
 			.sclk_io_num=self->clk,
 			.quadwp_io_num=-1,
 			.quadhd_io_num=-1,
-			.max_transfer_sz=150*1024,
+			.max_transfer_sz=200*1024,
 		};
 
 		spi_device_interface_config_t devcfg={
@@ -186,7 +186,7 @@ STATIC const lcd_init_cmd_t ili_init_cmds[]={
 
 //--------------------------------------------------------
 
-STATIC void disp_spi_send(ILI9341_t *self, const uint8_t * data, uint16_t length)
+STATIC void disp_spi_send(ILI9341_t *self, const uint8_t * data, uint32_t length)
 {
 	if (length == 0) return;           //no need to send anything
 
@@ -205,7 +205,9 @@ STATIC void disp_fill_send(ILI9341_t *self, uint16_t data, uint32_t length)
 	gpio_set_level(self->dc, 1);	 /*Data mode*/
 
 	uint8_t *t_data = (uint8_t *)m_malloc(length*2);
-
+	if(t_data == NULL){
+		printf("fill malloc error\r\n");
+	}
 	for(uint32_t i=0; i < length; i++){
 		t_data[2*i] = (data >> 8);
 		t_data[2*i+1] = (data & 0xFF);
@@ -261,15 +263,28 @@ uint16_t ili9441_read_data(ILI9341_t *self)
 	return *(uint16_t*)t.rx_data;
 }
 //---------------------------------------------------------
-STATIC void ili9341_send_data(ILI9341_t *self, const void * data, uint16_t length)
+STATIC void ili9341_send_data(ILI9341_t *self, const void * data, uint32_t length)
 {
 	gpio_set_level(self->dc, 1);	 /*Data mode*/
 	disp_spi_send(self, data, length);
 }
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++=
 
-STATIC void  mp_init_ILI9341(ILI9341_t *self)
+void  mp_init_ILI9341(void)
 {
+	g_ILI9341 = (ILI9341_t *)m_malloc(sizeof(ILI9341_t));
+	
+	ILI9341_t *self = g_ILI9341;
+	
+	self->mhz			= 50;
+	self->spi 		= NULL;
+	self->miso 		= LCD_PIN_MISO;
+	self->mosi 		= LCD_PIN_MOSI;
+	self->clk  		= LCD_PIN_CLK;
+	self->cs   		= LCD_PIN_CS;
+	self->dc   		= LCD_PIN_DC;
+	self->rst  		= LCD_PIN_RST;
+	self->spihost = LCD_HOST;
 
 	disp_spi_init(self);
 	gpio_pad_select_gpio(self->dc);
@@ -415,8 +430,10 @@ uint16_t lcd_readPoint(uint16_t x, uint16_t y)
 //填充指定颜色
 void lcd_Fill(uint16_t sx,uint16_t sy,uint16_t ex,uint16_t ey,uint16_t color)
 {
+
 	uint8_t data[4];
-	uint32_t size = (ex - sx + 1) * (ey - sy + 1);
+	//uint32_t size = (ex - sx + 1) * (ey - sy + 1);
+uint32_t size = (ex - sx) * (ey - sy);
 
   ILI9341_t *self = g_ILI9341;
 
@@ -439,26 +456,13 @@ void lcd_Fill(uint16_t sx,uint16_t sy,uint16_t ex,uint16_t ey,uint16_t color)
 	/*Memory write*/
 	ili9441_send_cmd(self, 0x2C);
 
-	disp_fill_send(self, color, size);
-	
-	
-	/*Column addresses*/
-	ili9441_send_cmd(self, 0x2A);
-	data[0] = (0 >> 8) & 0xFF;
-	data[1] = 0 & 0xFF;
-	data[2] = (lcddev.width >> 8) & 0xFF;
-	data[3] = lcddev.width  & 0xFF;
-	ili9341_send_data(self, data, 4);
+	if(size > 320*120){
+		disp_fill_send(self, color, size>>1);
+		disp_fill_send(self, color, size>>1);
+	}else{
+		disp_fill_send(self, color, size);
+	}
 
-	/*Page addresses*/
-	ili9441_send_cmd(self, 0x2B);
-	data[0] = (0 >> 8) & 0xFF;
-	data[1] = 0 & 0xFF;
-	data[2] = (lcddev.height >> 8) & 0xFF;
-	data[3] = lcddev.height & 0xFF;
-	ili9341_send_data(self, data, 4);
-	
-	
 }
 
 //填充指定区域块颜色
@@ -501,8 +505,56 @@ void lcd_Full(uint16_t sx,uint16_t sy,uint16_t ex,uint16_t ey,uint16_t *color)
 		color_u8[i] = color_tmp;
 	}
 	
-	ili9341_send_data(self, (uint8_t*)color, size * 2);
+	if(size > 320*120){
+		ili9341_send_data(self, (uint8_t*)color, size);
+		color += size;
+		ili9341_send_data(self, (uint8_t*)color, size);
+	}else{
+		ili9341_send_data(self, (uint8_t*)color, size * 2);
+	}
+	
+	
 }
+
+//填充指定区域块颜色
+//开始位置填充多少个
+void lcd_cam_full(uint16_t sx,uint16_t sy,uint16_t ex,uint16_t ey,uint16_t *color)
+{
+	uint8_t data[4];
+
+  ILI9341_t *self = g_ILI9341;
+
+	/*Column addresses*/
+	ili9441_send_cmd(self, 0x2A);
+	data[0] = (sx >> 8) & 0xFF;
+	data[1] = sx & 0xFF;
+	data[2] = ((sx+ex-1) >> 8) & 0xFF;
+	data[3] = (sx+ex-1) & 0xFF;
+	ili9341_send_data(self, data, 4);
+
+	/*Page addresses*/
+	ili9441_send_cmd(self, 0x2B);
+	data[0] = (sy >> 8) & 0xFF;
+	data[1] = sy & 0xFF;
+	data[2] = ((sy+ey-1) >> 8) & 0xFF;
+	data[3] = (sy+ey-1) & 0xFF;
+	ili9341_send_data(self, data, 4);
+
+	/*Memory write*/
+	ili9441_send_cmd(self, 0x2C);
+
+	uint32_t size = ex * ey;
+	
+	if(size > 320*120){
+		ili9341_send_data(self, (uint8_t*)color, size);
+		color += (size>>1);
+		ili9341_send_data(self, (uint8_t*)color, size);
+	}else{
+		ili9341_send_data(self, (uint8_t*)color, size * 2);
+	}
+	
+}
+
 
 //绘制横线函数
 void lcd_draw_hline(uint16_t x0,uint16_t y0,uint16_t len,uint16_t color)
@@ -824,18 +876,21 @@ STATIC mp_obj_t ILI9341_drawPicture(size_t n_args, const mp_obj_t *pos_args, mp_
 			mp_obj_t tuple[2];
 			const char *file_path = (const char *)bufinfo.buf;
 			const char *ftype = mp_obj_str_get_str(file_type(file_path));
+			
 			 //---------------------------------------------------------------
 				if(args[3].u_bool == true){
+					
+					uint8_t file_len = strlen(file_path);
+					char *file_buf = (char *)m_malloc(file_len+7); 
+					memset(file_buf, '\0', file_len+7);
+					sprintf(file_buf,"%s%s",file_path,".cache");
+					res = check_sys_file((const char *)file_buf);
+					 if(res){
+							grap_drawCached(&g_lcd,NULL, args[0].u_int, args[1].u_int, (const char *)file_buf); 
+					 }
 					 
-					 uint8_t file_len = strlen(file_path);
-					 char *file_buf = (char *)m_malloc(file_len+7);  
-	 
-					 memset(file_buf, '\0', file_len+7);
-					 sprintf(file_buf,"%s%s",file_path,".cache");
-					 grap_drawCached(&g_lcd,NULL, args[0].u_int, args[1].u_int, (const char *)file_buf);
 					 m_free(file_buf);
-					 if(!res) return mp_const_none;
-					 return mp_const_none;
+					 if(res) return mp_const_none;
 				 }
 			 //---------------------------------------------------------------
 
@@ -885,30 +940,15 @@ STATIC mp_obj_t ILI9341_make_new(const mp_obj_type_t *type, size_t n_args, size_
 	mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
 	mp_arg_parse_all_kw_array(n_args, n_kw, all_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
 
-	g_ILI9341 = (ILI9341_t *)m_malloc(sizeof(ILI9341_t));
+	//g_ILI9341 = (ILI9341_t *)m_malloc(sizeof(ILI9341_t));
 
 	ILI9341_t *self = m_new_obj(ILI9341_t);
-
-	#ifdef CONFIG_LCD_OVERCLOCK
-	self->mhz			=26;
-	#else
-	self->mhz			=10;
-	#endif
 	
+	mp_init_ILI9341();
+	
+	self = g_ILI9341;
 	self->base.type = type;
-	 
-	self->spi 		= NULL;
-	self->miso 		= LCD_PIN_MISO;
-	self->mosi 		= LCD_PIN_MOSI;
-	self->clk  		= LCD_PIN_CLK;
-	self->cs   		= LCD_PIN_CS;
-	self->dc   		= LCD_PIN_DC;
-	self->rst  		= LCD_PIN_RST;
-	self->spihost = LCD_HOST;
-
-	g_ILI9341 = self;
-	mp_init_ILI9341(self);
-
+	
 	lcd_set_dir(args[ARG_portrait].u_int);
 	
 	lcddev.type = 4;

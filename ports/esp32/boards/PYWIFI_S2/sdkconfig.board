@@ -5,7 +5,6 @@ CONFIG_ESP_INT_WDT=n
 CONFIG_ESP_INT_WDT_TIMEOUT_MS=10000
 CONFIG_ESP_TASK_WDT_TIMEOUT_S=5000
 
-
 # MicroPython on ESP32, ESP IDF configuration
 # The following options override the defaults
 

@@ -53,10 +53,7 @@ extern const mp_obj_type_t touch_xpt2046_type;
 
 extern void tp_touch_down(int8_t id, uint16_t x, uint16_t y, uint8_t w);
 extern void tp_touch_up(int8_t id);
-
-#if MICROPY_HW_GT911
-
-#endif
+extern void xpt_deinit_internal(void);
 
 
 /**

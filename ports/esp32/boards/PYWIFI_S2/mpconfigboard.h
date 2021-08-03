@@ -26,3 +26,31 @@
 #define MICROPY_GUI_BUTTON				(1)
 #define GUI_BTN_NUM_MAX 					(50)
 
+//sensor
+#define MICROPY_ENABLE_SENSOR			(1)
+#define MICROPY_HW_OV2640					(1)
+
+//CAM
+#define CAM_PIN_XCLK    14
+#define CAM_PIN_SIOD    21
+#define CAM_PIN_SIOC    18
+
+#define CAM_PIN_D7      15
+#define CAM_PIN_D6      13
+#define CAM_PIN_D5      12
+#define CAM_PIN_D4      10
+#define CAM_PIN_D3      8
+#define CAM_PIN_D2      5
+#define CAM_PIN_D1      7
+#define CAM_PIN_D0      9
+#define CAM_PIN_VSYNC   17
+#define CAM_PIN_HREF    16
+#define CAM_PIN_PCLK    11
+
+#define CONFIG_OV2640_SUPPORT						(1)
+#define CONFIG_SCCB_HARDWARE_I2C_PORT1	(1)
+#define CONFIG_CAMERA_CORE0							(1)
+#define CONFIG_CAMERA_DMA_BUFFER_SIZE_MAX	8192
+
+
+

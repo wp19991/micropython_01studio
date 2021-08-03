@@ -83,6 +83,10 @@
 #endif
 
 #endif
+#include "modov2640.h"
+#if MICROPY_ENABLE_TOUCH
+#include "modtouch.h"
+#endif
 
 #define STRING_LIST(...) {__VA_ARGS__, ""}
 
@@ -157,6 +161,10 @@ void mp_task(void *pvParameter) {
     #endif
 
 soft_reset:
+		//neopixel
+		gpio_set_direction(3, GPIO_MODE_OUTPUT);
+		gpio_set_level(3, 0);
+	
     // initialise the stack pointer for the main thread
     mp_stack_set_top((void *)sp);
     mp_stack_set_limit(MP_TASK_STACK_SIZE - 1024);
@@ -199,6 +207,10 @@ soft_reset_exit:
 
 		#if MICROPY_HW_LCD32
 		hw_spi_deinit_internal();
+		#endif
+		
+		#if (MICROPY_HW_XPT2046 && MICROPY_ENABLE_TOUCH)
+		xpt_deinit_internal();
 		#endif
 		
     #if MICROPY_BLUETOOTH_NIMBLE
