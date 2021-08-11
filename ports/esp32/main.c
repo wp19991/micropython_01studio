@@ -161,10 +161,11 @@ void mp_task(void *pvParameter) {
     #endif
 
 soft_reset:
+		#ifdef CONFIG_IDF_TARGET_ESP32S2
 		//neopixel
 		gpio_set_direction(3, GPIO_MODE_OUTPUT);
 		gpio_set_level(3, 0);
-	
+		#endif
     // initialise the stack pointer for the main thread
     mp_stack_set_top((void *)sp);
     mp_stack_set_limit(MP_TASK_STACK_SIZE - 1024);

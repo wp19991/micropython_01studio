@@ -12,9 +12,10 @@
 #ifndef MICROPY_INCLUDED_ESP32_HTTP_STREAM_H
 #define MICROPY_INCLUDED_ESP32_HTTP_STREAM_H
 
-#if MICROPY_HW_OV2640
 
-void init_httpd_app(uint16_t server_port);
+#if MICROPY_ENABLE_STREAM
+
+void init_httpd_app(uint16_t server_port, uint8_t stream_t);
 
 #endif
 

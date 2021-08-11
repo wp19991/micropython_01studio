@@ -43,15 +43,13 @@
 #include "global.h"
 
 #ifdef CONFIG_IDF_TARGET_ESP32
-#define SPI_DMA_CH	1
+#define SPI_DMA_CH	2
 #define LCD_HOST    HSPI_HOST
 #elif defined CONFIG_IDF_TARGET_ESP32S2
 #define LCD_HOST    SPI2_HOST
 #define SPI_DMA_CH	3
-
-#elif defined CONFIG_IDF_TARGET_ESP32C3
-#define LCD_HOST    SPI2_HOST
-#define SPI_DMA_CH	3
+#else
+#error Target CONFIG_IDF_TARGET is not supported
 #endif
 
 #ifdef MICROPY_PY_PICLIB
@@ -89,38 +87,37 @@ static uint16_t get_rgb565(uint8_t r_color, uint8_t g_color , uint8_t b_color)
 STATIC void disp_spi_init(ILI9341_t *self)
 {
 	esp_err_t ret;
-	if(!is_init)
-	{
-		spi_bus_config_t buscfg={
-			.miso_io_num=self->miso,
-			.mosi_io_num=self->mosi,
-			.sclk_io_num=self->clk,
-			.quadwp_io_num=-1,
-			.quadhd_io_num=-1,
-			.max_transfer_sz=200*1024,
-		};
+	spi_bus_config_t buscfg={
+		.miso_io_num=self->miso,
+		.mosi_io_num=self->mosi,
+		.sclk_io_num=self->clk,
+		.quadwp_io_num=-1,
+		.quadhd_io_num=-1,
+		#if CONFIG_ESP32_SPIRAM_SUPPORT || CONFIG_ESP32S2_SPIRAM_SUPPORT || CONFIG_ESP32S3_SPIRAM_SUPPORT
+		.max_transfer_sz=200*1024,
+		#else
+		.max_transfer_sz=11*1024,
+		#endif
+	};
 
-		spi_device_interface_config_t devcfg={
-			.clock_speed_hz=self->mhz*1000*1000,
-			.mode=0,                             //SPI mode 0
-			.spics_io_num=self->cs,              //CS pin
-			.queue_size=7,
-			.flags=SPI_DEVICE_HALFDUPLEX,
-		};
+	spi_device_interface_config_t devcfg={
+		.clock_speed_hz=self->mhz*1000*1000,
+		.mode=0,                             //SPI mode 0
+		.spics_io_num=self->cs,              //CS pin
+		.queue_size=7,
+		.flags=SPI_DEVICE_HALFDUPLEX,
+	};
 
-		//Initialize the SPI bus
-		ret=spi_bus_initialize(self->spihost, &buscfg, SPI_DMA_CH);
-		if (ret != ESP_OK){
-			mp_raise_ValueError(MP_ERROR_TEXT("ili9341 Failed initializing SPI bus"));
-		}
-		//Attach the LCD to the SPI bus
-		ret=spi_bus_add_device(self->spihost, &devcfg, &self->spi);
-		if (ret != ESP_OK){
-			mp_raise_ValueError(MP_ERROR_TEXT("ili9341 Failed adding SPI device"));
-		}
-		is_init = 1;
+	//Initialize the SPI bus
+	ret=spi_bus_initialize(self->spihost, &buscfg, SPI_DMA_CH);
+	if (ret != ESP_OK){
+		mp_raise_ValueError(MP_ERROR_TEXT("ili9341 Failed initializing SPI bus"));
 	}
-
+	//Attach the LCD to the SPI bus
+	ret=spi_bus_add_device(self->spihost, &devcfg, &self->spi);
+	if (ret != ESP_OK){
+		mp_raise_ValueError(MP_ERROR_TEXT("ili9341 Failed adding SPI device"));
+	}
 }
 void hw_spi_deinit_internal(void) {
 	if(is_init){
@@ -272,43 +269,46 @@ STATIC void ili9341_send_data(ILI9341_t *self, const void * data, uint32_t lengt
 
 void  mp_init_ILI9341(void)
 {
-	g_ILI9341 = (ILI9341_t *)m_malloc(sizeof(ILI9341_t));
-	
-	ILI9341_t *self = g_ILI9341;
-	
-	self->mhz			= 50;
-	self->spi 		= NULL;
-	self->miso 		= LCD_PIN_MISO;
-	self->mosi 		= LCD_PIN_MOSI;
-	self->clk  		= LCD_PIN_CLK;
-	self->cs   		= LCD_PIN_CS;
-	self->dc   		= LCD_PIN_DC;
-	self->rst  		= LCD_PIN_RST;
-	self->spihost = LCD_HOST;
+	if(!is_init)
+	{
+		g_ILI9341 = (ILI9341_t *)m_malloc(sizeof(ILI9341_t));
+		
+		ILI9341_t *self = g_ILI9341;
+		self->mhz			= 50;
+		self->spi 		= NULL;
+		self->miso 		= LCD_PIN_MISO;
+		self->mosi 		= LCD_PIN_MOSI;
+		self->clk  		= LCD_PIN_CLK;
+		self->cs   		= LCD_PIN_CS;
+		self->dc   		= LCD_PIN_DC;
+		self->rst  		= LCD_PIN_RST;
+		self->spihost = LCD_HOST;
 
-	disp_spi_init(self);
-	gpio_pad_select_gpio(self->dc);
+		disp_spi_init(self);
+		gpio_pad_select_gpio(self->dc);
 
-	//Initialize non-SPI GPIOs
-	gpio_set_direction(self->dc, GPIO_MODE_OUTPUT);
-	gpio_set_direction(self->rst, GPIO_MODE_OUTPUT);
+		//Initialize non-SPI GPIOs
+		gpio_set_direction(self->dc, GPIO_MODE_OUTPUT);
+		gpio_set_direction(self->rst, GPIO_MODE_OUTPUT);
 
-	//Reset the display
-	gpio_set_level(self->rst, 0);
-	vTaskDelay(100 / portTICK_RATE_MS);
-	gpio_set_level(self->rst, 1);
-	vTaskDelay(100 / portTICK_RATE_MS);
+		//Reset the display
+		gpio_set_level(self->rst, 0);
+		vTaskDelay(100 / portTICK_RATE_MS);
+		gpio_set_level(self->rst, 1);
+		vTaskDelay(100 / portTICK_RATE_MS);
 
-	//Send all the commands
-	uint16_t cmd = 0;
-	while (ili_init_cmds[cmd].databytes!=0xff) {
-		ili9441_send_cmd(self, ili_init_cmds[cmd].cmd);
-		ili9341_send_data(self, ili_init_cmds[cmd].data, ili_init_cmds[cmd].databytes & 0x1F);
-		if (ili_init_cmds[cmd].databytes & 0x80) {
-			vTaskDelay(100 / portTICK_RATE_MS);
-		}
-		cmd++;
-	} 
+		//Send all the commands
+		uint16_t cmd = 0;
+		while (ili_init_cmds[cmd].databytes!=0xff) {
+			ili9441_send_cmd(self, ili_init_cmds[cmd].cmd);
+			ili9341_send_data(self, ili_init_cmds[cmd].data, ili_init_cmds[cmd].databytes & 0x1F);
+			if (ili_init_cmds[cmd].databytes & 0x80) {
+				vTaskDelay(100 / portTICK_RATE_MS);
+			}
+			cmd++;
+		} 
+		is_init = 1;
+	}
 }
 
 //设置LCD显示方向
@@ -346,15 +346,15 @@ void lcd_set_dir(uint8_t dir)
 	ili9441_send_cmd(g_ILI9341, 0x2A);
 	data[0] = 0x00;
 	data[1] = 0x00;
-	data[2] = lcddev.width >> 8;
-	data[3] = lcddev.width & 0xFF;
+	data[2] = (lcddev.width-1) >> 8;
+	data[3] = (lcddev.width-1) & 0xFF;
 	ili9341_send_data(g_ILI9341, data, 4);
 	
 	ili9441_send_cmd(g_ILI9341, 0x2B); //2A
 	data[0] = 0x00;
 	data[1] = 0x00;
-	data[2] = lcddev.height >> 8;
-	data[3] = lcddev.height & 0xFF;
+	data[2] = (lcddev.height-1) >> 8;
+	data[3] = (lcddev.height-1) & 0xFF;
 	ili9341_send_data(g_ILI9341, data, 4);
 
 	ili9441_send_cmd(g_ILI9341, 0x36);
@@ -432,8 +432,9 @@ void lcd_Fill(uint16_t sx,uint16_t sy,uint16_t ex,uint16_t ey,uint16_t color)
 {
 
 	uint8_t data[4];
-	//uint32_t size = (ex - sx + 1) * (ey - sy + 1);
-uint32_t size = (ex - sx) * (ey - sy);
+
+	uint32_t size = ((ex - sx)) * ((ey - sy));
+	uint32_t size_max = 0;
 
   ILI9341_t *self = g_ILI9341;
 
@@ -441,28 +442,60 @@ uint32_t size = (ex - sx) * (ey - sy);
 	ili9441_send_cmd(self, 0x2A);
 	data[0] = (sx >> 8) & 0xFF;
 	data[1] = sx & 0xFF;
-	data[2] = (ex >> 8) & 0xFF;
-	data[3] = ex & 0xFF;
+	data[2] = ((ex-1) >> 8) & 0xFF;
+	data[3] = (ex-1) & 0xFF;
 	ili9341_send_data(self, data, 4);
 
 	/*Page addresses*/
 	ili9441_send_cmd(self, 0x2B);
 	data[0] = (sy >> 8) & 0xFF;
 	data[1] = sy & 0xFF;
-	data[2] = (ey >> 8) & 0xFF;
-	data[3] = ey & 0xFF;
+	data[2] = ((ey-1) >> 8) & 0xFF;
+	data[3] = (ey-1) & 0xFF;
 	ili9341_send_data(self, data, 4);
 
 	/*Memory write*/
 	ili9441_send_cmd(self, 0x2C);
-
-	if(size > 320*120){
-		disp_fill_send(self, color, size>>1);
-		disp_fill_send(self, color, size>>1);
+#if CONFIG_ESP32_SPIRAM_SUPPORT || CONFIG_ESP32S2_SPIRAM_SUPPORT || CONFIG_ESP32S3_SPIRAM_SUPPORT
+	if(size >= 320*120){
+		size_max = size>>2;
+		disp_fill_send(self, color, size_max);
+		disp_fill_send(self, color, size_max);
+		disp_fill_send(self, color, size_max);
+		disp_fill_send(self, color, size-(size_max*3));
 	}else{
 		disp_fill_send(self, color, size);
 	}
+#else
+	size_max = (size/lcddev.width);
+	uint32_t remainder = size - (size_max*lcddev.width);
+	if(size_max){
+		for(uint16_t i=0; i < size_max; i++){
+			disp_fill_send(self, color, lcddev.width);
+		}
+		if(remainder){
+			disp_fill_send(self, color, remainder);
+		}
+	}else{
+		disp_fill_send(self, color, size);
+	}
+#endif
+	/*Column addresses*/
+	ili9441_send_cmd(self, 0x2A);
+	data[0] = (0 >> 8) & 0xFF;
+	data[1] = 0 & 0xFF;
+	data[2] = (lcddev.width >> 8) & 0xFF;
+	data[3] = lcddev.width & 0xFF;
+	ili9341_send_data(self, data, 4);
 
+	/*Page addresses*/
+	ili9441_send_cmd(self, 0x2B);
+	data[0] = (0 >> 8) & 0xFF;
+	data[1] = 0 & 0xFF;
+	data[2] = (lcddev.height >> 8) & 0xFF;
+	data[3] = lcddev.height & 0xFF;
+	ili9341_send_data(self, data, 4);
+	
 }
 
 //填充指定区域块颜色
@@ -505,15 +538,29 @@ void lcd_Full(uint16_t sx,uint16_t sy,uint16_t ex,uint16_t ey,uint16_t *color)
 		color_u8[i] = color_tmp;
 	}
 	
-	if(size > 320*120){
+	if(size >= 320*120){
 		ili9341_send_data(self, (uint8_t*)color, size);
-		color += size;
+		color += (size>>1);
 		ili9341_send_data(self, (uint8_t*)color, size);
 	}else{
 		ili9341_send_data(self, (uint8_t*)color, size * 2);
 	}
 	
-	
+	/*Column addresses*/
+	ili9441_send_cmd(self, 0x2A);
+	data[0] = (0 >> 8) & 0xFF;
+	data[1] = 0 & 0xFF;
+	data[2] = (lcddev.width >> 8) & 0xFF;
+	data[3] = lcddev.width & 0xFF;
+	ili9341_send_data(self, data, 4);
+
+	/*Page addresses*/
+	ili9441_send_cmd(self, 0x2B);
+	data[0] = (0 >> 8) & 0xFF;
+	data[1] = 0 & 0xFF;
+	data[2] = (lcddev.height >> 8) & 0xFF;
+	data[3] = lcddev.height & 0xFF;
+	ili9341_send_data(self, data, 4);
 }
 
 //填充指定区域块颜色
@@ -552,7 +599,7 @@ void lcd_cam_full(uint16_t sx,uint16_t sy,uint16_t ex,uint16_t ey,uint16_t *colo
 	}else{
 		ili9341_send_data(self, (uint8_t*)color, size * 2);
 	}
-	
+
 }
 
 
@@ -828,9 +875,8 @@ STATIC mp_obj_t ILI9341_drawStr(size_t n_args, const mp_obj_t *pos_args, mp_map_
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_KW(ILI9341_drawStr_obj, 1, ILI9341_drawStr);
 //---------------------------华丽的分割线-------------------------------------------------------------------
-//#ifdef MICROPY_PY_PICLIB
-#if MICROPY_PY_PICLIB
 
+#if MICROPY_PY_PICLIB
 // cached file
 mp_obj_t ILI9341_CachePicture(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
 
@@ -940,8 +986,6 @@ STATIC mp_obj_t ILI9341_make_new(const mp_obj_type_t *type, size_t n_args, size_
 	mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
 	mp_arg_parse_all_kw_array(n_args, n_kw, all_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
 
-	//g_ILI9341 = (ILI9341_t *)m_malloc(sizeof(ILI9341_t));
-
 	ILI9341_t *self = m_new_obj(ILI9341_t);
 	
 	mp_init_ILI9341();
@@ -953,8 +997,9 @@ STATIC mp_obj_t ILI9341_make_new(const mp_obj_type_t *type, size_t n_args, size_
 	
 	lcddev.type = 4;
 	lcddev.backcolor = 0x0000;
+
 	lcd_Fill(0,0,lcddev.width,lcddev.height,lcddev.backcolor);
-	
+
 	lcddev.clercolor = lcddev.backcolor;
 	
 	return MP_OBJ_FROM_PTR(self);

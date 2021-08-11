@@ -1,4 +1,4 @@
-#define MICROPY_HW_BOARD_NAME               "ESP32S2 module"
+#define MICROPY_HW_BOARD_NAME               "01Studio pyWiFi-ESP32-S2P"
 #define MICROPY_HW_MCU_NAME                 "ESP32S2"
 
 #define MICROPY_PY_BLUETOOTH                (0)
@@ -24,11 +24,13 @@
 
 #define MICROPY_ENABLE_GUI				(1)
 #define MICROPY_GUI_BUTTON				(1)
-#define GUI_BTN_NUM_MAX 					(50)
-
+#define GUI_BTN_NUM_MAX 					(20)
+#define GUI_BTN_STR_LEN 					(20)
 //sensor
 #define MICROPY_ENABLE_SENSOR			(1)
 #define MICROPY_HW_OV2640					(1)
+//WEB stream
+#define MICROPY_ENABLE_STREAM			(1) 
 
 //CAM
 #define CAM_PIN_XCLK    14
@@ -51,6 +53,10 @@
 #define CONFIG_SCCB_HARDWARE_I2C_PORT1	(1)
 #define CONFIG_CAMERA_CORE0							(1)
 #define CONFIG_CAMERA_DMA_BUFFER_SIZE_MAX	8192
+
+//usb cam
+#define MICROPY_ENABLE_ESP_USB			(1)
+#define MICROPY_HW_USB_CAM					(1)
 
 
 

@@ -51,8 +51,8 @@ typedef struct
 	color_t upcolor; 				  	//button caption font up color
 	color_t downcolor; 				  	//button caption font down color
 
-}__attribute__((packed)) _btn_obj;
-
+//}__attribute__((packed)) _btn_obj;
+}_btn_obj;
 //===========================================================================================
 
 extern void button_task(void);

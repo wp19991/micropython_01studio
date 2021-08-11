@@ -37,8 +37,10 @@
 #include "sensor.h"
 #include "img_converters.h"
 
+#if MICROPY_ENABLE_STREAM
 //http
 #include "http_stream.h"
+#endif
 
 #include "global.h" 
 #include "modov2640.h"
@@ -75,11 +77,9 @@ STATIC camera_fb_t *pic = NULL;
 TaskHandle_t ov2640_handle = NULL;
 //=====================================================================================================================
 
-uint8_t ov2640_mode=0; 		 //工作模式:0,RGB565模式;1,JPEG模式
-
-bool is_display = false; //目前在显示图像
+static bool is_display = false; //目前在显示图像
 static bool is_snapshot = false;
-
+static bool is_init = 0;
 //------------------------------------------------------------
 static esp_err_t init_camera( pixformat_t pixel_format, framesize_t frame_size)
 {
@@ -126,24 +126,6 @@ static esp_err_t init_camera( pixformat_t pixel_format, framesize_t frame_size)
 
 	return ret;
 }
-
-static ssize_t jpg_save(const char *filename, uint8_t *wbuf, ssize_t len)
-{
-	mp_obj_t f_new;
-	ssize_t res = 0;
-	
-	mp_obj_t args[2] = {
-		mp_obj_new_str(filename, strlen(filename)),
-		MP_OBJ_NEW_QSTR(MP_QSTR_wb),
-	};
-	f_new = mp_vfs_open(MP_ARRAY_SIZE(args), &args[0], (mp_map_t *)&mp_const_empty_map);
-	
-	res = mp_stream_posix_write(f_new, wbuf, len);
-	
-	mp_stream_close(f_new);
-	return res;
-}
-
 
 //=======================================================================================================
 STATIC mp_obj_t sensor_ov2640_reset(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
@@ -239,7 +221,9 @@ STATIC mp_obj_t sensor_ov2640_setframesize(size_t n_args, const mp_obj_t *pos_ar
 
 	s->set_framesize(s, framesize);
 	
-	lcd_Fill(0,0,lcddev.width,lcddev.height,lcddev.backcolor);
+	if(is_init){
+		lcd_Fill(0,0,lcddev.width,lcddev.height,lcddev.backcolor);
+	}
 
 	return mp_obj_new_int(framesize);
 
@@ -267,7 +251,14 @@ static uint16_t x=0,y=0;
 	}
 }
 STATIC mp_obj_t sensor_ov2640_display(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
-	
+	if(!is_init){
+		mp_init_ILI9341();
+		lcd_set_dir(1);
+		lcddev.backcolor = 0x0000;
+		lcd_Fill(0,0,lcddev.width,lcddev.height,lcddev.backcolor);
+		lcddev.clercolor = lcddev.backcolor;
+		is_init = 1;
+	}
 	xTaskCreate( display_task, "display_task", OV_TASK_STACK_SIZE / sizeof(StackType_t), NULL, OV_TASK_PRIORITY, &ov2640_handle );		
 	is_display = true;
 	return mp_const_none;
@@ -327,17 +318,18 @@ STATIC mp_obj_t sensor_ov2640_vflip(size_t n_args, const mp_obj_t *pos_args, mp_
 STATIC MP_DEFINE_CONST_FUN_OBJ_KW(sensor_ov2640_vflip_obj,0, sensor_ov2640_vflip);
 #endif
 //---------------------------------------------------------------------------------
+#if MICROPY_ENABLE_STREAM
 STATIC mp_obj_t sensor_ov2640_stream(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
 
 	if(framesize >= FRAMESIZE_VGA){
 		mp_raise_ValueError(MP_ERROR_TEXT("Camera framesize !> VGA"));
 	}
-	init_httpd_app(80);
+	init_httpd_app(80, 0);
 	
 	return mp_const_none;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_KW(sensor_ov2640_stream_obj,0, sensor_ov2640_stream);
-
+#endif
 //----------------------------------------------------------------------------------
 STATIC mp_obj_t sensor_ov2640_deinit(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
 
@@ -359,20 +351,14 @@ STATIC mp_obj_t sensor_ov2640_make_new(const mp_obj_type_t *type, size_t n_args,
 	// check arguments
 	mp_arg_check_num(n_args, n_kw, 0, MP_OBJ_FUN_ARGS_MAX, true);
 
-	mp_init_ILI9341();
-
-	lcd_set_dir(1);
-
-	lcddev.backcolor = 0x0000;
-
-	lcd_Fill(0,0,lcddev.width,lcddev.height,lcddev.backcolor);
-
-	lcddev.clercolor = lcddev.backcolor;
+	// mp_init_ILI9341();
+	// lcd_set_dir(1);
+	// lcddev.backcolor = 0x0000;
+	// lcd_Fill(0,0,lcddev.width,lcddev.height,lcddev.backcolor);
+	// lcddev.clercolor = lcddev.backcolor;
 	
-	framesize = FRAMESIZE_XGA;
-	
-	//framesize = FRAMESIZE_WVGA;
-	
+	 framesize = FRAMESIZE_XGA;
+
 	esp_err_t err = init_camera(PIXFORMAT_RGB565, framesize);
 	if (err != ESP_OK) {
 		mp_raise_ValueError(MP_ERROR_TEXT("Camera Init Failed"));
@@ -391,8 +377,9 @@ STATIC const mp_rom_map_elem_t sensor_ov2640_locals_dict_table[] = {
 		{ MP_ROM_QSTR(MP_QSTR_reset), MP_ROM_PTR(&sensor_ov2640_reset_obj) },
 		{ MP_ROM_QSTR(MP_QSTR_set_framesize), MP_ROM_PTR(&sensor_ov2640_setframesize_obj) },
 		{ MP_ROM_QSTR(MP_QSTR_snapshot), MP_ROM_PTR(&sensor_ov2640_snapshot_obj) },
+		#if MICROPY_ENABLE_STREAM
 		{ MP_ROM_QSTR(MP_QSTR_stream), MP_ROM_PTR(&sensor_ov2640_stream_obj) },
-
+		#endif
 		#if MICROPY_ENABLE_TFTLCD
 		{ MP_ROM_QSTR(MP_QSTR_set_hmirror), MP_ROM_PTR(&sensor_ov2640_hmirror_obj) },
 		{ MP_ROM_QSTR(MP_QSTR_set_vfilp), MP_ROM_PTR(&sensor_ov2640_vflip_obj) },

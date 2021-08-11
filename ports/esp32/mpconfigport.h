@@ -200,8 +200,7 @@ extern const struct _mp_obj_module_t mp_module_onewire;
 //01studio
 extern const struct _mp_obj_module_t touch_module;
 extern const struct _mp_obj_module_t tftlcd_module;
-//extern const struct _mp_obj_module_t audio_module;
-//extern const struct _mp_obj_module_t video_module;
+extern const struct _mp_obj_module_t esp_usb_module;
 extern const struct _mp_obj_module_t sensor_module;
 extern const struct _mp_obj_module_t gui_module;
 
@@ -225,12 +224,18 @@ extern const struct _mp_obj_module_t gui_module;
 #define MICROPY_PORT_ROOT_GUI
 #endif
 
-
 #if MICROPY_ENABLE_SENSOR
 #define SENSOR_MODULE              { MP_ROM_QSTR(MP_QSTR_sensor), MP_ROM_PTR(&sensor_module) },
 #else
 #define SENSOR_MODULE
 #endif
+
+#if MICROPY_ENABLE_ESP_USB
+#define USB_CAM_MODULE              { MP_ROM_QSTR(MP_QSTR_esp_usb), MP_ROM_PTR(&esp_usb_module) },
+#else
+#define USB_CAM_MODULE
+#endif
+
 //end
 #define MICROPY_PORT_BUILTIN_MODULES \
     { MP_OBJ_NEW_QSTR(MP_QSTR_esp), (mp_obj_t)&esp_module }, \
@@ -245,6 +250,7 @@ extern const struct _mp_obj_module_t gui_module;
 		TFTLCD_MODULE \
 		GUI_MODULE \
 		SENSOR_MODULE \
+		USB_CAM_MODULE \
 
 #define MP_STATE_PORT MP_STATE_VM
 

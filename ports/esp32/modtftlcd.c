@@ -371,6 +371,7 @@ STATIC const mp_rom_map_elem_t tftlcd_module_globals_table[] = {
 	
 	#if (MICROPY_HW_LCD32)
 	{ MP_ROM_QSTR(MP_QSTR_LCD32), MP_ROM_PTR(&ILI9341_type) },
+	{ MP_ROM_QSTR(MP_QSTR_LCD24), MP_ROM_PTR(&ILI9341_type) },
 	#endif
 };
 STATIC MP_DEFINE_CONST_DICT(tftlcd_module_globals, tftlcd_module_globals_table);

@@ -28,6 +28,8 @@ extern "C" {
 #include "extmod/vfs_fat.h"
 #include "py/mperrno.h"
 #include "py/runtime.h"
+#include "py/obj.h"
+#include "py/stream.h"
 
 extern mp_obj_t get_path(const char *src_path , uint8_t *res );
 extern mp_obj_t file_type(const char *fileName);
@@ -307,21 +309,20 @@ __attribute__((weak)) bool check_sys_file(const char *check_file) {
 	return false;
 }
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-/* STATIC FATFS *lookup_path(const TCHAR **path) {
-		 mp_vfs_mount_t *fs = mp_vfs_lookup_path(*path, path);
-		 if (fs == MP_VFS_NONE || fs == MP_VFS_ROOT) {
-			return NULL;
-		 }
-		 // here we assume that the mounted device is FATFS
-		 return &((fs_user_mount_t*)MP_OBJ_TO_PTR(fs->obj))->fatfs;
- }
- 
- __attribute__((weak)) FRESULT f_open_helper(FIL *fp, const TCHAR *path, BYTE mode) {
-		 FATFS *fs = lookup_path(&path);
-		 if (fs == NULL) {
-				 return FR_NO_PATH;
-		 }
-		 return f_open(fs, fp, path, mode);
- } */
- //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+__attribute__((weak)) ssize_t jpg_save(const char *filename, uint8_t *wbuf, ssize_t len)
+{
+	mp_obj_t f_new;
+	ssize_t res = 0;
+	
+	mp_obj_t args[2] = {
+		mp_obj_new_str(filename, strlen(filename)),
+		MP_OBJ_NEW_QSTR(MP_QSTR_wb),
+	};
+	f_new = mp_vfs_open(MP_ARRAY_SIZE(args), &args[0], (mp_map_t *)&mp_const_empty_map);
+	
+	res = mp_stream_posix_write(f_new, wbuf, len);
+	
+	mp_stream_close(f_new);
+	return res;
+}
 #endif

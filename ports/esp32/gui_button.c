@@ -67,9 +67,25 @@ typedef struct _gui_button_obj_t {
 } gui_button_obj_t;
 
 STATIC uint8_t btn_num = 0;
+STATIC bool is_init = 0;
 
+STATIC gui_button_obj_t *btn_obj_all[GUI_BTN_NUM_MAX];
 //====================================================================================================================
-
+STATIC void gui_btn_init(void){
+	if(!is_init){
+		for(uint16_t i=0; i < GUI_BTN_NUM_MAX; i++){
+			btn_obj_all[i] = m_malloc(sizeof(gui_button_obj_t));
+			gui_button_obj_t *self = btn_obj_all[i];	
+			if(self == NULL){
+				mp_raise_ValueError(MP_ERROR_TEXT("gui_btn_init malloc error"));
+			}
+			self->is_enabled = 0;
+			self->gui_btn = (_btn_obj*)m_malloc(sizeof(_btn_obj));
+			self->gui_btn->label =(char *)m_malloc(GUI_BTN_STR_LEN);
+		}
+		is_init = 1;
+	}
+}
 STATIC void gui_show_strmid(uint16_t x,uint16_t y,uint16_t width,uint16_t height,color_t color,uint8_t size,char *str)
 {
 	uint16_t xoff=0,yoff=0;
@@ -243,15 +259,16 @@ uint8_t find_font(uint16_t w,uint16_t h,char *str)
 	uint8_t font_arg[4]={16,24,32,48};
 
 	uint8_t font_len = strlen(str);
-	int i=0;
-	for(i=0;i<4;i++){
-		if(((font_arg[i]>>1) * font_len) >= w) break;
+	int i=3;
+	for(i=3;i>=0;i--){
+		if(((font_arg[i]>>1) * font_len) <= w) break;
 	}
-	if(i==4) i=3;
-	for(;i>=0;--i){
-		if(font_arg[i] < h) break;
+	
+	while(i){
+		if(font_arg[i] <= h) break;
+		i--;
 	}
-	//if(i!=0) i--;
+
 	return font_arg[i];
 }
 //==============================================================================	
@@ -261,14 +278,14 @@ STATIC int btn_indev(uint16_t sx,uint16_t sy)
 	uint8_t i = 0;
 	gui_button_obj_t *self;
 	for(i = 0; i < btn_num; i++){
-		self = MP_STATE_PORT(gui_btn_obj_all)[i];
+		self = btn_obj_all[i];
 		if((sx >= self->gui_btn->x && sx <= self->gui_btn->width) && 
 				(sy >= self->gui_btn->y &&  sy <= self->gui_btn->height)){
 				event_id = self->gui_btn->id;
 				break;
 			}
 	}
-	//printf("-----------------------------------------------------------\n");
+
 	return event_id;
 }
 //--------------------------------------------------------------------------------------
@@ -306,8 +323,7 @@ void button_task(void)
 							get_id = btn_indev(lastX,lastY);
 							if(get_id >= 0){
 								btn_flag = true;
-								self = MP_STATE_PORT(gui_btn_obj_all)[get_id];
-							
+								self = btn_obj_all[get_id];
 								btn_draw_arcbtn(self->gui_btn,BTN_PRES);
 							}
 						}
@@ -317,7 +333,8 @@ void button_task(void)
 					lastX = tp_dev.x[0];
 					lastY = tp_dev.y[0];
 					last_id = btn_indev(lastX,lastY);
-					self = MP_STATE_PORT(gui_btn_obj_all)[get_id];
+					self = btn_obj_all[get_id];
+					
 					btn_draw_arcbtn(self->gui_btn,BTN_RELEASE);
 					if(get_id == last_id && get_id >= 0){
 						btn_callback(self);
@@ -350,19 +367,22 @@ STATIC mp_obj_t gui_button_id(mp_obj_t self_in) {
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_1(gui_button_id_obj, gui_button_id);
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-STATIC void gui_button_print(const mp_print_t *print, mp_obj_t self_in, mp_print_kind_t kind) {
-		gui_button_obj_t *self = MP_OBJ_TO_PTR(self_in);
-    mp_printf(print, "<ID:%d label:%s>", self->btn_id, self->gui_btn->label);
-}
+// STATIC void gui_button_print(const mp_print_t *print, mp_obj_t self_in, mp_print_kind_t kind) {
+		// gui_button_obj_t *self = MP_OBJ_TO_PTR(self_in);
+    // mp_printf(print, "<ID:%d label:%s>", self->btn_id, self->gui_btn->label);
+// }
 //----------------------------------------------------------------------------------
 STATIC mp_obj_t gui_button_deinit(mp_obj_t self_in) {
 	uint8_t i = 0;
 	gui_button_obj_t *self;
 	if(btn_num){
 		for(i = 0; i < btn_num; i++){
-			self = MP_STATE_PORT(gui_btn_obj_all)[i];
+			self = btn_obj_all[i];
 			self->callback = mp_const_none;
 			btn_deinit_arcbtn(self->gui_btn);
+		
+			m_free(self->gui_btn);
+			m_free(self->gui_btn->label);
 			m_free(self);
 		}
 		btn_num = 0;
@@ -435,28 +455,30 @@ STATIC mp_obj_t gui_button_make_new(const mp_obj_type_t *type, size_t n_args, si
 	  }
 		
 		char *label = bufinfo.buf;
-btn_fun = &g_lcd;
+		btn_fun = &g_lcd;
 		uint8_t font_size = find_font(args[2].u_int,args[3].u_int,label);
+		
+			gui_btn_init();//////
+			gui_button_obj_t *btn;
 
-		gui_button_obj_t *btn;
-
-    if (MP_STATE_PORT(gui_btn_obj_all)[btn_num] == NULL) {
+    if (btn_obj_all[btn_num]->is_enabled == 0)
+			{
         btn = m_new_obj(gui_button_obj_t);
+				btn = btn_obj_all[btn_num];
+				
         btn->base.type = &gui_button_type;
 				btn->btn_id = btn_num;
 				btn->is_enabled = true;
-				btn->gui_btn = (_btn_obj*)m_malloc(sizeof(_btn_obj));
 				btn->gui_btn->x = args[0].u_int;
 				btn->gui_btn->y = args[1].u_int;
 				btn->gui_btn->width = args[2].u_int+args[0].u_int;
 				btn->gui_btn->height = args[3].u_int+args[1].u_int;
-				
+
 				btn->gui_btn->id = btn_num;
 				btn->gui_btn->font = font_size;
 				btn->gui_btn->fcolor = label_color;
 				btn->gui_btn->upcolor = bt_color;
 				btn->gui_btn->downcolor = bt_color>>1;
-				btn->gui_btn->label =(char *)m_malloc(strlen(label));
 				btn->gui_btn->label =label;
 
 				if (args[7].u_obj == mp_const_none || args[7].u_obj ==MP_OBJ_NULL) {
@@ -466,14 +488,13 @@ btn_fun = &g_lcd;
 				} else {
 						nlr_raise(mp_obj_new_exception_msg(&mp_type_ValueError,MP_ERROR_TEXT("callback must be None or a callable object")));
 				}
-				
+
 				btn_draw_arcbtn(btn->gui_btn,BTN_RELEASE);
 
-        MP_STATE_PORT(gui_btn_obj_all)[btn_num] = btn;
-
     }else {
-        btn = MP_STATE_PORT(gui_btn_obj_all)[btn_num];
+        btn = btn_obj_all[btn_num];
     }
+
 		btn_num++;
 
    return MP_OBJ_FROM_PTR(btn);
@@ -493,7 +514,7 @@ STATIC MP_DEFINE_CONST_DICT(gui_button_locals_dict,gui_button_locals_dict_table)
 const mp_obj_type_t gui_button_type = {
     { &mp_type_type },
     .name = MP_QSTR_TouchButton,
-    .print = gui_button_print,
+    //.print = gui_button_print,
     .make_new = gui_button_make_new,
     .locals_dict = (mp_obj_dict_t *)&gui_button_locals_dict,
 };

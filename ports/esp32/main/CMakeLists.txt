@@ -29,53 +29,109 @@ if(MICROPY_PORT_PICLIB STREQUAL "y")
 endif()
 
 # cam
-set(CAM_SRCS_DIR
-		${PROJECT_DIR}/esp32-camera
-	)
-set(CAM_SRCS
-	${CAM_SRCS_DIR}/driver/esp_camera.c
-	${CAM_SRCS_DIR}/driver/cam_hal.c
-	${CAM_SRCS_DIR}/driver/sccb.c
-	${CAM_SRCS_DIR}/driver/sensor.c
-	${CAM_SRCS_DIR}/sensors/ov2640.c
-	${CAM_SRCS_DIR}/sensors/ov3660.c
-	${CAM_SRCS_DIR}/sensors/ov5640.c
-	${CAM_SRCS_DIR}/sensors/ov7725.c
-	${CAM_SRCS_DIR}/sensors/ov7670.c
-	${CAM_SRCS_DIR}/sensors/nt99141.c
-	${CAM_SRCS_DIR}/sensors/gc0308.c
-	${CAM_SRCS_DIR}/sensors/gc2145.c
-	${CAM_SRCS_DIR}/sensors/gc032a.c
-	${CAM_SRCS_DIR}/conversions/yuv.c
-	${CAM_SRCS_DIR}/conversions/to_jpg.cpp
-	${CAM_SRCS_DIR}/conversions/to_bmp.c
-	${CAM_SRCS_DIR}/conversions/jpge.cpp
-	${CAM_SRCS_DIR}/conversions/esp_jpg_decode.c
-	${CAM_SRCS_DIR}/target/xclk.c
-	)
+if(MICROPY_PORT_CAMLIB STREQUAL "y")
+	set(CAM_SRCS_DIR
+			${PROJECT_DIR}/esp32-camera
+		)
+	set(CAM_SRCS
+		${CAM_SRCS_DIR}/driver/esp_camera.c
+		${CAM_SRCS_DIR}/driver/cam_hal.c
+		${CAM_SRCS_DIR}/driver/sccb.c
+		${CAM_SRCS_DIR}/driver/sensor.c
+		${CAM_SRCS_DIR}/sensors/ov2640.c
+		${CAM_SRCS_DIR}/sensors/ov3660.c
+		${CAM_SRCS_DIR}/sensors/ov5640.c
+		${CAM_SRCS_DIR}/sensors/ov7725.c
+		${CAM_SRCS_DIR}/sensors/ov7670.c
+		${CAM_SRCS_DIR}/sensors/nt99141.c
+		${CAM_SRCS_DIR}/sensors/gc0308.c
+		${CAM_SRCS_DIR}/sensors/gc2145.c
+		${CAM_SRCS_DIR}/sensors/gc032a.c
+		${CAM_SRCS_DIR}/conversions/yuv.c
+		${CAM_SRCS_DIR}/conversions/to_jpg.cpp
+		${CAM_SRCS_DIR}/conversions/to_bmp.c
+		${CAM_SRCS_DIR}/conversions/jpge.cpp
+		${CAM_SRCS_DIR}/conversions/esp_jpg_decode.c
+		${CAM_SRCS_DIR}/target/xclk.c
+		)
 
-set(CAM_INC
-	${CAM_SRCS_DIR}/conversions/include
-	${CAM_SRCS_DIR}/conversions/private_include
-	${CAM_SRCS_DIR}/driver/include
-	${CAM_SRCS_DIR}/driver/private_include
-	${CAM_SRCS_DIR}/sensors/private_include
-	${CAM_SRCS_DIR}/target/private_include
-	)
-	
-if(IDF_TARGET STREQUAL "esp32")
-  list(APPEND CAM_SRCS ${CAM_SRCS_DIR}/target/esp32/ll_cam.c)
-elseif(IDF_TARGET STREQUAL "esp32s2")
-	list(APPEND CAM_SRCS ${CAM_SRCS_DIR}/target/esp32s2/ll_cam.c)
-	list(APPEND CAM_SRCS ${CAM_SRCS_DIR}/target/esp32s2/tjpgd.c)
-	list(APPEND CAM_INC ${CAM_SRCS_DIR}/target/esp32s2/private_include)
-elseif(IDF_TARGET STREQUAL "esp32s3")
-	list(APPEND CAM_SRCS ${CAM_SRCS_DIR}/target/esp32s3/ll_cam.c)
+	set(CAM_INC
+		${CAM_SRCS_DIR}/conversions/include
+		${CAM_SRCS_DIR}/conversions/private_include
+		${CAM_SRCS_DIR}/driver/include
+		${CAM_SRCS_DIR}/driver/private_include
+		${CAM_SRCS_DIR}/sensors/private_include
+		${CAM_SRCS_DIR}/target/private_include
+		)
+		
+	if(IDF_TARGET STREQUAL "esp32")
+		list(APPEND CAM_SRCS ${CAM_SRCS_DIR}/target/esp32/ll_cam.c)
+	elseif(IDF_TARGET STREQUAL "esp32s2")
+		list(APPEND CAM_SRCS ${CAM_SRCS_DIR}/target/esp32s2/ll_cam.c)
+		list(APPEND CAM_SRCS ${CAM_SRCS_DIR}/target/esp32s2/tjpgd.c)
+		list(APPEND CAM_INC ${CAM_SRCS_DIR}/target/esp32s2/private_include)
+	elseif(IDF_TARGET STREQUAL "esp32s3")
+		list(APPEND CAM_SRCS ${CAM_SRCS_DIR}/target/esp32s3/ll_cam.c)
+	endif()
+
 endif()
 
-set(WEB_SRCS
-		${PROJECT_DIR}/http_stream.c
+#uvc cam
+if(MICROPY_PORT_USB_CAM STREQUAL "y")
+set(UVC_CAM_SRCS
+		${PROJECT_DIR}/uvc-stream/uvc_stream.c
+		${PROJECT_DIR}/uvc-stream/usb_uvc_port.c
 	)
+set(UVC_CAM_INC
+		${PROJECT_DIR}/uvc-stream/include
+	)
+#jpeg-9a lib
+set(JPEG9A_DIR
+    ${PROJECT_DIR}/uvc-stream/decoder_ijg
+	)
+set(JPEG9A_SOURCE_LIB
+    ${JPEG9A_DIR}/jpeg-9a/jaricom.c
+		${JPEG9A_DIR}/jpeg-9a/jcomapi.c
+		${JPEG9A_DIR}/jpeg-9a/jutils.c
+		${JPEG9A_DIR}/jpeg-9a/jerror.c
+		${JPEG9A_DIR}/jpeg-9a/jmemmgr.c
+		${JPEG9A_DIR}/jpeg-9a/jdapimin.c
+		${JPEG9A_DIR}/jpeg-9a/jdapistd.c
+		${JPEG9A_DIR}/jpeg-9a/jdarith.c
+		${JPEG9A_DIR}/jpeg-9a/jdmaster.c
+		${JPEG9A_DIR}/jpeg-9a/jdinput.c
+		${JPEG9A_DIR}/jpeg-9a/jdmarker.c
+		${JPEG9A_DIR}/jpeg-9a/jdhuff.c
+		${JPEG9A_DIR}/jpeg-9a/jdmainct.c
+		${JPEG9A_DIR}/jpeg-9a/jdcoefct.c
+		${JPEG9A_DIR}/jpeg-9a/jddctmgr.c
+		${JPEG9A_DIR}/jpeg-9a/jdpostct.c
+		${JPEG9A_DIR}/jpeg-9a/jdsample.c
+		${JPEG9A_DIR}/jpeg-9a/jdcolor.c
+		${JPEG9A_DIR}/jpeg-9a/jquant2.c
+		${JPEG9A_DIR}/jpeg-9a/jquant1.c
+		${JPEG9A_DIR}/jpeg-9a/jdmerge.c
+		${JPEG9A_DIR}/jpeg-9a/jmemnobs.c
+		${JPEG9A_DIR}/jpeg-9a/wrppm.c
+		${JPEG9A_DIR}/jpeg-9a/jidctint.c
+		${JPEG9A_DIR}/jpeg-9a/jidctflt.c
+		${JPEG9A_DIR}/jpeg-9a/jidctfst.c
+		${JPEG9A_DIR}/jpegd2.c
+	)
+	set(JPEG9A_SOURCE_INC
+		${JPEG9A_DIR}/include
+	)
+endif()
+#web stream
+if(MICROPY_PORT_WEB_STREAM STREQUAL "y")
+	set(WEB_SRCS
+			${PROJECT_DIR}/http_stream.c
+		)
+		
+	set(WWW_EMBED_FILES
+			${PROJECT_DIR}/www/index_uvc.html.gz
+		)
+endif()
 #-----------------------------------------------------------
 
 set(MICROPY_SOURCE_LIB
@@ -143,6 +199,8 @@ set(MICROPY_SOURCE_PORT
 		${PROJECT_DIR}/gui_button.c
 		${PROJECT_DIR}/modsensor.c
 		${PROJECT_DIR}/modov2640.c
+		${PROJECT_DIR}/modespusb.c
+		${PROJECT_DIR}/modusbcam.c
 )
 
 set(MICROPY_SOURCE_QSTR
@@ -203,10 +261,12 @@ if(IDF_TARGET STREQUAL "esp32")
 elseif(IDF_TARGET STREQUAL "esp32s2")
     list(APPEND IDF_COMPONENTS esp32s2)
     list(APPEND IDF_COMPONENTS tinyusb)
+		list(APPEND IDF_COMPONENTS usb)
 		
 elseif(IDF_TARGET STREQUAL "esp32c3")
     list(APPEND IDF_COMPONENTS esp32c3)
     list(APPEND IDF_COMPONENTS riscv)
+		list(APPEND IDF_COMPONENTS usb)
 		
 endif()
 
@@ -221,6 +281,8 @@ idf_component_register(
 				${MICROPY_SOURCE_PICTURE}
 				${CAM_SRCS}
 				${WEB_SRCS}
+				${UVC_CAM_SRCS}
+				${JPEG9A_SOURCE_LIB}
     INCLUDE_DIRS
         ${MICROPY_INC_CORE}
         ${MICROPY_INC_USERMOD}
@@ -230,8 +292,12 @@ idf_component_register(
 				${MICROPY_INC_PICTURE}
 				${CAM_INC}
 				${WEB_SRCS_INC}
+				${UVC_CAM_INC}
+				${JPEG9A_SOURCE_INC}
     REQUIRES
         ${IDF_COMPONENTS}
+		EMBED_FILES
+			${WWW_EMBED_FILES}
 )
 
 # Set the MicroPython target as the current (main) IDF component target.
