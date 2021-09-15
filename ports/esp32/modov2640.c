@@ -382,7 +382,7 @@ STATIC const mp_rom_map_elem_t sensor_ov2640_locals_dict_table[] = {
 		#endif
 		#if MICROPY_ENABLE_TFTLCD
 		{ MP_ROM_QSTR(MP_QSTR_set_hmirror), MP_ROM_PTR(&sensor_ov2640_hmirror_obj) },
-		{ MP_ROM_QSTR(MP_QSTR_set_vfilp), MP_ROM_PTR(&sensor_ov2640_vflip_obj) },
+		{ MP_ROM_QSTR(MP_QSTR_set_vflip), MP_ROM_PTR(&sensor_ov2640_vflip_obj) },
 		{ MP_ROM_QSTR(MP_QSTR_display), MP_ROM_PTR(&sensor_ov2640_display_obj) },
 		{ MP_ROM_QSTR(MP_QSTR_display_stop), MP_ROM_PTR(&sensor_ov2640_display_stop_obj) },
 		#endif

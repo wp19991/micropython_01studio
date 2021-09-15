@@ -229,6 +229,7 @@ static bool xpt2046_read(int16_t *x, int16_t *y)
 static bool check_valid(int16_t a0, int16_t a1, int16_t a2, int16_t a3,
 												int16_t a4, int16_t a5, int16_t a6, int16_t a7)
 {
+	
 	uint32_t temp1,temp2;
 	uint32_t d1,d2;
 	float fac = 0.0;
@@ -340,6 +341,7 @@ static bool xpt2046_adjust(const char *filename)
 	int16_t x, y;
 	int16_t point_buf[4][2];
 	lcd_set_dir(1);
+	
 	lcd_Fill(0,0,lcddev.width,lcddev.height,WHITE);
 	grap_drawStr(&g_lcd, 50, 150, 8*17, 18, 16,"Touch Calibration",RED, WHITE);
 
@@ -367,7 +369,7 @@ cail:
 
 				break;
 				case 2:
-					lcd_Fill(lcddev.width-30,0,lcddev.width-5,30,WHITE);
+					lcd_Fill(lcddev.width-30,0,lcddev.width-1,30,WHITE);
 					mp_hal_delay_ms(100);
 					grap_drawColorCircle(&g_lcd, lcddev.width-15, lcddev.height-15, 5, RED);//lcddev.width-15, lcddev.height-15
 					grap_drawLine(&g_lcd,lcddev.width-5,lcddev.height-15,lcddev.width-25,lcddev.height-15,RED);
@@ -375,7 +377,7 @@ cail:
 
 				break;
 				case 3:
-					lcd_Fill(lcddev.width-25, lcddev.height-30,lcddev.width-5,lcddev.height-1,WHITE);
+					lcd_Fill(lcddev.width-25, lcddev.height-30,lcddev.width-1,lcddev.height-1,WHITE);
 					mp_hal_delay_ms(100);
 					grap_drawColorCircle(&g_lcd, 15, lcddev.height-15, 5, RED);//15, lcddev.height-15
 					grap_drawLine(&g_lcd,5,lcddev.height-15,25,lcddev.height-15,RED);
@@ -384,7 +386,7 @@ cail:
 				break;				
 				case 4:
 				
-					lcd_Fill(5, lcddev.height-30,25,lcddev.height-1,WHITE);
+					lcd_Fill(5, lcddev.height-30,30,lcddev.height-1,WHITE);
 
 					if(check_valid(point_buf[0][0],point_buf[0][1],point_buf[1][0],point_buf[1][1],
 													point_buf[2][0],point_buf[2][1],point_buf[3][0],point_buf[3][1]))
@@ -409,9 +411,9 @@ cail:
 		}
 	}
 	lcd_set_dir(temp_dir);
-	
+
 	lcd_Fill(0,0,lcddev.width,lcddev.height,lcddev.clercolor);
-	
+
 	return xpt_write_cail(filename, xoff, yoff, xfac, yfac);
 }
 

@@ -81,7 +81,12 @@ Graphics_Display g_lcd;
 
 static uint16_t get_rgb565(uint8_t r_color, uint8_t g_color , uint8_t b_color)
 {
-	return ( ((uint16_t)(r_color & 0xF8)<<8) | ((uint16_t)(g_color & 0xFC)<<5) | ((uint16_t)(b_color & 0xF8)>>3) );
+	uint16_t B_color = (b_color >> 3) & 0x001F;
+	uint16_t G_color = ((g_color >> 2) << 5) & 0x07E0;
+	uint16_t R_color = ((r_color >> 3) << 11) & 0xF800;
+
+	return (uint16_t) (R_color | G_color | B_color);
+
 }
 
 STATIC void disp_spi_init(ILI9341_t *self)
@@ -599,9 +604,8 @@ void lcd_cam_full(uint16_t sx,uint16_t sy,uint16_t ex,uint16_t ey,uint16_t *colo
 	}else{
 		ili9341_send_data(self, (uint8_t*)color, size * 2);
 	}
-
+	
 }
-
 
 //绘制横线函数
 void lcd_draw_hline(uint16_t x0,uint16_t y0,uint16_t len,uint16_t color)
@@ -669,6 +673,7 @@ STATIC mp_obj_t ILI9341_drawpFull(size_t n_args, const mp_obj_t *pos_args, mp_ma
 		mp_obj_get_array(args[0].u_obj, &len, &params);
 		if(len == 3){
 			lcddev.backcolor = get_rgb565(mp_obj_get_int(params[0]), mp_obj_get_int(params[1]), mp_obj_get_int(params[2]));
+			
 			lcd_Fill(0,0,lcddev.width, lcddev.height, lcddev.backcolor);
 			lcddev.clercolor = lcddev.backcolor;
 		}else{
@@ -864,8 +869,10 @@ STATIC mp_obj_t ILI9341_drawStr(size_t n_args, const mp_obj_t *pos_args, mp_map_
         else if(text_size == 3) text_size = 32;
         else if(text_size == 4) text_size = 48;
         else mp_raise_ValueError(MP_ERROR_TEXT("lcd size parameter error"));
+				
         grap_drawStr(&g_lcd, args[1].u_int, args[2].u_int, 
 									text_size* bufinfo.len, text_size , text_size,str ,color, lcddev.backcolor);
+													
     }
   }
 	else{

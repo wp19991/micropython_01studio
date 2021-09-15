@@ -3,7 +3,7 @@
 # This is a simple, convenience wrapper around idf.py (which uses cmake).
 
 # Select the board to build for, defaulting to GENERIC.
-BOARD ?= PYWIFI_P
+BOARD ?= PYWIFI_S2P
 
 # If the build directory is not given, make it reflect the board name.
 BUILD ?= build-$(BOARD)
@@ -57,3 +57,7 @@ erase:
 
 submodules:
 	git submodule update --init $(addprefix ../../,$(GIT_SUBMODULES))
+
+idf-usb-patch:
+	cp -r esp32-camera/CMakeLists.txt $(IDF_PATH)/components/usb/CMakeLists.txt
+	cat $(IDF_PATH)/components/usb/CMakeLists.txt

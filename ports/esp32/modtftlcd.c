@@ -143,6 +143,8 @@ void grap_drawColorCircle(const Graphics_Display *display,
 }
 
 //------------------------------------------------------------------------------------------------------
+#define BUF_LEN 1160
+static uint16_t str_buf[BUF_LEN]={0};//申请最大字体内存
 void grap_drawChar(const Graphics_Display *display, uint16_t x,uint16_t y,uint8_t num,
 											uint8_t size,uint16_t color,uint16_t backcolor)
 {
@@ -155,7 +157,6 @@ void grap_drawChar(const Graphics_Display *display, uint16_t x,uint16_t y,uint8_
 
 	str_h = size; 
 	str_w = size>>1;
-	uint16_t *pbuf = (uint16_t *)m_malloc(csize*8);
 
 	for(t=0;t<csize;t++)
 	{
@@ -171,9 +172,9 @@ void grap_drawChar(const Graphics_Display *display, uint16_t x,uint16_t y,uint8_
 		for(t1=0;t1<8;t1++)
 		{
 			if(temp&0x80){
-				pbuf[str_w * y0 + x0] = color;
+				str_buf[str_w * y0 + x0] = color;
 			}else{
-				pbuf[str_w * y0 + x0] = backcolor;
+				str_buf[str_w * y0 + x0] = backcolor;
 			}
 			y0++;
 			if(y0 >= size){
@@ -183,8 +184,8 @@ void grap_drawChar(const Graphics_Display *display, uint16_t x,uint16_t y,uint8_
 			temp<<=1;
 		}  	 
 	}
-	display->callDrawFlush(x,y,str_w,str_h,pbuf);
-	m_free(pbuf);
+	display->callDrawFlush(x,y,str_w,str_h,str_buf);
+
 }
 
 void grap_drawStr(const Graphics_Display *display, uint16_t x,uint16_t y,uint16_t width,uint16_t height,
@@ -201,6 +202,7 @@ void grap_drawStr(const Graphics_Display *display, uint16_t x,uint16_t y,uint16_
 			y+=size;
 		}
 		if(y>=height)break;//退出
+
 		grap_drawChar(display,x,y,*p,size,color, backcolor);
 		x+=(size>>1);
 		p++;

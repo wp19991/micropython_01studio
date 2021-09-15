@@ -89,8 +89,8 @@ STATIC void gui_btn_init(void){
 STATIC void gui_show_strmid(uint16_t x,uint16_t y,uint16_t width,uint16_t height,color_t color,uint8_t size,char *str)
 {
 	uint16_t xoff=0,yoff=0;
-	uint16_t strlenth;
-	uint16_t strwidth;
+	uint16_t strlenth =0;
+	uint16_t strwidth =0;
 
 	if(str==NULL)return;
   strlenth=strlen((const char*)str);	
@@ -107,6 +107,7 @@ STATIC void gui_show_strmid(uint16_t x,uint16_t y,uint16_t width,uint16_t height
 	if(strwidth<=width-x){
 		xoff=(width-x-strwidth)/2;	  
 	}
+
 	grap_drawStr(btn_fun, x+xoff,y+yoff,width-1,height-1,size,upda_str,color,lcddev.backcolor);
 
 	m_free(upda_str);
@@ -413,7 +414,9 @@ STATIC mp_obj_t gui_button_make_new(const mp_obj_type_t *type, size_t n_args, si
 		color_t bt_color=0,label_color=0;
 		size_t len;
 		mp_obj_t *params;
+		
 		mp_buffer_info_t bufinfo;
+		
 		if(args[4].u_obj !=MP_OBJ_NULL) 
 		{
 			mp_obj_get_array(args[4].u_obj, &len, &params);
@@ -447,13 +450,13 @@ STATIC mp_obj_t gui_button_make_new(const mp_obj_type_t *type, size_t n_args, si
 	    if (mp_obj_is_int(args[5].u_obj)) {
 	      mp_raise_ValueError(MP_ERROR_TEXT("button text parameter error"));
 	    } else {
-	        mp_get_buffer_raise(args[5].u_obj, &bufinfo, MP_BUFFER_READ);
+	      mp_get_buffer_raise(args[5].u_obj, &bufinfo, MP_BUFFER_READ);
 	    }
 	  }
 		else{
 	     mp_raise_ValueError(MP_ERROR_TEXT("button text parameter is empty"));
 	  }
-		
+
 		char *label = bufinfo.buf;
 		btn_fun = &g_lcd;
 		uint8_t font_size = find_font(args[2].u_int,args[3].u_int,label);
