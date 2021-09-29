@@ -46,7 +46,6 @@ STATIC const mp_rom_map_elem_t gui_module_globals_table[] = {
 #if MICROPY_GUI_BUTTON
 { MP_ROM_QSTR(MP_QSTR_TouchButton), MP_ROM_PTR(&gui_button_type) },
 { MP_ROM_QSTR(MP_QSTR_task_handler), MP_ROM_PTR(&gui_button_task_handler_obj) },
-
 #endif
 
 };

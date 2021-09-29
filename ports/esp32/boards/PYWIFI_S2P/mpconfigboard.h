@@ -8,6 +8,8 @@
 
 #define MICROPY_ENABLE_TFTLCD			(1)
 #define MICROPY_HW_LCD32					(1)	
+#define MICROPY_HW_LCD15					(1)	
+#define MICROPY_HW_LCD18					(1)	
 
 #define LCD_PIN_DC    	35
 #define LCD_PIN_RST    	36

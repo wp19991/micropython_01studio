@@ -49,8 +49,13 @@
 #include "ILI9341.h"
 #endif
 
+#if MICROPY_HW_LCD15
+#include "ST7789.h"
+#endif
+
 #if MICROPY_ENABLE_TFTLCD
 #include "modtftlcd.h"
+#include "lcd_spibus.h"
 #endif
 
 
@@ -222,7 +227,7 @@ STATIC mp_obj_t sensor_ov2640_setframesize(size_t n_args, const mp_obj_t *pos_ar
 	s->set_framesize(s, framesize);
 	
 	if(is_init){
-		lcd_Fill(0,0,lcddev.width,lcddev.height,lcddev.backcolor);
+		ili9341_Fill(0,0,lcddev.width,lcddev.height,lcddev.backcolor);
 	}
 
 	return mp_obj_new_int(framesize);
@@ -242,7 +247,7 @@ static uint16_t x=0,y=0;
 			pic = esp_camera_fb_get();
 			x = (lcddev.width - pic->width)>>1;
 			y = (lcddev.height - pic->height)>>1;
-			lcd_cam_full(x,y,pic->width, pic->height,(uint16_t *)pic->buf);
+			ili9341_cam_full(x,y,pic->width, pic->height,(uint16_t *)pic->buf);
 			esp_camera_fb_return(pic);
 		}
 		else{
@@ -253,9 +258,9 @@ static uint16_t x=0,y=0;
 STATIC mp_obj_t sensor_ov2640_display(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
 	if(!is_init){
 		mp_init_ILI9341();
-		lcd_set_dir(1);
+		ili9341_set_dir(1);
 		lcddev.backcolor = 0x0000;
-		lcd_Fill(0,0,lcddev.width,lcddev.height,lcddev.backcolor);
+		ili9341_Fill(0,0,lcddev.width,lcddev.height,lcddev.backcolor);
 		lcddev.clercolor = lcddev.backcolor;
 		is_init = 1;
 	}
@@ -272,7 +277,7 @@ STATIC mp_obj_t sensor_ov2640_display_stop(size_t n_args, const mp_obj_t *pos_ar
 	 is_display = false;
 	}
 	mp_hal_delay_ms(10);
-	lcd_Fill(0,0,lcddev.width,lcddev.height,lcddev.backcolor);
+	ili9341_Fill(0,0,lcddev.width,lcddev.height,lcddev.backcolor);
 	return mp_obj_new_int(is_display);
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_KW(sensor_ov2640_display_stop_obj,0, sensor_ov2640_display_stop);
@@ -338,7 +343,7 @@ STATIC mp_obj_t sensor_ov2640_deinit(size_t n_args, const mp_obj_t *pos_args, mp
 		mp_raise_ValueError(MP_ERROR_TEXT("Camera deinit Failed"));
 		return mp_const_false;
 	}
-	hw_spi_deinit_internal();
+	lcd_spibus_deinit();
 	is_display = false;
   return mp_const_true;
 }
@@ -351,12 +356,6 @@ STATIC mp_obj_t sensor_ov2640_make_new(const mp_obj_type_t *type, size_t n_args,
 	// check arguments
 	mp_arg_check_num(n_args, n_kw, 0, MP_OBJ_FUN_ARGS_MAX, true);
 
-	// mp_init_ILI9341();
-	// lcd_set_dir(1);
-	// lcddev.backcolor = 0x0000;
-	// lcd_Fill(0,0,lcddev.width,lcddev.height,lcddev.backcolor);
-	// lcddev.clercolor = lcddev.backcolor;
-	
 	 framesize = FRAMESIZE_XGA;
 
 	esp_err_t err = init_camera(PIXFORMAT_RGB565, framesize);

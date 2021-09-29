@@ -29,10 +29,18 @@
 #include "ILI9341.h"
 #endif
 
+#if MICROPY_HW_LCD15
+#include "ST7789.h"
+#endif
+
+#if MICROPY_HW_LCD18
+#include "ST7735.h"
+#endif
+
 #if MICROPY_ENABLE_TFTLCD
 
 #include "modtftlcd.h"
-#include "font.h" 
+#include "font.h"
 
 _lcd_dev lcddev;
 
@@ -374,6 +382,12 @@ STATIC const mp_rom_map_elem_t tftlcd_module_globals_table[] = {
 	#if (MICROPY_HW_LCD32)
 	{ MP_ROM_QSTR(MP_QSTR_LCD32), MP_ROM_PTR(&ILI9341_type) },
 	{ MP_ROM_QSTR(MP_QSTR_LCD24), MP_ROM_PTR(&ILI9341_type) },
+	#endif
+	#if (MICROPY_HW_LCD15)
+	{ MP_ROM_QSTR(MP_QSTR_LCD15), MP_ROM_PTR(&ST7789_type) },
+	#endif
+	#if (MICROPY_HW_LCD18)
+	{ MP_ROM_QSTR(MP_QSTR_LCD18), MP_ROM_PTR(&ST7735_type) },
 	#endif
 };
 STATIC MP_DEFINE_CONST_DICT(tftlcd_module_globals, tftlcd_module_globals_table);

@@ -2,10 +2,10 @@
 	******************************************************************************
 	* This file is part of the MicroPython project, http://micropython.org/
 	* Copyright (C), 2021 -2023, 01studio Tech. Co., Ltd.http://bbs.01studio.org/
-	* File Name 				 :	ili9341.c
+	* File Name 				 :	ST7789.c
 	* Author						 :	Folktale
 	* Version 					 :	v1.0
-	* date							 :	2021/7/1
+	* date							 :	2021/9/18
 	* Description 			 :	
 	******************************************************************************
 **/
@@ -36,15 +36,13 @@
 #include "py/stream.h"
 #include "lib/utils/pyexec.h"
 
-#if (MICROPY_HW_LCD32 & MICROPY_ENABLE_TFTLCD)
+#if (MICROPY_HW_LCD18 & MICROPY_ENABLE_TFTLCD)
 	
 #include "lcd_spibus.h"
 
-#include "ILI9341.h"
+#include "ST7735.h"
 
 #include "global.h"
-
-
 
 #ifdef MICROPY_PY_PICLIB
 #include "piclib.h"
@@ -56,237 +54,193 @@
 /*The LCD needs a bunch of command/argument values to be initialized. They are stored in this struct. */
 typedef struct {
     uint8_t cmd;
-    uint8_t data[16];
+    uint8_t data[17];
     uint8_t databytes; //No of data in data; bit 7 = delay after set; 0xFF = end of cmds.
 } lcd_init_cmd_t;
 
-STATIC lcd_spibus_t *p_ili9341 = NULL;
+Graphics_Display st7735_glcd;
 
-Graphics_Display g_lcd;
+STATIC lcd_spibus_t *p_st7735 = NULL;
 
-STATIC const lcd_init_cmd_t ili_init_cmds[]={
-		{0xCF, {0x00, 0x83, 0X30}, 3},
-		{0xED, {0x64, 0x03, 0X12, 0X81}, 4},
-		{0xE8, {0x85, 0x01, 0x79}, 3},
-		{0xCB, {0x39, 0x2C, 0x00, 0x34, 0x02}, 5},
-		{0xF7, {0x20}, 1},
-		{0xEA, {0x00, 0x00}, 2},
-		{0xC0, {0x26}, 1},			/*Power control*/
-		{0xC1, {0x11}, 1},			/*Power control */
-		{0xC5, {0x35, 0x3E}, 2},	/*VCOM control*/
-		{0xC7, {0xBE}, 1},			/*VCOM control*/
-		{0x36, {0x48}, 1},			/*Memory Access Control*/
-		{0x3A, {0x55}, 1},			/*Pixel Format Set*/
-		{0xB1, {0x00, 0x1B}, 2},
-		{0xF2, {0x08}, 1},
-		{0x26, {0x01}, 1},
-		{0xE0, {0x1F, 0x1A, 0x18, 0x0A, 0x0F, 0x06, 0x45, 0X87, 0x32, 0x0A, 0x07, 0x02, 0x07, 0x05, 0x00}, 15},
-		{0XE1, {0x00, 0x25, 0x27, 0x05, 0x10, 0x09, 0x3A, 0x78, 0x4D, 0x05, 0x18, 0x0D, 0x38, 0x3A, 0x1F}, 15},
-		{0x2A, {0x00, 0x00, 0x00, 0xEF}, 4},
-		{0x2B, {0x00, 0x00, 0x01, 0x3f}, 4},
-		{0x2C, {0}, 0},
-		{0xB7, {0x07}, 1},
-		{0xB6, {0x0A, 0x82, 0x27, 0x00}, 4},
+STATIC const lcd_init_cmd_t st7735_init_cmds[]={
 		{0x11, {0}, 0x80},
-		{0x29, {0}, 0x80},
+		{0xB1, {0x05, 0x3A, 0x3A}, 3},
+		{0xB2, {0x05, 0x3A, 0x3A}, 3},
+		{0xB3, {0x05, 0x3A, 0x3A, 0x05, 0x3A, 0x3A}, 6},
+		{0xB4, {0x03,}, 1},
+		{0xC0, {0x62, 0x02, 0x04}, 3},
+		{0xC1, {0xC0}, 1},
+		{0xC2, {0x0D, 0x00}, 2},
+		{0xC3, {0x8D, 0xEA}, 2},
+		{0xC4, {0x8D, 0xEE}, 2},
+		{0xC5, {0x0D}, 1},
+		{0x36, {0xC0}, 1},
+		{0xE0, {0x0A, 0x1F, 0x0E, 0x17, 0x37, 0x31, 0x2B, 0x2E, 0x2C, 0x29, 0x31, 0x3C, 0x00, 0x05, 0x03, 0x0D}, 16},
+		{0xE0, {0x0B, 0x1F, 0x0E, 0x12, 0x28, 0x24, 0x1F, 0x25, 0x25, 0x26, 0x30, 0x3C, 0x00, 0x05, 0x03, 0x0D}, 16},
+		{0x3A, {0x55}, 1},  /*Pixel Format Set*/ //65k mode
+		{0x29, {0}, 0x80}, //Display on
 		{0, {0}, 0xff},
 	};
 
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++=
-
-void  mp_init_ILI9341(void)
+void  mp_init_ST7735(void)
 {
 	lcd_bus_init();
-	p_ili9341 = lcd_spibus;
+	p_st7735 = lcd_spibus;
 	//Send all the commands
 	uint16_t cmd = 0;
-	while (ili_init_cmds[cmd].databytes!=0xff) {
-		lcd_spibus_send_cmd(p_ili9341, ili_init_cmds[cmd].cmd);
-		lcd_spibus_send_data(p_ili9341, ili_init_cmds[cmd].data, ili_init_cmds[cmd].databytes & 0x1F);
-		if (ili_init_cmds[cmd].databytes & 0x80) {
-			vTaskDelay(100 / portTICK_RATE_MS);
+	while (st7735_init_cmds[cmd].databytes!=0xff) {
+		lcd_spibus_send_cmd(p_st7735, st7735_init_cmds[cmd].cmd);
+		lcd_spibus_send_data(p_st7735, st7735_init_cmds[cmd].data, st7735_init_cmds[cmd].databytes & 0x1F);
+		if (st7735_init_cmds[cmd].databytes & 0x80) {
+			vTaskDelay(120 / portTICK_RATE_MS);
 		}
 		cmd++;
 	} 
 }
+static void st7735_set_addr(uint16_t sx,uint16_t sy,uint16_t ex,uint16_t ey)
+{
+	uint8_t data[4] = {0};
 
+	lcd_spibus_send_cmd(p_st7735, 0x2A);
+	data[0] = (sx >> 8) & 0xFF;
+	data[1] = sx & 0xFF;
+	data[2] = ((ex) >> 8) & 0xFF;
+	data[3] = (ex) & 0xFF;
+	lcd_spibus_send_data(p_st7735, data, 4);
+	
+	lcd_spibus_send_cmd(p_st7735, 0x2B); //2A
+	data[0] = (sy >> 8) & 0xFF;
+	data[1] = sy & 0xFF;
+	data[2] = ((ey) >> 8) & 0xFF;
+	data[3] = (ey) & 0xFF;
+	lcd_spibus_send_data(p_st7735, data, 4);
+}
 //设置LCD显示方向
-void ili9341_set_dir(uint8_t dir)
+void st7735_set_dir(uint8_t dir)
 {
 	uint8_t dir_data = 0;
-	lcddev.dir=dir;		//竖屏
 	
+	lcddev.dir=dir;		//竖屏
+
 	switch (dir)
 		{
 		case 2:
-		dir_data = 0x28;
-		lcddev.width=320;
-		lcddev.height=240;
+		lcddev.width = 160;
+		lcddev.height = 128;
+		dir_data = 0xA0;
 		break;
 		case 3:
-		dir_data = 0x88;
-		lcddev.width=240;
-		lcddev.height=320;
+		lcddev.width = 128;
+		lcddev.height = 160;
+		dir_data = 0x00;
 		break;
 		case 4:
-		dir_data = 0xE8;
-		lcddev.width=320;
-		lcddev.height=240;
+		lcddev.width = 160;
+		lcddev.height = 128;
+		dir_data = 0x70;
 		break;
 		default:
-		dir_data = 0x48;
-		lcddev.width=240;
-		lcddev.height=320;
+		lcddev.width = 128;
+		lcddev.height = 160;
+		dir_data = 0xC0;
 		break;
 		}
 
-	uint8_t data[4] = {0};
-	
-	lcd_spibus_send_cmd(p_ili9341, 0x2A);
-	data[0] = 0x00;
-	data[1] = 0x00;
-	data[2] = (lcddev.width-1) >> 8;
-	data[3] = (lcddev.width-1) & 0xFF;
-	lcd_spibus_send_data(p_ili9341, data, 4);
-	
-	lcd_spibus_send_cmd(p_ili9341, 0x2B); //2A
-	data[0] = 0x00;
-	data[1] = 0x00;
-	data[2] = (lcddev.height-1) >> 8;
-	data[3] = (lcddev.height-1) & 0xFF;
-	lcd_spibus_send_data(p_ili9341, data, 4);
+	uint8_t data[2] = {0};
 
-	lcd_spibus_send_cmd(p_ili9341, 0x36);
+	lcd_spibus_send_cmd(p_st7735, 0x36);
 	data[0] = dir_data;
-	lcd_spibus_send_data(p_ili9341, data, 1);
-	
-	g_lcd.width = lcddev.width;
-	g_lcd.height = lcddev.height;
+	lcd_spibus_send_data(p_st7735, data, 1);
 
+	st7735_set_addr(0, 0, lcddev.width-1, lcddev.height-1);
+	
+	st7735_glcd.width = lcddev.width;
+	st7735_glcd.height = lcddev.height;
 }	 
 
 //画点
-void ili9341_DrawPoint(uint16_t x,uint16_t y,uint16_t color)
+void st7735_DrawPoint(uint16_t x,uint16_t y,uint16_t color)
 {
 	uint8_t data[2];
 
 	/*Column addresses*/
-	lcd_spibus_send_cmd(p_ili9341, 0x2A);
+	lcd_spibus_send_cmd(p_st7735, 0x2A);
 	data[0] = (x >> 8);
 	data[1] = (x & 0xFF);
-	lcd_spibus_send_data(p_ili9341, data, 2);
+	lcd_spibus_send_data(p_st7735, data, 2);
 	
 		/*Page addresses*/
-	lcd_spibus_send_cmd(p_ili9341, 0x2B);
+	lcd_spibus_send_cmd(p_st7735, 0x2B);
 	data[0] = (y >> 8);
 	data[1] = (y & 0xFF);
-	lcd_spibus_send_data(p_ili9341, data, 2);
+	lcd_spibus_send_data(p_st7735, data, 2);
 	
 		/*Memory write*/
-	lcd_spibus_send_cmd(p_ili9341, 0x2C);
+	lcd_spibus_send_cmd(p_st7735, 0x2C);
 	data[0] = (color >> 8);
 	data[1] = (color & 0xFF);
-	lcd_spibus_send_data(p_ili9341, data, 2);
-}
+	lcd_spibus_send_data(p_st7735, data, 2);
 
+}
 //读点
-uint16_t ili9341_readPoint(uint16_t x, uint16_t y)
+uint16_t st7735_readPoint(uint16_t x, uint16_t y)
 {
 	return 0;
 }
-
 //填充指定颜色
-void ili9341_Fill(uint16_t sx,uint16_t sy,uint16_t ex,uint16_t ey,uint16_t color)
+void st7735_Fill(uint16_t sx,uint16_t sy,uint16_t ex,uint16_t ey,uint16_t color)
 {
-	uint8_t data[4];
-
 	uint32_t size = ((ex - sx)) * ((ey - sy));
-	uint32_t size_max = 0;
 
-	/*Column addresses*/
-	lcd_spibus_send_cmd(p_ili9341, 0x2A);
+	//st7735_set_addr(sx, sy, ex-1, ey-1);
+
+	uint8_t data[4] = {0};
+
+	lcd_spibus_send_cmd(p_st7735, 0x2A);
 	data[0] = (sx >> 8) & 0xFF;
 	data[1] = sx & 0xFF;
 	data[2] = ((ex-1) >> 8) & 0xFF;
 	data[3] = (ex-1) & 0xFF;
-	lcd_spibus_send_data(p_ili9341, data, 4);
-
-	/*Page addresses*/
-	lcd_spibus_send_cmd(p_ili9341, 0x2B);
+	lcd_spibus_send_data(p_st7735, data, 4);
+	
+	lcd_spibus_send_cmd(p_st7735, 0x2B); //2A
 	data[0] = (sy >> 8) & 0xFF;
 	data[1] = sy & 0xFF;
 	data[2] = ((ey-1) >> 8) & 0xFF;
 	data[3] = (ey-1) & 0xFF;
-	lcd_spibus_send_data(p_ili9341, data, 4);
-
+	lcd_spibus_send_data(p_st7735, data, 4);
+	
 	/*Memory write*/
-	lcd_spibus_send_cmd(p_ili9341, 0x2C);
+	lcd_spibus_send_cmd(p_st7735, 0x2C);
+
 #if CONFIG_ESP32_SPIRAM_SUPPORT || CONFIG_ESP32S2_SPIRAM_SUPPORT || CONFIG_ESP32S3_SPIRAM_SUPPORT
-	if(size >= 320*120){
-		size_max = size>>2;
-		lcd_spibus_fill(p_ili9341, color, size_max);
-		lcd_spibus_fill(p_ili9341, color, size_max);
-		lcd_spibus_fill(p_ili9341, color, size_max);
-		lcd_spibus_fill(p_ili9341, color, size-(size_max*3));
-	}else{
-		lcd_spibus_fill(p_ili9341, color, size);
-	}
+	lcd_spibus_fill(p_st7735, color, size);
 #else
+	uint32_t size_max = 0;
 	size_max = (size/lcddev.width);
 	uint32_t remainder = size - (size_max*lcddev.width);
 	if(size_max){
 		for(uint16_t i=0; i < size_max; i++){
-			lcd_spibus_fill(p_ili9341, color, lcddev.width);
+			lcd_spibus_fill(p_st7735, color, lcddev.width);
 		}
 		if(remainder){
-			lcd_spibus_fill(p_ili9341, color, remainder);
+			lcd_spibus_fill(p_st7735, color, remainder);
 		}
 	}else{
-		lcd_spibus_fill(p_ili9341, color, size);
+		lcd_spibus_fill(p_st7735, color, size);
 	}
 #endif
-	/*Column addresses*/
-	lcd_spibus_send_cmd(p_ili9341, 0x2A);
-	data[0] = (0 >> 8) & 0xFF;
-	data[1] = 0 & 0xFF;
-	data[2] = (lcddev.width >> 8) & 0xFF;
-	data[3] = lcddev.width & 0xFF;
-	lcd_spibus_send_data(p_ili9341, data, 4);
-
-	/*Page addresses*/
-	lcd_spibus_send_cmd(p_ili9341, 0x2B);
-	data[0] = (0 >> 8) & 0xFF;
-	data[1] = 0 & 0xFF;
-	data[2] = (lcddev.height >> 8) & 0xFF;
-	data[3] = lcddev.height & 0xFF;
-	lcd_spibus_send_data(p_ili9341, data, 4);
-	
 }
 
 //填充指定区域块颜色
 //开始位置填充多少个
-void ili9341_Full(uint16_t sx,uint16_t sy,uint16_t ex,uint16_t ey,uint16_t *color)
+void st7735_Full(uint16_t sx,uint16_t sy,uint16_t ex,uint16_t ey,uint16_t *color)
 {
-	uint8_t data[4];
-
-	/*Column addresses*/
-	lcd_spibus_send_cmd(p_ili9341, 0x2A);
-	data[0] = (sx >> 8) & 0xFF;
-	data[1] = sx & 0xFF;
-	data[2] = ((sx+ex-1) >> 8) & 0xFF;
-	data[3] = (sx+ex-1) & 0xFF;
-	lcd_spibus_send_data(p_ili9341, data, 4);
-
-	/*Page addresses*/
-	lcd_spibus_send_cmd(p_ili9341, 0x2B);
-	data[0] = (sy >> 8) & 0xFF;
-	data[1] = sy & 0xFF;
-	data[2] = ((sy+ey-1) >> 8) & 0xFF;
-	data[3] = (sy+ey-1) & 0xFF;
-	lcd_spibus_send_data(p_ili9341, data, 4);
+	st7735_set_addr(sx, sy, sx+ex-1, sy+ey-1);
 
 	/*Memory write*/
-	lcd_spibus_send_cmd(p_ili9341, 0x2C);
+	lcd_spibus_send_cmd(p_st7735, 0x2C);
 
 	uint32_t size = ex * ey;
 
@@ -301,96 +255,43 @@ void ili9341_Full(uint16_t sx,uint16_t sy,uint16_t ex,uint16_t ey,uint16_t *colo
 		color_u8[i] = color_tmp;
 	}
 	
-	if(size >= 320*120){
-		lcd_spibus_send_data(p_ili9341, (uint8_t*)color, size);
+ 	if(size >= 128*80){
+		lcd_spibus_send_data(p_st7735, (uint8_t*)color, size);
 		color += (size>>1);
-		lcd_spibus_send_data(p_ili9341, (uint8_t*)color, size);
+		lcd_spibus_send_data(p_st7735, (uint8_t*)color, size);
 	}else{
-		lcd_spibus_send_data(p_ili9341, (uint8_t*)color, size * 2);
-	}
-	
-	/*Column addresses*/
-	lcd_spibus_send_cmd(p_ili9341, 0x2A);
-	data[0] = (0 >> 8) & 0xFF;
-	data[1] = 0 & 0xFF;
-	data[2] = (lcddev.width >> 8) & 0xFF;
-	data[3] = lcddev.width & 0xFF;
-	lcd_spibus_send_data(p_ili9341, data, 4);
-
-	/*Page addresses*/
-	lcd_spibus_send_cmd(p_ili9341, 0x2B);
-	data[0] = (0 >> 8) & 0xFF;
-	data[1] = 0 & 0xFF;
-	data[2] = (lcddev.height >> 8) & 0xFF;
-	data[3] = lcddev.height & 0xFF;
-	lcd_spibus_send_data(p_ili9341, data, 4);
-}
-
-//填充指定区域块颜色
-//开始位置填充多少个
-void ili9341_cam_full(uint16_t sx,uint16_t sy,uint16_t ex,uint16_t ey,uint16_t *color)
-{
-	uint8_t data[4];
-
-	/*Column addresses*/
-	lcd_spibus_send_cmd(p_ili9341, 0x2A);
-	data[0] = (sx >> 8) & 0xFF;
-	data[1] = sx & 0xFF;
-	data[2] = ((sx+ex-1) >> 8) & 0xFF;
-	data[3] = (sx+ex-1) & 0xFF;
-	lcd_spibus_send_data(p_ili9341, data, 4);
-
-	/*Page addresses*/
-	lcd_spibus_send_cmd(p_ili9341, 0x2B);
-	data[0] = (sy >> 8) & 0xFF;
-	data[1] = sy & 0xFF;
-	data[2] = ((sy+ey-1) >> 8) & 0xFF;
-	data[3] = (sy+ey-1) & 0xFF;
-	lcd_spibus_send_data(p_ili9341, data, 4);
-
-	/*Memory write*/
-	lcd_spibus_send_cmd(p_ili9341, 0x2C);
-
-	uint32_t size = ex * ey;
-	
-	if(size > 320*120){
-		lcd_spibus_send_data(p_ili9341, (uint8_t*)color, size);
-		color += (size>>1);
-		lcd_spibus_send_data(p_ili9341, (uint8_t*)color, size);
-	}else{
-		lcd_spibus_send_data(p_ili9341, (uint8_t*)color, size * 2);
-	}
-	
+		lcd_spibus_send_data(p_st7735, (uint8_t*)color, size * 2);
+	} 
 }
 
 //绘制横线函数
-void ili9341_draw_hline(uint16_t x0,uint16_t y0,uint16_t len,uint16_t color)
+void st7735_draw_hline(uint16_t x0,uint16_t y0,uint16_t len,uint16_t color)
 {
 	if((len==0)||(x0>lcddev.width)||(y0>lcddev.height)) return;
-	ili9341_Fill(x0, y0,x0+len, y0, color);
+	st7735_Fill(x0, y0,x0+len, y0, color);
 }
 //
-void ili9341_draw_vline(uint16_t x0,uint16_t y0,uint16_t len,uint16_t color)
+void st7735_draw_vline(uint16_t x0,uint16_t y0,uint16_t len,uint16_t color)
 {
 	if((len==0)||(x0>lcddev.width)||(y0>lcddev.height)) return;
-	ili9341_Fill(x0, y0,x0, y0+len, color);
+	st7735_Fill(x0, y0,x0, y0+len, color);
 }
 //------------------------------------------------
-Graphics_Display g_lcd =
+Graphics_Display st7735_glcd =
 {
 	16,
-	240,
-	320,
-	ili9341_DrawPoint,
-	ili9341_readPoint,
-	ili9341_draw_hline,
-	ili9341_draw_vline,
-	ili9341_Fill,
-	ili9341_Full
+	128,
+	160,
+	st7735_DrawPoint,
+	st7735_readPoint,
+	st7735_draw_hline,
+	st7735_draw_vline,
+	st7735_Fill,
+	st7735_Full
 };
 //==============================================================================================
 //mpy
-STATIC mp_obj_t ILI9341_drawpPixel(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
+STATIC mp_obj_t ST7735_drawpPixel(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
 	static const mp_arg_t drawp_args[] = {
 			{ MP_QSTR_x,       MP_ARG_INT, {.u_int = 0} },
 			{ MP_QSTR_y,       MP_ARG_INT, {.u_int = 0} },
@@ -405,7 +306,7 @@ STATIC mp_obj_t ILI9341_drawpPixel(size_t n_args, const mp_obj_t *pos_args, mp_m
 		mp_obj_t *params;
 		mp_obj_get_array(args[2].u_obj, &len, &params);
 		if(len == 3){
-			ili9341_DrawPoint(args[0].u_int,args[1].u_int ,
+			st7735_DrawPoint(args[0].u_int,args[1].u_int ,
 			get_rgb565(mp_obj_get_int(params[0]), mp_obj_get_int(params[1]), mp_obj_get_int(params[2])));
 		}else{
 			mp_raise_ValueError(MP_ERROR_TEXT("lcd drawPixel parameter error \nCorrect call:drawPixel(x,y,(r,g,b)"));
@@ -413,9 +314,9 @@ STATIC mp_obj_t ILI9341_drawpPixel(size_t n_args, const mp_obj_t *pos_args, mp_m
 	}
   return mp_const_none;
 }
-STATIC MP_DEFINE_CONST_FUN_OBJ_KW(ILI9341_drawpPixel_obj, 1, ILI9341_drawpPixel);
+STATIC MP_DEFINE_CONST_FUN_OBJ_KW(ST7735_drawpPixel_obj, 1, ST7735_drawpPixel);
 //---------------------------华丽的分割线-------------------------------------------------------------------
-STATIC mp_obj_t ILI9341_drawpFull(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args)  {
+STATIC mp_obj_t ST7735_drawpFull(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args)  {
 	static const mp_arg_t clear_args[] = {
 			{ MP_QSTR_fillcolor,    MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL} },
 	};
@@ -430,7 +331,7 @@ STATIC mp_obj_t ILI9341_drawpFull(size_t n_args, const mp_obj_t *pos_args, mp_ma
 		if(len == 3){
 			lcddev.backcolor = get_rgb565(mp_obj_get_int(params[0]), mp_obj_get_int(params[1]), mp_obj_get_int(params[2]));
 			
-			ili9341_Fill(0,0,lcddev.width, lcddev.height, lcddev.backcolor);
+			st7735_Fill(0,0,lcddev.width, lcddev.height, lcddev.backcolor);
 			lcddev.clercolor = lcddev.backcolor;
 		}else{
 			mp_raise_ValueError(MP_ERROR_TEXT("lcd fill parameter error \nCorrect call:fill((r,g,b))"));
@@ -438,9 +339,9 @@ STATIC mp_obj_t ILI9341_drawpFull(size_t n_args, const mp_obj_t *pos_args, mp_ma
 	}
   return mp_const_none;
 }
-STATIC MP_DEFINE_CONST_FUN_OBJ_KW(ILI9341_drawpFull_obj, 1, ILI9341_drawpFull);
+STATIC MP_DEFINE_CONST_FUN_OBJ_KW(ST7735_drawpFull_obj, 1, ST7735_drawpFull);
 //---------------------------华丽的分割线-------------------------------------------------------------------
-STATIC mp_obj_t ILI9341_drawLin(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
+STATIC mp_obj_t ST7735_drawLin(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
     static const mp_arg_t drawL_args[] = {
 				{ MP_QSTR_x0,        	MP_ARG_INT, {.u_int = 0} },
         { MP_QSTR_y0,       	MP_ARG_INT, {.u_int = 0} },
@@ -457,7 +358,7 @@ STATIC mp_obj_t ILI9341_drawLin(size_t n_args, const mp_obj_t *pos_args, mp_map_
           mp_obj_t *params;
           mp_obj_get_array(args[4].u_obj, &len, &params);
           if(len == 3){
-						grap_drawLine(&g_lcd,args[0].u_int ,args[1].u_int,args[2].u_int,args[3].u_int ,
+						grap_drawLine(&st7735_glcd,args[0].u_int ,args[1].u_int,args[2].u_int,args[3].u_int ,
              get_rgb565(mp_obj_get_int(params[0]), mp_obj_get_int(params[1]), mp_obj_get_int(params[2])));
           }else{
             mp_raise_ValueError(MP_ERROR_TEXT("lcd drawL parameter error \nCorrect call:drawPixel(x,y,(r,g,b)"));
@@ -465,9 +366,9 @@ STATIC mp_obj_t ILI9341_drawLin(size_t n_args, const mp_obj_t *pos_args, mp_map_
     }
     return mp_const_none;
 }
-STATIC MP_DEFINE_CONST_FUN_OBJ_KW(ILI9341_drawLin_obj, 4, ILI9341_drawLin);
+STATIC MP_DEFINE_CONST_FUN_OBJ_KW(ST7735_drawLin_obj, 4, ST7735_drawLin);
 //---------------------------华丽的分割线-------------------------------------------------------------------
-STATIC mp_obj_t ILI9341_drawRect(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
+STATIC mp_obj_t ST7735_drawRect(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
 
   STATIC const mp_arg_t Rect_args[] = {
 		{ MP_QSTR_x,        		MP_ARG_INT, {.u_int = 0} },
@@ -488,7 +389,7 @@ STATIC mp_obj_t ILI9341_drawRect(size_t n_args, const mp_obj_t *pos_args, mp_map
     mp_obj_t *params;
     mp_obj_get_array(args[4].u_obj, &len, &params);
     if(len == 3){
-			grap_drawRect(&g_lcd,args[0].u_int,args[1].u_int,args[2].u_int,args[3].u_int,args[5].u_int,
+			grap_drawRect(&st7735_glcd,args[0].u_int,args[1].u_int,args[2].u_int,args[3].u_int,args[5].u_int,
           get_rgb565(mp_obj_get_int(params[0]), mp_obj_get_int(params[1]), mp_obj_get_int(params[2])));
     }else{
       mp_raise_ValueError(MP_ERROR_TEXT("lcd drawRect parameter error \n"));
@@ -506,16 +407,16 @@ STATIC mp_obj_t ILI9341_drawRect(size_t n_args, const mp_obj_t *pos_args, mp_map
     }
     uint16_t color=get_rgb565(mp_obj_get_int(params[0]), mp_obj_get_int(params[1]), mp_obj_get_int(params[2]));
     for(uint16_t i=0 ; i <= (args[3].u_int-(args[5].u_int*2)); i++ ){ 
-     grap_drawLine(&g_lcd,args[0].u_int+args[5].u_int,args[1].u_int+args[5].u_int+i,
+     grap_drawLine(&st7735_glcd,args[0].u_int+args[5].u_int,args[1].u_int+args[5].u_int+i,
 					args[0].u_int+args[2].u_int-args[5].u_int,args[1].u_int+args[5].u_int+i,color);
 		}
      
   }
   return mp_const_none;
 }
-STATIC MP_DEFINE_CONST_FUN_OBJ_KW(ILI9341_drawRect_obj, 1, ILI9341_drawRect);
+STATIC MP_DEFINE_CONST_FUN_OBJ_KW(ST7735_drawRect_obj, 1, ST7735_drawRect);
 //---------------------------华丽的分割线-------------------------------------------------------------------
-STATIC mp_obj_t ILI9341_drawCircle(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
+STATIC mp_obj_t ST7735_drawCircle(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
   STATIC const mp_arg_t tft_allowed_args[] = {
 	{ MP_QSTR_x, 			 			MP_ARG_INT, {.u_int = 0} },
 	{ MP_QSTR_y, 			 			MP_ARG_INT, {.u_int = 0} },
@@ -541,7 +442,7 @@ STATIC mp_obj_t ILI9341_drawCircle(size_t n_args, const mp_obj_t *pos_args, mp_m
 			
 			
         for(uint16_t i=0; i < args[4].u_int ;i++) {
-          grap_drawColorCircle(&g_lcd,
+          grap_drawColorCircle(&st7735_glcd,
 														args[0].u_int,args[1].u_int,args[2].u_int-i,color);
         }
     }else{
@@ -561,15 +462,15 @@ STATIC mp_obj_t ILI9341_drawCircle(size_t n_args, const mp_obj_t *pos_args, mp_m
     color = get_rgb565(mp_obj_get_int(params[0]), mp_obj_get_int(params[1]), mp_obj_get_int(params[2]));
 
     for(uint16_t i=0 ; i <= (args[2].u_int-args[4].u_int); i++ ) {
-      grap_drawColorCircle(&g_lcd,
+      grap_drawColorCircle(&st7735_glcd,
 						args[0].u_int, args[1].u_int, args[2].u_int-args[4].u_int-i, color);
     }
   }
   return mp_const_none;
 }
-STATIC MP_DEFINE_CONST_FUN_OBJ_KW(ILI9341_drawCircle_obj, 1, ILI9341_drawCircle);
+STATIC MP_DEFINE_CONST_FUN_OBJ_KW(ST7735_drawCircle_obj, 1, ST7735_drawCircle);
 //---------------------------华丽的分割线-------------------------------------------------------------------
-STATIC mp_obj_t ILI9341_drawStr(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
+STATIC mp_obj_t ST7735_drawStr(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
 
   STATIC const mp_arg_t tft_allowed_args[] = {
 		{ MP_QSTR_text,     		MP_ARG_REQUIRED | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL} },
@@ -626,7 +527,7 @@ STATIC mp_obj_t ILI9341_drawStr(size_t n_args, const mp_obj_t *pos_args, mp_map_
         else if(text_size == 4) text_size = 48;
         else mp_raise_ValueError(MP_ERROR_TEXT("lcd size parameter error"));
 				
-        grap_drawStr(&g_lcd, args[1].u_int, args[2].u_int, 
+        grap_drawStr(&st7735_glcd, args[1].u_int, args[2].u_int, 
 									text_size* bufinfo.len, text_size , text_size,str ,color, lcddev.backcolor);
 													
     }
@@ -636,29 +537,13 @@ STATIC mp_obj_t ILI9341_drawStr(size_t n_args, const mp_obj_t *pos_args, mp_map_
   }
   return mp_const_none;
 }
-STATIC MP_DEFINE_CONST_FUN_OBJ_KW(ILI9341_drawStr_obj, 1, ILI9341_drawStr);
+STATIC MP_DEFINE_CONST_FUN_OBJ_KW(ST7735_drawStr_obj, 1, ST7735_drawStr);
 //---------------------------华丽的分割线-------------------------------------------------------------------
 
 #if MICROPY_PY_PICLIB
-// cached file
-mp_obj_t ILI9341_CachePicture(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
-
-  STATIC const mp_arg_t tft_allowed_args[] = { 
-    { MP_QSTR_file,     MP_ARG_REQUIRED | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL} },
-		{ MP_QSTR_path,     MP_ARG_KW_ONLY 	| MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL} },
-		{ MP_QSTR_replace, 	MP_ARG_KW_ONLY 	| MP_ARG_BOOL,{.u_bool = false} },
-  };
-
-  uint8_t arg_num = MP_ARRAY_SIZE(tft_allowed_args);
-  mp_arg_val_t args[arg_num];
-  mp_arg_parse_all(n_args-1, pos_args+1, kw_args, arg_num, tft_allowed_args, args);
-
-  return mp_const_none;
-}
-STATIC MP_DEFINE_CONST_FUN_OBJ_KW(ILI9341_CachePicture_obj, 1, ILI9341_CachePicture);
 
 //---------------------------华丽的分割线-------------------------------------------------------------------
-STATIC mp_obj_t ILI9341_drawPicture(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
+STATIC mp_obj_t ST7735_drawPicture(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
 
   STATIC const mp_arg_t ILI9341_allowed_args[] = { 
     { MP_QSTR_x,       MP_ARG_REQUIRED | MP_ARG_INT, {.u_int = 0} },
@@ -695,7 +580,7 @@ STATIC mp_obj_t ILI9341_drawPicture(size_t n_args, const mp_obj_t *pos_args, mp_
 					sprintf(file_buf,"%s%s",file_path,".cache");
 					res = check_sys_file((const char *)file_buf);
 					 if(res){
-							grap_drawCached(&g_lcd,NULL, args[0].u_int, args[1].u_int, (const char *)file_buf); 
+							grap_drawCached(&st7735_glcd,NULL, args[0].u_int, args[1].u_int, (const char *)file_buf); 
 					 }
 					 
 					 m_free(file_buf);
@@ -727,19 +612,19 @@ STATIC mp_obj_t ILI9341_drawPicture(size_t n_args, const mp_obj_t *pos_args, mp_
   }
     return mp_const_none;
 }
-STATIC MP_DEFINE_CONST_FUN_OBJ_KW(ILI9341_drawPicture_obj, 1, ILI9341_drawPicture);
+STATIC MP_DEFINE_CONST_FUN_OBJ_KW(ST7735_drawPicture_obj, 1, ST7735_drawPicture);
 
 #endif
 
 //---------------------------华丽的分割线-------------------------------------------------------------------
-STATIC mp_obj_t ILI9341_deinit(mp_obj_t self_in) {
+STATIC mp_obj_t ST7789_deinit(mp_obj_t self_in) {
 	lcd_spibus_deinit();
 	return mp_const_none;
 }
-STATIC MP_DEFINE_CONST_FUN_OBJ_1(ILI9341_deinit_obj, ILI9341_deinit);
+STATIC MP_DEFINE_CONST_FUN_OBJ_1(ST7789_deinit_obj, ST7789_deinit);
 //---------------------------华丽的分割线-------------------------------------------------------------------
 
-STATIC mp_obj_t ILI9341_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_kw, const mp_obj_t *all_args) {
+STATIC mp_obj_t ST7735_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_kw, const mp_obj_t *all_args) {
 
 	enum { ARG_portrait };
 	static const mp_arg_t allowed_args[] = {
@@ -751,45 +636,44 @@ STATIC mp_obj_t ILI9341_make_new(const mp_obj_type_t *type, size_t n_args, size_
 
 	lcd_spibus_t *self = m_new_obj(lcd_spibus_t);
 	
-	mp_init_ILI9341();
+	mp_init_ST7735();
 	
-	self = p_ili9341;
+	self = p_st7735;
 	self->base.type = type;
 	
-	ili9341_set_dir(args[ARG_portrait].u_int);
+	st7735_set_dir(args[ARG_portrait].u_int);
 	
-	lcddev.type = 4;
+	lcddev.type = 6;
 	lcddev.backcolor = 0x0000;
 
-	ili9341_Fill(0,0,lcddev.width,lcddev.height,lcddev.backcolor);
+	st7735_Fill(0,0,lcddev.width,lcddev.height,lcddev.backcolor);
 
 	lcddev.clercolor = lcddev.backcolor;
 	
 	return MP_OBJ_FROM_PTR(self);
 }
 //---------------------------华丽的分割线-------------------------------------------------------------------
-STATIC const mp_rom_map_elem_t ILI9341_locals_dict_table[] = {
+STATIC const mp_rom_map_elem_t ST7735_locals_dict_table[] = {
 	// instance methods
-	{ MP_ROM_QSTR(MP_QSTR___del__), MP_ROM_PTR(&ILI9341_deinit_obj) },
-  { MP_ROM_QSTR(MP_QSTR_deinit), MP_ROM_PTR(&ILI9341_deinit_obj) },
-	{ MP_ROM_QSTR(MP_QSTR_fill), MP_ROM_PTR(&ILI9341_drawpFull_obj) },
-	{ MP_ROM_QSTR(MP_QSTR_drawPixel), MP_ROM_PTR(&ILI9341_drawpPixel_obj) },
-	{ MP_ROM_QSTR(MP_QSTR_drawLine), MP_ROM_PTR(&ILI9341_drawLin_obj) },
-	{ MP_ROM_QSTR(MP_QSTR_drawRect), MP_ROM_PTR(&ILI9341_drawRect_obj) },
-	{ MP_ROM_QSTR(MP_QSTR_drawCircle), MP_ROM_PTR(&ILI9341_drawCircle_obj) },
-	{ MP_ROM_QSTR(MP_QSTR_printStr), MP_ROM_PTR(&ILI9341_drawStr_obj) },
+	{ MP_ROM_QSTR(MP_QSTR___del__), MP_ROM_PTR(&ST7789_deinit_obj) },
+  { MP_ROM_QSTR(MP_QSTR_deinit), MP_ROM_PTR(&ST7789_deinit_obj) },
+	{ MP_ROM_QSTR(MP_QSTR_fill), MP_ROM_PTR(&ST7735_drawpFull_obj) },
+	{ MP_ROM_QSTR(MP_QSTR_drawPixel), MP_ROM_PTR(&ST7735_drawpPixel_obj) },
+	{ MP_ROM_QSTR(MP_QSTR_drawLine), MP_ROM_PTR(&ST7735_drawLin_obj) },
+	{ MP_ROM_QSTR(MP_QSTR_drawRect), MP_ROM_PTR(&ST7735_drawRect_obj) },
+	{ MP_ROM_QSTR(MP_QSTR_drawCircle), MP_ROM_PTR(&ST7735_drawCircle_obj) },
+	{ MP_ROM_QSTR(MP_QSTR_printStr), MP_ROM_PTR(&ST7735_drawStr_obj) },
 	#if MICROPY_PY_PICLIB
-	{ MP_ROM_QSTR(MP_QSTR_Picture), MP_ROM_PTR(&ILI9341_drawPicture_obj) },
-	{ MP_ROM_QSTR(MP_QSTR_CachePicture), MP_ROM_PTR(&ILI9341_CachePicture_obj) },
+	{ MP_ROM_QSTR(MP_QSTR_Picture), MP_ROM_PTR(&ST7735_drawPicture_obj) },
 	#endif
 };
-STATIC MP_DEFINE_CONST_DICT(ILI9341_locals_dict, ILI9341_locals_dict_table);
+STATIC MP_DEFINE_CONST_DICT(ST7735_locals_dict, ST7735_locals_dict_table);
 //---------------------------华丽的分割线-------------------------------------------------------------------
-const mp_obj_type_t ILI9341_type = {
+const mp_obj_type_t ST7735_type = {
     { &mp_type_type },
-    .name = MP_QSTR_ILI9341,
-    .make_new = ILI9341_make_new,
-    .locals_dict = (mp_obj_dict_t*)&ILI9341_locals_dict,
+    .name = MP_QSTR_ST7735,
+    .make_new = ST7735_make_new,
+    .locals_dict = (mp_obj_dict_t*)&ST7735_locals_dict,
 };
 
 //-------------------------------------------------------------------------------------------

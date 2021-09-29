@@ -148,10 +148,10 @@ static void display_task(void *pvParameter)
 			mjpegdraw(pic->buf, pic->len,outbuf);
  
 		 if( (pic->height*pic->height) >= (lcd_size >> 1)){
-				lcd_Full(x,y,pic->width, pic->height>>1,outbuf);
-				lcd_Full(x,y+(pic->height>>1),pic->width, pic->height>>1,outbuf+(lcd_size>>1));
+				ili9341_Full(x,y,pic->width, pic->height>>1,outbuf);
+				ili9341_Full(x,y+(pic->height>>1),pic->width, pic->height>>1,outbuf+(lcd_size>>1));
 		 }else{
-			 lcd_Full(x,y,pic->width, pic->height,outbuf);
+			 ili9341_Full(x,y,pic->width, pic->height,outbuf);
 		 }
 
 			if (pic) {
@@ -202,7 +202,7 @@ STATIC mp_obj_t usbcam_display_stop(size_t n_args, const mp_obj_t *pos_args, mp_
 		m_free(outbuf);
 	}
 	
-	lcd_Fill(0,0,lcddev.width,lcddev.height,lcddev.backcolor);
+	ili9341_Fill(0,0,lcddev.width,lcddev.height,lcddev.backcolor);
 
 	return mp_obj_new_int(is_display);
 }
@@ -257,9 +257,9 @@ STATIC mp_obj_t usbcam_make_new(const mp_obj_type_t *type, size_t n_args, size_t
 	uvc_framesize = args[0].u_int;
 #if MICROPY_ENABLE_TFTLCD
 	mp_init_ILI9341();
-	lcd_set_dir(4);
+	ili9341_set_dir(4);
 	lcddev.backcolor = 0x0000;
-	lcd_Fill(0,0,lcddev.width,lcddev.height,lcddev.backcolor);
+	ili9341_Fill(0,0,lcddev.width,lcddev.height,lcddev.backcolor);
 	lcddev.clercolor = lcddev.backcolor;
 #endif
 	esp_err_t err = 0;

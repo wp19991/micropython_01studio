@@ -5,23 +5,21 @@
 	* File Name 				 :	ili9341.h
 	* Author						 :	Folktale
 	* Version 					 :	v1.0
-	* date							 :	2021/7/1
+	* date							 :	2021/9/23
 	* Description 			 :	
 	******************************************************************************
 **/
 
-#ifndef MICROPY_INCLUDED_ESP32_ILI9341_H
-#define MICROPY_INCLUDED_ESP32_ILI9341_H
+#ifndef MICROPY_INCLUDED_STM32_ILI9341_H
+#define MICROPY_INCLUDED_STM32_ILI9341_H
 
 #include "py/obj.h"
-#include "driver/gpio.h"
-#include "driver/spi_master.h"
 
-#if (MICROPY_HW_LCD32 && MICROPY_ENABLE_TFTLCD)
+#if (MICROPY_HW_LCD32 && MICROPY_ENABLE_TFTLCD & MICROPY_ENABLE_SPILCD)
 	
 #include "modtftlcd.h"
 
-extern Graphics_Display g_lcd;
+extern Graphics_Display ili_glcd;
 
 extern const mp_obj_type_t ILI9341_type;
 
@@ -35,4 +33,4 @@ extern void ili9341_set_dir(uint8_t dir);
 extern void  mp_init_ILI9341(void);
 #endif
 
-#endif // MICROPY_INCLUDED_ESP32_ILI9341_H
+#endif // MICROPY_INCLUDED_STM32_ILI9341_H

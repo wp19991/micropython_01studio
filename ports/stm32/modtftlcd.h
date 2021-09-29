@@ -2,10 +2,10 @@
 	******************************************************************************
 	* This file is part of the MicroPython project, http://micropython.org/
 	* Copyright (C), 2021 -2023, 01studio Tech. Co., Ltd.http://bbs.01studio.org/
-	* File Name 				 :	lcd43g.h
+	* File Name 				 :	modtftlcd.h
 	* Author						 :	Folktale
 	* Version 					 :	v1.0
-	* date							 :	2021/3/18
+	* date							 :	2021/9/22
 	* Description 			 :	
 	******************************************************************************
 **/
@@ -21,14 +21,21 @@
 
 /* Includes ------------------------------------------------------------------*/  
 
- //画笔颜色
 #define WHITE         	 	0xFFFF
 #define BLACK         	 	0x0000	  
 #define BLUE         	 		0x001F  
 #define RED           	 	0xF800
 #define GREEN         	 	0x07E0
+#define BRED             	0XF81F
+#define GRED 			 				0XFFE0
+#define GBLUE			 				0X07FF
+#define MAGENTA       	 	0xF81F
+#define CYAN          	 	0x7FFF
+#define YELLOW        	 	0xFFE0
+#define BROWN 			 			0XBC40 //棕色
+#define BRRED 			 			0XFC07 //棕红色
+#define GRAY  			 			0X8430 //灰色
 
-//LCD参数
 typedef struct  
 {		 	 
 	volatile uint16_t width;			//LCD 宽度
@@ -60,7 +67,6 @@ typedef struct
 #define X_PIXEL 240
 #define Y_PIXEL 320
 
-
 typedef struct
 {
 	uint8_t color_depth; //8,16,32
@@ -71,15 +77,8 @@ typedef struct
 	void (*callDrawhline)(uint16_t x,uint16_t y,uint16_t len,uint16_t color);
 	void (*callDrawvline)(uint16_t x,uint16_t y,uint16_t len,uint16_t color);
 	void (*callDrawFill)(uint16_t sx,uint16_t sy,uint16_t ex,uint16_t ey,uint16_t color);
-	void (*callDrawFlush)(uint16_t sx,uint16_t sy,uint16_t ex,uint16_t ey,uint16_t *color);
+	void (*callDrawFlush)(uint16_t sx,uint16_t sy,uint16_t width,uint16_t height,uint16_t *color);
 } Graphics_Display;
-
-/* typedef struct _mp_vfs_t {
-    mp_obj_t file;
-    uint32_t len;
-    uint32_t pos;
-    byte *buf;
-}mp_vfs_t; */
 
 extern void grap_drawInit(uint16_t width, uint16_t height);
 
@@ -94,6 +93,10 @@ extern void grap_drawChar(const Graphics_Display *display, uint16_t x,uint16_t y
 
 extern void grap_drawStr(const Graphics_Display *display, uint16_t x,uint16_t y,uint16_t width,uint16_t height,
 									uint8_t size, char *p , uint16_t color,uint16_t backcolor);
+extern void grap_drawNum(const Graphics_Display *display,
+										uint16_t x,uint16_t y,uint32_t num,uint8_t len,uint8_t size,uint16_t color,uint16_t backcolor);
+										
+extern uint16_t rgb888to565(uint8_t r_color, uint8_t g_color , uint8_t b_color);
 
 #if MICROPY_PY_PICLIB
 
@@ -101,10 +104,10 @@ extern void grap_drawStr(const Graphics_Display *display, uint16_t x,uint16_t y,
 #include "extmod/vfs_fat.h"
 
 extern uint8_t grap_drawCached(const Graphics_Display *display,
-								void *fs, uint16_t x, uint16_t y, const char *filename);
+								FATFS *fs, uint16_t x, uint16_t y, const char *filename);
 								
-extern uint8_t grap_newCached(const Graphics_Display *display, 
-								mp_obj_t stream ,const char *filename, uint16_t width, uint16_t height);
+extern uint8_t grap_newCached(const Graphics_Display *display, uint8_t is_sdcard,
+								FATFS *fs ,const char *filename, uint16_t width, uint16_t height);
 #endif
 /**
   * @}

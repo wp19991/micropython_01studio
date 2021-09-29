@@ -4,7 +4,10 @@
 
 #if MICROPY_GUI_BUTTON
 
+#if MICROPY_ENABLE_VIDEO
 #include "avi.h"
+#endif
+
 #include "lib/oofatfs/ff.h"
 #include "extmod/vfs.h"
 #include "extmod/vfs_fat.h"
@@ -15,6 +18,11 @@
 #define BTN_PRES   			0X01 //按下
 #define BTN_INACTIVE   	0X02 //没有动作
 
+#if MICROPY_HW_LCD43G
+typedef uint32_t	color_t;
+#else
+typedef uint16_t	color_t;
+#endif
 
 //按钮结构体定义
 typedef struct 
@@ -31,18 +39,15 @@ typedef struct
 									//[5:2]:保留
 									//[1:0]:0,激活的(松开);1,按下;2,未被激活的
 	volatile uint8_t font;						//caption文字字体
-	volatile uint16_t fcolor;//字体颜色
+	volatile color_t fcolor;//字体颜色
   char *label;
-	uint16_t upcolor; 				  	//button caption font up color
-	uint16_t downcolor; 				  	//button caption font down color
+	color_t upcolor; 				  	//button caption font up color
+	color_t downcolor; 				  	//button caption font down color
 }__attribute__((packed)) _btn_obj;
 
 //===========================================================================================
 
 extern void button_task(void);
-
-
-
 
 extern const mp_obj_type_t gui_button_type;
 

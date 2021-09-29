@@ -1,35 +1,56 @@
 #include "piclib.h"
 
-
-
 _pic_info picinfo;	 	//图片信息
 _pic_phy pic_phy;		//图片显示物理接口	
 
-//lcd.h没有提供划横线函数,需要自己实现
-void piclib_draw_hline(uint16_t x0,uint16_t y0,uint16_t len,uint16_t color)
-{
-	if((len==0)||(x0>lcddev.width)||(y0>lcddev.height))return;
-	LCD_Fill(x0,y0,x0+len-1,y0,color);	
-}
 
-//填充颜色
-//x,y:起始坐标
-//width，height：宽度和高度。
-//*color：颜色数组
-void piclib_fill_color(uint16_t x,uint16_t y,uint16_t width,uint16_t height,uint16_t *color)
-{  
-	LCD_Color_Fill(x,y,x+width-1,y+height-1,color);	
-}
-
-//画图初始化,在画图之前,必须先调用此函数
-//指定画点/读点
 void piclib_init(void)
 {
-	pic_phy.read_point=LCD_ReadPoint;  		//读点函数实现
-	pic_phy.draw_point=LCD_Fast_DrawPoint;	//画点函数实现
-	pic_phy.fill=LCD_Fill;					//填充函数实现
-	pic_phy.draw_hline=piclib_draw_hline;  	//画线函数实现
-	pic_phy.fillcolor=piclib_fill_color;  	//颜色填充函数实现 
+	switch (lcddev.type)
+		{
+			case 1:
+			#if MICROPY_HW_LCD43M
+				pic_phy.read_point=LCD43M_ReadPoint;
+				pic_phy.draw_point=LCD43M_DrawPoint;
+				pic_phy.fill=LCD43M_Fill;
+				pic_phy.draw_hline=lcd43m_hline;
+				pic_phy.fillcolor=LCD43M_Full;
+			#endif
+			break;
+			case 2:
+
+			break;
+			case 3:
+
+			break;
+			case 4:
+			#if MICROPY_HW_LCD32
+				pic_phy.read_point=ili9341_readPoint;
+				pic_phy.draw_point=ili9341_DrawPoint;
+				pic_phy.fill=ili9341_Fill;
+				pic_phy.draw_hline=ili9341_draw_hline;
+				pic_phy.fillcolor=ili9341_Full;
+			#endif
+			break;
+			case 5:
+			#if MICROPY_HW_LCD15
+				pic_phy.read_point=st7789_readPoint;
+				pic_phy.draw_point=st7789_DrawPoint;
+				pic_phy.fill=st7789_Fill;
+				pic_phy.draw_hline=st7789_draw_hline;
+				pic_phy.fillcolor=st7789_Full;
+			#endif
+			break;
+			case 6:
+			#if MICROPY_HW_LCD18
+				pic_phy.read_point=st7735_readPoint;
+				pic_phy.draw_point=st7735_DrawPoint;
+				pic_phy.fill=st7735_Fill;
+				pic_phy.draw_hline=st7735_draw_hline;
+				pic_phy.fillcolor=st7735_Full;
+			#endif
+			break;
+		}
 
 	picinfo.lcdwidth=lcddev.width;	//得到LCD的宽度像素
 	picinfo.lcdheight=lcddev.height;//得到LCD的高度像素
@@ -44,7 +65,6 @@ void piclib_init(void)
 	picinfo.staticx=0;	//初始化当前显示到的x坐标为0
 	picinfo.staticy=0;	//初始化当前显示到的y坐标为0
 }
-
 //快速ALPHA BLENDING算法.
 //src:源颜色
 //dst:目标颜色

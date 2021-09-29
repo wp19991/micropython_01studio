@@ -19,19 +19,33 @@
 #include "py/objstr.h"
 #include "py/objlist.h"
 
-
 #include "py/mperrno.h" // used by mp_is_nonblocking_error
 #include "py/nlr.h"
 #include "py/gc.h"
 
+#if (MICROPY_GUI_BUTTON & MICROPY_ENABLE_TOUCH)
 
-#if MICROPY_GUI_BUTTON
-
-#include "lcd43m.h"
 #include "global.h" 
 #include "gui_button.h"
-#include "gt1151.h"
+#include "modtouch.h"
 
+#if MICROPY_HW_LCD43M
+#include "lcd43m.h"
+#endif
+
+#if MICROPY_HW_LCD32
+#include "ILI9341.h"
+#endif
+
+#if MICROPY_HW_GT1151
+#include "gt1151.h"
+#endif
+
+#if MICROPY_ENABLE_TFTLCD
+#include "modtftlcd.h"
+#endif
+
+static Graphics_Display *btn_fun = NULL;
 //===================================================================================================================
 typedef struct _gui_button_obj_t {
     mp_obj_base_t base;
@@ -44,11 +58,11 @@ typedef struct _gui_button_obj_t {
 STATIC uint8_t btn_num = 0;
 
 //====================================================================================================================
-void gui_show_strmid(uint16_t x,uint16_t y,uint16_t width,uint16_t height,uint16_t color,uint8_t size,char *str)
+STATIC void gui_show_strmid(uint16_t x,uint16_t y,uint16_t width,uint16_t height,color_t color,uint8_t size,char *str)
 {
 	uint16_t xoff=0,yoff=0;
-	uint16_t strlenth;
-	uint16_t strwidth;
+	uint16_t strlenth =0;
+	uint16_t strwidth =0;
 
 	if(str==NULL)return;
   strlenth=strlen((const char*)str);	
@@ -61,45 +75,29 @@ void gui_show_strmid(uint16_t x,uint16_t y,uint16_t width,uint16_t height,uint16
 	if(upda_str == NULL) printf("malloc err\n");
 	memset(upda_str, '\0', strlenth);
 	strncpy(upda_str,(const char*)str, strlenth);
-	if(height>size)yoff=(height-y-size)/2;
+	if(height>size) yoff=(height-y-size)/2;
 	if(strwidth<=width-x){
 		xoff=(width-x-strwidth)/2;	  
 	}
-	LCD_DisplayStr(x+xoff,y+yoff,width-1,height-1,size,upda_str,color); 
+
+	grap_drawStr(btn_fun, x+xoff,y+yoff,width-1,height-1,size,upda_str,color,lcddev.backcolor);
+
 	m_free(upda_str);
 }
-void btn_draw(_btn_obj * btnx,uint8_t sta)
-{  
-	switch(sta)
-	{
-		case BTN_RELEASE://正常(松开)
-			LCD_Fill(btnx->x,btnx->y,btnx->width,btnx->height,btnx->upcolor);
-			lcddev.backcolor = btnx->upcolor;
-			gui_show_strmid(btnx->x,btnx->y,btnx->width,btnx->height,btnx->fcolor,btnx->font,btnx->label);
-			break;
-		case BTN_PRES://按下   
-			LCD_Fill(btnx->x,btnx->y,btnx->width,btnx->height,btnx->downcolor);
-			lcddev.backcolor = btnx->downcolor;
-			gui_show_strmid(btnx->x,btnx->y,btnx->width,btnx->height,btnx->fcolor,btnx->font,btnx->label);
-			break;
-		case BTN_INACTIVE:
-			break;
-	} 
-}
+
 //----------------------------------------------------------------------------------
-//画8点(Bresenham算法)		  
-void draw_circle8(uint16_t sx,uint16_t sy,int a,int b,uint16_t color)
+void draw_circle8(uint16_t sx,uint16_t sy,int a,int b,color_t color)
 {
-	LCD_Fast_DrawPoint(sx+a,sy+b,color);
-	LCD_Fast_DrawPoint(sx-a,sy+b,color);
-	LCD_Fast_DrawPoint(sx+a,sy-b,color);
-	LCD_Fast_DrawPoint(sx-a,sy-b,color);
+	btn_fun->callDrawPoint(sx+a,sy+b,color);
+	btn_fun->callDrawPoint(sx-a,sy+b,color);
+	btn_fun->callDrawPoint(sx+a,sy-b,color);
+	btn_fun->callDrawPoint(sx-a,sy-b,color);
 	
-	LCD_Fast_DrawPoint(sx+b,sy+a,color);
-	LCD_Fast_DrawPoint(sx-b,sy+a,color);
-	LCD_Fast_DrawPoint(sx+b,sy-a,color);
-	LCD_Fast_DrawPoint(sx-b,sy-a,color);                
-}	 
+	btn_fun->callDrawPoint(sx+b,sy+a,color);
+	btn_fun->callDrawPoint(sx-b,sy+a,color);
+	btn_fun->callDrawPoint(sx+b,sy-a,color);
+	btn_fun->callDrawPoint(sx-b,sy-a,color);                
+}	
 //Bresenham's circle algorithm
 void draw_circle(uint16_t xc, uint16_t yc, int r, uint8_t fill, uint16_t color) {
     if (xc + r < 0 || xc - r >= lcddev.width ||
@@ -138,68 +136,90 @@ void draw_circle(uint16_t xc, uint16_t yc, int r, uint8_t fill, uint16_t color) 
 //---------------------------------------------------------------------------------
 //画圆角按钮
 //btnx:按钮
+
 void btn_draw_arcbtn(_btn_obj * btnx,uint8_t sta)
 {
-		int rlen = 8;//半径固定10
-		int r = 0;  
-		uint16_t x=0,y=0;
-		uint16_t color = 0;
-		uint16_t backcolor = 0;
-		backcolor = lcddev.backcolor;
-		if(sta == BTN_PRES || sta==BTN_RELEASE)
-			{
+	int r = 8;//半径固定 
+	uint16_t x=0,y=0;
+	color_t color = 0;
+	color_t backcolor = 0;
+	backcolor = lcddev.backcolor;
+	uint16_t fill_w = btnx->width - btnx->x;
+	uint16_t fill_h = btnx->height - btnx->y;
+	
+	uint32_t buf_len = fill_w * fill_h;
 
-				switch(sta)
-				{
-					case BTN_RELEASE://正常(松开)
-						color = btnx->upcolor;
-						lcddev.backcolor = btnx->upcolor;
-						break;
-					case BTN_PRES://按下   
-						lcddev.backcolor = btnx->downcolor;
-						color = btnx->downcolor;
-						break;
-				} 
-				r = rlen;
-				x=btnx->x+rlen;
-				y=btnx->y+rlen;
-				draw_circle(x,y,r-1,1,color);  //左上角
-				x=btnx->width-rlen;
-				draw_circle(x,y,r-1,1,color);  //右上角
-				x=btnx->x+rlen;
-				y=btnx->height-rlen;
-				draw_circle(x,y,r-1,1,color);  //左下角
-				x=btnx->width-rlen;
-				y=btnx->height-rlen;
-				draw_circle(x,y,r-1,1,color);  //右下角
-
-				LCD_Fill(btnx->x+rlen,btnx->y,btnx->width-rlen,btnx->y+rlen,color);
-				LCD_Fill(btnx->x,btnx->y+rlen,btnx->width,btnx->height-rlen,color); 
-				LCD_Fill(btnx->x+rlen,btnx->height-rlen,btnx->width-rlen,btnx->height,color);
-				gui_show_strmid(btnx->x,btnx->y,btnx->width,btnx->height,btnx->fcolor,btnx->font,btnx->label);
-				lcddev.backcolor = backcolor;
+	if(sta == BTN_PRES || sta==BTN_RELEASE)
+		{
+			uint16_t *fill_buf = (uint16_t *)m_malloc(buf_len);
+			if(fill_buf == NULL){
+				mp_raise_ValueError(MP_ERROR_TEXT("btn buf malloc error"));
 			}
+			switch(sta)
+			{
+				case BTN_RELEASE://正常(松开)
+					color = btnx->upcolor;
+					lcddev.backcolor = btnx->upcolor;
+					break;
+				case BTN_PRES://按下   
+					lcddev.backcolor = btnx->downcolor;
+					color = btnx->downcolor;
+					break;
+			} 
+			for(uint32_t i=0; i<buf_len ;i++){
+				fill_buf[i] = color;
+			}
+			
+			uint16_t r2 = r*r; //r的平方
+			uint16_t r0x = x+r; //x圆心坐标
+			uint16_t r0y = y+r;
+			uint32_t x2 = 0;
+			uint32_t y2 = 0;
+
+			for(uint16_t j=0; j<r; j++){
+				y2 = abs(y+j - r0x);
+				y2 *= y2;
+				for(uint16_t k=0; k<r; k++){
+					x2 = abs(x+k - r0y);
+					x2 *= x2;
+					if( x2 + y2 > r2 ){
+						fill_buf[fill_w*j+k] = backcolor; //左上
+						fill_buf[(fill_w*j) + (fill_w - k - 1)] = backcolor; //右上
+						fill_buf[(fill_w*(fill_h-j)) + k] = backcolor;
+						fill_buf[(fill_w*(fill_h-j)) + (fill_w-1-k)] = backcolor; 
+					}
+				}
+			}
+
+			btn_fun->callDrawFlush(btnx->x, btnx->y, fill_w, fill_h,fill_buf);
+			m_free(fill_buf);
+			gui_show_strmid(btnx->x,btnx->y,btnx->width,btnx->height,
+																btnx->fcolor,btnx->font,btnx->label);
+																
+			lcddev.backcolor = backcolor;
+		}
 }
 //---------------------------------------------------------------------------------
 STATIC void btn_deinit_arcbtn(_btn_obj * btnx){
-	LCD_Fill(btnx->x,btnx->y,btnx->width,btnx->height,lcddev.clercolor);
+	btn_fun->callDrawFill(btnx->x,btnx->y,btnx->width,btnx->height,lcddev.clercolor);
 }
 
 //---------------------------------------------------------------------------------
-
 uint8_t find_font(uint16_t w,uint16_t h,char *str)
 {
 	uint8_t font_arg[4]={16,24,32,48};
 
 	uint8_t font_len = strlen(str);
-	int i=0;
-	for(i=0;i<4;i++){
-		if(((font_arg[i]>>1) * font_len) >= w) break;
+	int i=3;
+	for(i=3;i>=0;i--){
+		if(((font_arg[i]>>1) * font_len) <= w) break;
 	}
-	for(;i>=0;--i){
+	
+	while(i){
 		if(font_arg[i] <= h) break;
+		i--;
 	}
-	if(i!=0) i--;
+
 	return font_arg[i];
 }
 //==============================================================================	
@@ -210,15 +230,12 @@ STATIC int btn_indev(uint16_t sx,uint16_t sy)
 	gui_button_obj_t *self;
 	for(i = 0; i < btn_num; i++){
 		self = MP_STATE_PORT(gui_btn_obj_all)[i];
-		//printf("id->%d, lab:%s, indev:sx:%d,sy:%d,x:%d,y:%d,width:%d,height:%d\n",self->gui_btn->id,self->gui_btn->label,
-		//				sx,sy,self->gui_btn->x,self->gui_btn->y,self->gui_btn->width,self->gui_btn->height);
 		if((sx >= self->gui_btn->x && sx <= self->gui_btn->width) && 
 				(sy >= self->gui_btn->y &&  sy <= self->gui_btn->height)){
 				event_id = self->gui_btn->id;
 				break;
 			}
 	}
-	//printf("-----------------------------------------------------------\n");
 	return event_id;
 }
 //--------------------------------------------------------------------------------------
@@ -319,6 +336,7 @@ STATIC mp_obj_t gui_button_deinit(mp_obj_t self_in) {
 	}
   return mp_const_none;
 }
+
 STATIC MP_DEFINE_CONST_FUN_OBJ_1(gui_button_deinit_obj, gui_button_deinit);
 //----------------------------------------------------------------------------------
 STATIC mp_obj_t gui_button_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_kw, const mp_obj_t *all_args) {
@@ -340,7 +358,7 @@ STATIC mp_obj_t gui_button_make_new(const mp_obj_type_t *type, size_t n_args, si
 		if(btn_num >= GUI_BTN_NUM_MAX){
 			mp_raise_msg_varg(&mp_type_ValueError, MP_ERROR_TEXT("Button(%d) doesn't exist"), btn_num + 1);
 		}
-		uint16_t bt_color=0,label_color=0;
+		color_t bt_color=0,label_color=0;
 		size_t len;
 		mp_obj_t *params;
 		mp_buffer_info_t bufinfo;
@@ -348,7 +366,12 @@ STATIC mp_obj_t gui_button_make_new(const mp_obj_type_t *type, size_t n_args, si
 		{
 			mp_obj_get_array(args[4].u_obj, &len, &params);
 			if(len == 3){
-				bt_color = rgb888to565(mp_obj_get_int(params[0]), mp_obj_get_int(params[1]), mp_obj_get_int(params[2]));
+				//bt_color = rgb888to565(mp_obj_get_int(params[0]), mp_obj_get_int(params[1]), mp_obj_get_int(params[2]));
+				#if MICROPY_HW_LCD43G
+					bt_color = (mp_obj_get_int(params[0])<<16) | (mp_obj_get_int(params[1])<<8) | mp_obj_get_int(params[2]);
+				#else
+					bt_color = rgb888to565(mp_obj_get_int(params[0]), mp_obj_get_int(params[1]), mp_obj_get_int(params[2]));
+				#endif
 			}else{
 				mp_raise_ValueError(MP_ERROR_TEXT("Button color parameter error \n"));
 			}
@@ -357,7 +380,12 @@ STATIC mp_obj_t gui_button_make_new(const mp_obj_type_t *type, size_t n_args, si
 		{
 			mp_obj_get_array(args[6].u_obj, &len, &params);
 			if(len == 3){
+				//label_color = rgb888to565(mp_obj_get_int(params[0]), mp_obj_get_int(params[1]), mp_obj_get_int(params[2]));
+				#if MICROPY_HW_LCD43G
+				label_color = (mp_obj_get_int(params[0])<<16) | (mp_obj_get_int(params[1])<<8) | mp_obj_get_int(params[2]);
+				#else
 				label_color = rgb888to565(mp_obj_get_int(params[0]), mp_obj_get_int(params[1]), mp_obj_get_int(params[2]));
+				#endif
 			}else{
 				mp_raise_ValueError(MP_ERROR_TEXT("Button label color parameter error \n"));
 			}
@@ -376,7 +404,36 @@ STATIC mp_obj_t gui_button_make_new(const mp_obj_type_t *type, size_t n_args, si
 	  }
 		
 		char *label = bufinfo.buf;
+	switch (lcddev.type)
+		{
+			case 1:
+			#if MICROPY_HW_LCD43M
+			btn_fun = &lcd43_glcd;
+			#endif
+			break;
+			case 2:
 
+			break;
+			case 3:
+
+			break;
+			case 4:
+			#if MICROPY_HW_LCD32
+			btn_fun = &ili_glcd;
+			#endif
+			break;
+			case 5:
+			#if MICROPY_HW_LCD15
+
+			#endif
+			break;
+			case 6:
+			#if MICROPY_HW_LCD18
+
+			#endif
+			break;
+		}
+		
 		uint8_t font_size = find_font(args[2].u_int,args[3].u_int,label);
 
 		gui_button_obj_t *btn;
@@ -414,6 +471,7 @@ STATIC mp_obj_t gui_button_make_new(const mp_obj_type_t *type, size_t n_args, si
     }else {
         btn = MP_STATE_PORT(gui_btn_obj_all)[btn_num];
     }
+ 
 		btn_num++;
 
    return MP_OBJ_FROM_PTR(btn);

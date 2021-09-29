@@ -1,5 +1,5 @@
 MCU_SERIES = f4
-CMSIS_MCU = STM32F407xx
+CMSIS_MCU = STM32F405xx
 AF_FILE = boards/stm32f405_af.csv
 ifeq ($(USE_MBOOT),1)
 # When using Mboot all the text goes together after the filesystem
@@ -14,7 +14,6 @@ endif
 
 # MicroPython settings
 MICROPY_VFS_LFS2 = 1
-# MicroPython settings
 MICROPY_PY_WIZNET5K = 5500
 MICROPY_PY_LWIP = 1
 MICROPY_PY_USSL = 1

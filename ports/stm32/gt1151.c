@@ -21,9 +21,9 @@
 #include "py/stackctrl.h"
 
 #if (MICROPY_HW_GT1151 && MICROPY_HW_LCD43M)
-
+#include "modtftlcd.h"
 #include "gt1151.h"
-
+#include "modtouch.h"
 #include "lcd43m.h"
 
 #define MICROPY_HW_TP_SDA (pin_F11)
@@ -54,9 +54,9 @@
 
 #define GTXX_MAX_TOUCH 5
 
-TP_DEV tp_dev;
+//TP_DEV tp_dev;
 
-bool is_init = 0;
+bool gt1151_is_init = 0;
 
 
 //GT9147配置参数表
@@ -319,6 +319,7 @@ STATIC void TP_Init(void)
 
 	mp_hal_delay_ms(100) ;//10ms
 	GT9147_RD_Reg(GT_PID_REG,tp_dev.id,4);//读取产品ID
+
 #if 0
 	if(strcmp((char*)tp_dev.id,"9147")==0 || strcmp((char*)tp_dev.id,"917S")==0)//ID==9147
 	{
@@ -339,53 +340,7 @@ STATIC void TP_Init(void)
 }
 
 const uint16_t GT9147_TPX_TBL[5]={GT_TP1_REG,GT_TP2_REG,GT_TP3_REG,GT_TP4_REG,GT_TP5_REG};
-
 //==============================================================================
-
-//===============================================================================
-static uint16_t pre_x[GTXX_MAX_TOUCH] = {0, 0, 0, 0, 0};
-static uint16_t pre_y[GTXX_MAX_TOUCH] = {0, 0, 0, 0, 0};
-static uint16_t pre_w[GTXX_MAX_TOUCH] = {0, 0, 0, 0, 0};
-static uint8_t s_tp_dowm[GTXX_MAX_TOUCH];
-static void gtxx_touch_up(int8_t id)
-{
-    if(s_tp_dowm[id] == 1) //EVENT_UP
-    {
-        s_tp_dowm[id] = 1;
-        tp_dev.sta = TP_CATH_UP;
-				tp_dev.x[id]=pre_x[id];
-				tp_dev.y[id]=pre_y[id];
-				//printf("UP->%d,%d\n",tp_dev.x[id],tp_dev.y[id]);
-    }
-    else //EVENT_NON
-    {
-				tp_dev.sta = TP_INACTIVE;
-				pre_x[id] = 0;  /* last point is none */
-				pre_y[id] = 0;
-				pre_w[id] = 0;
-    }
-}
-
-static void gtxx_touch_down(int8_t id, uint16_t x, uint16_t y, uint8_t w)
-{
-    if (s_tp_dowm[id] == 1){
-    	if(x != tp_dev.x[id]||y != tp_dev.y[id]) tp_dev.sta = TP_PRES_MOVE;
-			else{
-				tp_dev.sta = TP_PRES_DOWN;
-				//printf("DOWN->%d,%d\n",tp_dev.x[id],tp_dev.y[id]);
-			}
-    }
-    else{
-       	tp_dev.sta = TP_PRES_DOWN;
-        s_tp_dowm[id] = 1;
-    }
-		tp_dev.x[id]=x;
-		tp_dev.y[id]=y;
-		
-    pre_x[id] = x; /* save last point */
-    pre_y[id] = y;
-    pre_w[id] = w;
-}
 
 void gtxx_read_point(void)
 {
@@ -420,7 +375,7 @@ void gtxx_read_point(void)
 
     if (pre_touch > touch_num)                                       /* point up */
     {
-     gtxx_touch_up(read_id);
+     tp_touch_up(read_id);
     }
     if (touch_num)                                                 /* point down */
     {	
@@ -443,14 +398,15 @@ void gtxx_read_point(void)
             input_y=((uint16_t)read_buf[3]<<8)+read_buf[2];
           break;
         }
-       	gtxx_touch_down(read_id, input_x, input_y, input_w);
+       	tp_touch_down(read_id, input_x, input_y, input_w);
+
     }
     else if (pre_touch)
     {
-       gtxx_touch_up(read_id);
+       tp_touch_up(read_id);
     }
     pre_touch = touch_num;
-		//printf("run timer:%ld,touch_num:%d\n",HAL_GetTick()-runtime,touch_num);
+
 exit_:
     write_buf[0] = 0;
 
@@ -514,7 +470,7 @@ STATIC mp_obj_t touch_gt1151_make_new(const mp_obj_type_t *type, size_t n_args, 
 			lcddev.dir = args[0].u_int;
 		}
 		TP_Init();
-		is_init = 1;
+		gt1151_is_init = 1;
 		gt1151_obj.base.type = &touch_gt1151_type;
 
 		return MP_OBJ_FROM_PTR(&touch_gt1151_type);

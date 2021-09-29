@@ -77,9 +77,14 @@
 
 #if MICROPY_ENABLE_TFTLCD
 #include "modtftlcd.h"
+#include "lcd_spibus.h"
 
 #if MICROPY_HW_LCD32
 #include "ILI9341.h"
+#endif
+
+#if MICROPY_HW_LCD15
+#include "ST7789.h"
 #endif
 
 #endif
@@ -206,8 +211,8 @@ soft_reset:
 
 soft_reset_exit:
 
-		#if MICROPY_HW_LCD32
-		hw_spi_deinit_internal();
+		#if MICROPY_ENABLE_TFTLCD
+		lcd_spibus_deinit();
 		#endif
 		
 		#if (MICROPY_HW_XPT2046 && MICROPY_ENABLE_TOUCH)

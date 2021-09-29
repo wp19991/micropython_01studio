@@ -33,9 +33,6 @@
 #include "pin_static_af.h"
 #include "systick.h"
 
-
-
-
 #include "py/objstr.h"
 #include "py/objlist.h"
 #include "py/stream.h"

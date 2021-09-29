@@ -2,291 +2,219 @@
 	******************************************************************************
 	* This file is part of the MicroPython project, http://micropython.org/
 	* Copyright (C), 2021 -2023, 01studio Tech. Co., Ltd.http://bbs.01studio.org/
-	* File Name 				 :	ili9341.c
+	* File Name 				 :	ST7789.c
 	* Author						 :	Folktale
 	* Version 					 :	v1.0
-	* date							 :	2021/7/1
+	* date							 :	2021/9/18
 	* Description 			 :	
 	******************************************************************************
 **/
-
-#include "mpconfigboard.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "esp_system.h"
-#include "driver/gpio.h"
-#include "driver/spi_master.h"
-
-#include "py/obj.h"
-#include <math.h>
-#include "py/builtin.h"
 #include <stdio.h>
-#include <stdint.h>
-#include <stdbool.h>
 #include <string.h>
-#include "py/runtime.h"
-#include "py/stream.h"
+
 #include "py/mphal.h"
-#include "modmachine.h"
-
-#include "py/binary.h"
-#include "py/objarray.h"
-#include "py/mperrno.h"
-#include "extmod/vfs.h"
-#include "py/stream.h"
-#include "lib/utils/pyexec.h"
-
-#if (MICROPY_HW_LCD32 & MICROPY_ENABLE_TFTLCD)
+#include "py/runtime.h"
+#if (MICROPY_HW_LCD15 & MICROPY_ENABLE_TFTLCD & MICROPY_ENABLE_SPILCD)
 	
 #include "lcd_spibus.h"
+#include "modtftlcd.h"
 
-#include "ILI9341.h"
-
+#include "ST7789.h"
 #include "global.h"
-
-
 
 #ifdef MICROPY_PY_PICLIB
 #include "piclib.h"
-#define PICLIB_PY_QSTR (1)
-#else
-#define PICLIB_PY_QSTR (0)
 #endif
 
 /*The LCD needs a bunch of command/argument values to be initialized. They are stored in this struct. */
 typedef struct {
     uint8_t cmd;
-    uint8_t data[16];
+    uint8_t data[15];
     uint8_t databytes; //No of data in data; bit 7 = delay after set; 0xFF = end of cmds.
 } lcd_init_cmd_t;
 
-STATIC lcd_spibus_t *p_ili9341 = NULL;
+Graphics_Display st7789_glcd;
 
-Graphics_Display g_lcd;
+STATIC lcd_spibus_t *p_st7789 = NULL;
 
-STATIC const lcd_init_cmd_t ili_init_cmds[]={
-		{0xCF, {0x00, 0x83, 0X30}, 3},
-		{0xED, {0x64, 0x03, 0X12, 0X81}, 4},
-		{0xE8, {0x85, 0x01, 0x79}, 3},
-		{0xCB, {0x39, 0x2C, 0x00, 0x34, 0x02}, 5},
-		{0xF7, {0x20}, 1},
-		{0xEA, {0x00, 0x00}, 2},
-		{0xC0, {0x26}, 1},			/*Power control*/
-		{0xC1, {0x11}, 1},			/*Power control */
-		{0xC5, {0x35, 0x3E}, 2},	/*VCOM control*/
-		{0xC7, {0xBE}, 1},			/*VCOM control*/
-		{0x36, {0x48}, 1},			/*Memory Access Control*/
-		{0x3A, {0x55}, 1},			/*Pixel Format Set*/
-		{0xB1, {0x00, 0x1B}, 2},
-		{0xF2, {0x08}, 1},
-		{0x26, {0x01}, 1},
-		{0xE0, {0x1F, 0x1A, 0x18, 0x0A, 0x0F, 0x06, 0x45, 0X87, 0x32, 0x0A, 0x07, 0x02, 0x07, 0x05, 0x00}, 15},
-		{0XE1, {0x00, 0x25, 0x27, 0x05, 0x10, 0x09, 0x3A, 0x78, 0x4D, 0x05, 0x18, 0x0D, 0x38, 0x3A, 0x1F}, 15},
-		{0x2A, {0x00, 0x00, 0x00, 0xEF}, 4},
-		{0x2B, {0x00, 0x00, 0x01, 0x3f}, 4},
-		{0x2C, {0}, 0},
-		{0xB7, {0x07}, 1},
-		{0xB6, {0x0A, 0x82, 0x27, 0x00}, 4},
+STATIC const lcd_init_cmd_t st7789_init_cmds[]={
+	
+		{0x3A, {0x05}, 1},  /*Pixel Format Set*/
+		{0xB2, {0x0C, 0x0C, 0x00, 0x33, 0x33}, 5},
+		{0xB7, {0x35}, 1},
+		{0xBB, {0x32}, 1},	//Vcom=1.35V
+		{0xC2, {0x01}, 1},
+		{0xC3, {0x15}, 1}, 	//GVDD=4.8V  颜色深度
+		{0xC4, {0x20}, 1},  //VDV, 0x20:0v
+		{0xC6, {0x0F}, 1}, 	//0x0F:60Hz  
+		{0xD0, {0xA4, 0xA1}, 2},
+		{0xE0, {0xD0, 0x08, 0x0E, 0x09, 0x09, 0x05, 0x31, 0x33, 0x48, 0x17, 0x14, 0x15, 0x31, 0x34}, 14},
+		{0XE1, {0xD0, 0x08, 0x0E, 0x09, 0x09, 0x15, 0x31, 0x33, 0x48, 0x17, 0x14, 0x15, 0x31, 0x34}, 14},
+		{0x21, {0}, 0x80},
 		{0x11, {0}, 0x80},
 		{0x29, {0}, 0x80},
 		{0, {0}, 0xff},
 	};
 
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++=
-
-void  mp_init_ILI9341(void)
+void  mp_init_ST7789(void)
 {
 	lcd_bus_init();
-	p_ili9341 = lcd_spibus;
+	p_st7789 = lcd_spibus;
 	//Send all the commands
 	uint16_t cmd = 0;
-	while (ili_init_cmds[cmd].databytes!=0xff) {
-		lcd_spibus_send_cmd(p_ili9341, ili_init_cmds[cmd].cmd);
-		lcd_spibus_send_data(p_ili9341, ili_init_cmds[cmd].data, ili_init_cmds[cmd].databytes & 0x1F);
-		if (ili_init_cmds[cmd].databytes & 0x80) {
-			vTaskDelay(100 / portTICK_RATE_MS);
+	while (st7789_init_cmds[cmd].databytes!=0xff) {
+		lcd_spibus_send_cmd(p_st7789, st7789_init_cmds[cmd].cmd);
+		lcd_spibus_send_data(p_st7789, st7789_init_cmds[cmd].data, st7789_init_cmds[cmd].databytes & 0x1F);
+		if (st7789_init_cmds[cmd].databytes & 0x80) {
+			mp_hal_delay_ms(100);
 		}
 		cmd++;
 	} 
 }
+static void st7789_set_addr(uint16_t sx,uint16_t sy,uint16_t ex,uint16_t ey)
+{
+	uint8_t data[4] = {0};
+	uint16_t x1=0, x2=0, y1=0, y2=0;
 
+	switch (lcddev.dir)
+	{
+		case 1:
+		case 2:
+			x1 = sx;
+			x2 = ex;
+			y1 = sy;
+			y2 = ey;
+		break;
+		case 3:
+			x1 = sx;
+			x2 = ex;
+			y1 = sy + 80;
+			y2 = ey + 80;
+		break;
+		case 4:
+			x1 = sx + 80;
+			x2 = ex + 80;
+			y1 = sy;
+			y2 = ey;
+		break;
+		default:
+
+		break;
+	}
+
+	lcd_spibus_send_cmd(p_st7789, 0x2A);
+	data[0] = (x1 >> 8) & 0xFF;
+	data[1] = x1 & 0xFF;
+	data[2] = ((x2) >> 8) & 0xFF;
+	data[3] = (x2) & 0xFF;
+	lcd_spibus_send_data(p_st7789, data, 4);
+	
+	lcd_spibus_send_cmd(p_st7789, 0x2B); //2A
+	data[0] = (y1 >> 8) & 0xFF;
+	data[1] = y1 & 0xFF;
+	data[2] = ((y2) >> 8) & 0xFF;
+	data[3] = (y2) & 0xFF;
+	lcd_spibus_send_data(p_st7789, data, 4);
+}
 //设置LCD显示方向
-void ili9341_set_dir(uint8_t dir)
+void st7789_set_dir(uint8_t dir)
 {
 	uint8_t dir_data = 0;
-	lcddev.dir=dir;		//竖屏
 	
+	lcddev.dir=dir;		//竖屏
+
 	switch (dir)
 		{
 		case 2:
-		dir_data = 0x28;
-		lcddev.width=320;
-		lcddev.height=240;
+		dir_data = 0x70;
 		break;
 		case 3:
-		dir_data = 0x88;
-		lcddev.width=240;
-		lcddev.height=320;
+		dir_data = 0xC0;
 		break;
 		case 4:
-		dir_data = 0xE8;
-		lcddev.width=320;
-		lcddev.height=240;
+		dir_data = 0xA0;
 		break;
 		default:
-		dir_data = 0x48;
-		lcddev.width=240;
-		lcddev.height=320;
+		dir_data = 0x00;
 		break;
 		}
 
-	uint8_t data[4] = {0};
-	
-	lcd_spibus_send_cmd(p_ili9341, 0x2A);
-	data[0] = 0x00;
-	data[1] = 0x00;
-	data[2] = (lcddev.width-1) >> 8;
-	data[3] = (lcddev.width-1) & 0xFF;
-	lcd_spibus_send_data(p_ili9341, data, 4);
-	
-	lcd_spibus_send_cmd(p_ili9341, 0x2B); //2A
-	data[0] = 0x00;
-	data[1] = 0x00;
-	data[2] = (lcddev.height-1) >> 8;
-	data[3] = (lcddev.height-1) & 0xFF;
-	lcd_spibus_send_data(p_ili9341, data, 4);
+	uint8_t data[2] = {0};
 
-	lcd_spibus_send_cmd(p_ili9341, 0x36);
+	lcd_spibus_send_cmd(p_st7789, 0x36);
 	data[0] = dir_data;
-	lcd_spibus_send_data(p_ili9341, data, 1);
-	
-	g_lcd.width = lcddev.width;
-	g_lcd.height = lcddev.height;
+	lcd_spibus_send_data(p_st7789, data, 1);
+
+	st7789_set_addr(0, 0, lcddev.width-1, lcddev.height-1);
 
 }	 
 
 //画点
-void ili9341_DrawPoint(uint16_t x,uint16_t y,uint16_t color)
+void st7789_DrawPoint(uint16_t x,uint16_t y,uint16_t color)
 {
 	uint8_t data[2];
 
-	/*Column addresses*/
-	lcd_spibus_send_cmd(p_ili9341, 0x2A);
-	data[0] = (x >> 8);
-	data[1] = (x & 0xFF);
-	lcd_spibus_send_data(p_ili9341, data, 2);
-	
-		/*Page addresses*/
-	lcd_spibus_send_cmd(p_ili9341, 0x2B);
-	data[0] = (y >> 8);
-	data[1] = (y & 0xFF);
-	lcd_spibus_send_data(p_ili9341, data, 2);
-	
-		/*Memory write*/
-	lcd_spibus_send_cmd(p_ili9341, 0x2C);
+	st7789_set_addr(x,y,x,y);
+
+	/*Memory write*/
+	lcd_spibus_send_cmd(p_st7789, 0x2C);
 	data[0] = (color >> 8);
 	data[1] = (color & 0xFF);
-	lcd_spibus_send_data(p_ili9341, data, 2);
-}
+	lcd_spibus_send_data(p_st7789, data, 2);
 
+}
 //读点
-uint16_t ili9341_readPoint(uint16_t x, uint16_t y)
+uint16_t st7789_readPoint(uint16_t x, uint16_t y)
 {
 	return 0;
 }
-
 //填充指定颜色
-void ili9341_Fill(uint16_t sx,uint16_t sy,uint16_t ex,uint16_t ey,uint16_t color)
+void st7789_Fill(uint16_t sx,uint16_t sy,uint16_t ex,uint16_t ey,uint16_t color)
 {
-	uint8_t data[4];
-
 	uint32_t size = ((ex - sx)) * ((ey - sy));
 	uint32_t size_max = 0;
 
-	/*Column addresses*/
-	lcd_spibus_send_cmd(p_ili9341, 0x2A);
-	data[0] = (sx >> 8) & 0xFF;
-	data[1] = sx & 0xFF;
-	data[2] = ((ex-1) >> 8) & 0xFF;
-	data[3] = (ex-1) & 0xFF;
-	lcd_spibus_send_data(p_ili9341, data, 4);
-
-	/*Page addresses*/
-	lcd_spibus_send_cmd(p_ili9341, 0x2B);
-	data[0] = (sy >> 8) & 0xFF;
-	data[1] = sy & 0xFF;
-	data[2] = ((ey-1) >> 8) & 0xFF;
-	data[3] = (ey-1) & 0xFF;
-	lcd_spibus_send_data(p_ili9341, data, 4);
+	st7789_set_addr(sx, sy, ex-1, ey-1);
 
 	/*Memory write*/
-	lcd_spibus_send_cmd(p_ili9341, 0x2C);
-#if CONFIG_ESP32_SPIRAM_SUPPORT || CONFIG_ESP32S2_SPIRAM_SUPPORT || CONFIG_ESP32S3_SPIRAM_SUPPORT
-	if(size >= 320*120){
+	lcd_spibus_send_cmd(p_st7789, 0x2C);
+
+
+#if 0
+	if(size >= 240*120){
 		size_max = size>>2;
-		lcd_spibus_fill(p_ili9341, color, size_max);
-		lcd_spibus_fill(p_ili9341, color, size_max);
-		lcd_spibus_fill(p_ili9341, color, size_max);
-		lcd_spibus_fill(p_ili9341, color, size-(size_max*3));
+		lcd_spibus_fill(p_st7789, color, size_max);
+		lcd_spibus_fill(p_st7789, color, size-size_max);
 	}else{
-		lcd_spibus_fill(p_ili9341, color, size);
+		lcd_spibus_fill(p_st7789, color, size);
 	}
 #else
 	size_max = (size/lcddev.width);
 	uint32_t remainder = size - (size_max*lcddev.width);
 	if(size_max){
 		for(uint16_t i=0; i < size_max; i++){
-			lcd_spibus_fill(p_ili9341, color, lcddev.width);
+			lcd_spibus_fill(p_st7789, color, lcddev.width);
 		}
 		if(remainder){
-			lcd_spibus_fill(p_ili9341, color, remainder);
+			lcd_spibus_fill(p_st7789, color, remainder);
 		}
 	}else{
-		lcd_spibus_fill(p_ili9341, color, size);
+		lcd_spibus_fill(p_st7789, color, size);
 	}
 #endif
-	/*Column addresses*/
-	lcd_spibus_send_cmd(p_ili9341, 0x2A);
-	data[0] = (0 >> 8) & 0xFF;
-	data[1] = 0 & 0xFF;
-	data[2] = (lcddev.width >> 8) & 0xFF;
-	data[3] = lcddev.width & 0xFF;
-	lcd_spibus_send_data(p_ili9341, data, 4);
 
-	/*Page addresses*/
-	lcd_spibus_send_cmd(p_ili9341, 0x2B);
-	data[0] = (0 >> 8) & 0xFF;
-	data[1] = 0 & 0xFF;
-	data[2] = (lcddev.height >> 8) & 0xFF;
-	data[3] = lcddev.height & 0xFF;
-	lcd_spibus_send_data(p_ili9341, data, 4);
-	
+
 }
 
 //填充指定区域块颜色
 //开始位置填充多少个
-void ili9341_Full(uint16_t sx,uint16_t sy,uint16_t ex,uint16_t ey,uint16_t *color)
+void st7789_Full(uint16_t sx,uint16_t sy,uint16_t ex,uint16_t ey,uint16_t *color)
 {
-	uint8_t data[4];
-
-	/*Column addresses*/
-	lcd_spibus_send_cmd(p_ili9341, 0x2A);
-	data[0] = (sx >> 8) & 0xFF;
-	data[1] = sx & 0xFF;
-	data[2] = ((sx+ex-1) >> 8) & 0xFF;
-	data[3] = (sx+ex-1) & 0xFF;
-	lcd_spibus_send_data(p_ili9341, data, 4);
-
-	/*Page addresses*/
-	lcd_spibus_send_cmd(p_ili9341, 0x2B);
-	data[0] = (sy >> 8) & 0xFF;
-	data[1] = sy & 0xFF;
-	data[2] = ((sy+ey-1) >> 8) & 0xFF;
-	data[3] = (sy+ey-1) & 0xFF;
-	lcd_spibus_send_data(p_ili9341, data, 4);
+	st7789_set_addr(sx, sy, sx+ex-1, sy+ey-1);
 
 	/*Memory write*/
-	lcd_spibus_send_cmd(p_ili9341, 0x2C);
+	lcd_spibus_send_cmd(p_st7789, 0x2C);
 
 	uint32_t size = ex * ey;
 
@@ -301,96 +229,44 @@ void ili9341_Full(uint16_t sx,uint16_t sy,uint16_t ex,uint16_t ey,uint16_t *colo
 		color_u8[i] = color_tmp;
 	}
 	
-	if(size >= 320*120){
-		lcd_spibus_send_data(p_ili9341, (uint8_t*)color, size);
+	if(size >= 240*120){
+		lcd_spibus_send_data(p_st7789, (uint8_t*)color, size);
 		color += (size>>1);
-		lcd_spibus_send_data(p_ili9341, (uint8_t*)color, size);
+		lcd_spibus_send_data(p_st7789, (uint8_t*)color, size);
 	}else{
-		lcd_spibus_send_data(p_ili9341, (uint8_t*)color, size * 2);
-	}
-	
-	/*Column addresses*/
-	lcd_spibus_send_cmd(p_ili9341, 0x2A);
-	data[0] = (0 >> 8) & 0xFF;
-	data[1] = 0 & 0xFF;
-	data[2] = (lcddev.width >> 8) & 0xFF;
-	data[3] = lcddev.width & 0xFF;
-	lcd_spibus_send_data(p_ili9341, data, 4);
-
-	/*Page addresses*/
-	lcd_spibus_send_cmd(p_ili9341, 0x2B);
-	data[0] = (0 >> 8) & 0xFF;
-	data[1] = 0 & 0xFF;
-	data[2] = (lcddev.height >> 8) & 0xFF;
-	data[3] = lcddev.height & 0xFF;
-	lcd_spibus_send_data(p_ili9341, data, 4);
-}
-
-//填充指定区域块颜色
-//开始位置填充多少个
-void ili9341_cam_full(uint16_t sx,uint16_t sy,uint16_t ex,uint16_t ey,uint16_t *color)
-{
-	uint8_t data[4];
-
-	/*Column addresses*/
-	lcd_spibus_send_cmd(p_ili9341, 0x2A);
-	data[0] = (sx >> 8) & 0xFF;
-	data[1] = sx & 0xFF;
-	data[2] = ((sx+ex-1) >> 8) & 0xFF;
-	data[3] = (sx+ex-1) & 0xFF;
-	lcd_spibus_send_data(p_ili9341, data, 4);
-
-	/*Page addresses*/
-	lcd_spibus_send_cmd(p_ili9341, 0x2B);
-	data[0] = (sy >> 8) & 0xFF;
-	data[1] = sy & 0xFF;
-	data[2] = ((sy+ey-1) >> 8) & 0xFF;
-	data[3] = (sy+ey-1) & 0xFF;
-	lcd_spibus_send_data(p_ili9341, data, 4);
-
-	/*Memory write*/
-	lcd_spibus_send_cmd(p_ili9341, 0x2C);
-
-	uint32_t size = ex * ey;
-	
-	if(size > 320*120){
-		lcd_spibus_send_data(p_ili9341, (uint8_t*)color, size);
-		color += (size>>1);
-		lcd_spibus_send_data(p_ili9341, (uint8_t*)color, size);
-	}else{
-		lcd_spibus_send_data(p_ili9341, (uint8_t*)color, size * 2);
+		lcd_spibus_send_data(p_st7789, (uint8_t*)color, size * 2);
 	}
 	
 }
 
 //绘制横线函数
-void ili9341_draw_hline(uint16_t x0,uint16_t y0,uint16_t len,uint16_t color)
+void st7789_draw_hline(uint16_t x0,uint16_t y0,uint16_t len,uint16_t color)
 {
 	if((len==0)||(x0>lcddev.width)||(y0>lcddev.height)) return;
-	ili9341_Fill(x0, y0,x0+len, y0, color);
+	st7789_Fill(x0, y0,x0+len, y0, color);
 }
 //
-void ili9341_draw_vline(uint16_t x0,uint16_t y0,uint16_t len,uint16_t color)
+void st7789_draw_vline(uint16_t x0,uint16_t y0,uint16_t len,uint16_t color)
 {
 	if((len==0)||(x0>lcddev.width)||(y0>lcddev.height)) return;
-	ili9341_Fill(x0, y0,x0, y0+len, color);
+	st7789_Fill(x0, y0,x0, y0+len, color);
 }
 //------------------------------------------------
-Graphics_Display g_lcd =
+Graphics_Display st7789_glcd =
 {
 	16,
 	240,
-	320,
-	ili9341_DrawPoint,
-	ili9341_readPoint,
-	ili9341_draw_hline,
-	ili9341_draw_vline,
-	ili9341_Fill,
-	ili9341_Full
+	240,
+	st7789_DrawPoint,
+	st7789_readPoint,
+	st7789_draw_hline,
+	st7789_draw_vline,
+	st7789_Fill,
+	st7789_Full
 };
 //==============================================================================================
 //mpy
-STATIC mp_obj_t ILI9341_drawpPixel(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
+STATIC mp_obj_t ST7789_drawpPixel(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
 	static const mp_arg_t drawp_args[] = {
 			{ MP_QSTR_x,       MP_ARG_INT, {.u_int = 0} },
 			{ MP_QSTR_y,       MP_ARG_INT, {.u_int = 0} },
@@ -405,7 +281,7 @@ STATIC mp_obj_t ILI9341_drawpPixel(size_t n_args, const mp_obj_t *pos_args, mp_m
 		mp_obj_t *params;
 		mp_obj_get_array(args[2].u_obj, &len, &params);
 		if(len == 3){
-			ili9341_DrawPoint(args[0].u_int,args[1].u_int ,
+			st7789_DrawPoint(args[0].u_int,args[1].u_int ,
 			get_rgb565(mp_obj_get_int(params[0]), mp_obj_get_int(params[1]), mp_obj_get_int(params[2])));
 		}else{
 			mp_raise_ValueError(MP_ERROR_TEXT("lcd drawPixel parameter error \nCorrect call:drawPixel(x,y,(r,g,b)"));
@@ -413,9 +289,9 @@ STATIC mp_obj_t ILI9341_drawpPixel(size_t n_args, const mp_obj_t *pos_args, mp_m
 	}
   return mp_const_none;
 }
-STATIC MP_DEFINE_CONST_FUN_OBJ_KW(ILI9341_drawpPixel_obj, 1, ILI9341_drawpPixel);
+STATIC MP_DEFINE_CONST_FUN_OBJ_KW(ST7789_drawpPixel_obj, 1, ST7789_drawpPixel);
 //---------------------------华丽的分割线-------------------------------------------------------------------
-STATIC mp_obj_t ILI9341_drawpFull(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args)  {
+STATIC mp_obj_t ST7789_drawpFull(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args)  {
 	static const mp_arg_t clear_args[] = {
 			{ MP_QSTR_fillcolor,    MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL} },
 	};
@@ -430,7 +306,7 @@ STATIC mp_obj_t ILI9341_drawpFull(size_t n_args, const mp_obj_t *pos_args, mp_ma
 		if(len == 3){
 			lcddev.backcolor = get_rgb565(mp_obj_get_int(params[0]), mp_obj_get_int(params[1]), mp_obj_get_int(params[2]));
 			
-			ili9341_Fill(0,0,lcddev.width, lcddev.height, lcddev.backcolor);
+			st7789_Fill(0,0,lcddev.width, lcddev.height, lcddev.backcolor);
 			lcddev.clercolor = lcddev.backcolor;
 		}else{
 			mp_raise_ValueError(MP_ERROR_TEXT("lcd fill parameter error \nCorrect call:fill((r,g,b))"));
@@ -438,9 +314,9 @@ STATIC mp_obj_t ILI9341_drawpFull(size_t n_args, const mp_obj_t *pos_args, mp_ma
 	}
   return mp_const_none;
 }
-STATIC MP_DEFINE_CONST_FUN_OBJ_KW(ILI9341_drawpFull_obj, 1, ILI9341_drawpFull);
+STATIC MP_DEFINE_CONST_FUN_OBJ_KW(ST7789_drawpFull_obj, 1, ST7789_drawpFull);
 //---------------------------华丽的分割线-------------------------------------------------------------------
-STATIC mp_obj_t ILI9341_drawLin(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
+STATIC mp_obj_t ST7789_drawLin(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
     static const mp_arg_t drawL_args[] = {
 				{ MP_QSTR_x0,        	MP_ARG_INT, {.u_int = 0} },
         { MP_QSTR_y0,       	MP_ARG_INT, {.u_int = 0} },
@@ -457,7 +333,7 @@ STATIC mp_obj_t ILI9341_drawLin(size_t n_args, const mp_obj_t *pos_args, mp_map_
           mp_obj_t *params;
           mp_obj_get_array(args[4].u_obj, &len, &params);
           if(len == 3){
-						grap_drawLine(&g_lcd,args[0].u_int ,args[1].u_int,args[2].u_int,args[3].u_int ,
+						grap_drawLine(&st7789_glcd,args[0].u_int ,args[1].u_int,args[2].u_int,args[3].u_int ,
              get_rgb565(mp_obj_get_int(params[0]), mp_obj_get_int(params[1]), mp_obj_get_int(params[2])));
           }else{
             mp_raise_ValueError(MP_ERROR_TEXT("lcd drawL parameter error \nCorrect call:drawPixel(x,y,(r,g,b)"));
@@ -465,9 +341,9 @@ STATIC mp_obj_t ILI9341_drawLin(size_t n_args, const mp_obj_t *pos_args, mp_map_
     }
     return mp_const_none;
 }
-STATIC MP_DEFINE_CONST_FUN_OBJ_KW(ILI9341_drawLin_obj, 4, ILI9341_drawLin);
+STATIC MP_DEFINE_CONST_FUN_OBJ_KW(ST7789_drawLin_obj, 4, ST7789_drawLin);
 //---------------------------华丽的分割线-------------------------------------------------------------------
-STATIC mp_obj_t ILI9341_drawRect(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
+STATIC mp_obj_t ST7789_drawRect(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
 
   STATIC const mp_arg_t Rect_args[] = {
 		{ MP_QSTR_x,        		MP_ARG_INT, {.u_int = 0} },
@@ -488,7 +364,7 @@ STATIC mp_obj_t ILI9341_drawRect(size_t n_args, const mp_obj_t *pos_args, mp_map
     mp_obj_t *params;
     mp_obj_get_array(args[4].u_obj, &len, &params);
     if(len == 3){
-			grap_drawRect(&g_lcd,args[0].u_int,args[1].u_int,args[2].u_int,args[3].u_int,args[5].u_int,
+			grap_drawRect(&st7789_glcd,args[0].u_int,args[1].u_int,args[2].u_int,args[3].u_int,args[5].u_int,
           get_rgb565(mp_obj_get_int(params[0]), mp_obj_get_int(params[1]), mp_obj_get_int(params[2])));
     }else{
       mp_raise_ValueError(MP_ERROR_TEXT("lcd drawRect parameter error \n"));
@@ -506,16 +382,16 @@ STATIC mp_obj_t ILI9341_drawRect(size_t n_args, const mp_obj_t *pos_args, mp_map
     }
     uint16_t color=get_rgb565(mp_obj_get_int(params[0]), mp_obj_get_int(params[1]), mp_obj_get_int(params[2]));
     for(uint16_t i=0 ; i <= (args[3].u_int-(args[5].u_int*2)); i++ ){ 
-     grap_drawLine(&g_lcd,args[0].u_int+args[5].u_int,args[1].u_int+args[5].u_int+i,
+     grap_drawLine(&st7789_glcd,args[0].u_int+args[5].u_int,args[1].u_int+args[5].u_int+i,
 					args[0].u_int+args[2].u_int-args[5].u_int,args[1].u_int+args[5].u_int+i,color);
 		}
      
   }
   return mp_const_none;
 }
-STATIC MP_DEFINE_CONST_FUN_OBJ_KW(ILI9341_drawRect_obj, 1, ILI9341_drawRect);
+STATIC MP_DEFINE_CONST_FUN_OBJ_KW(ST7789_drawRect_obj, 1, ST7789_drawRect);
 //---------------------------华丽的分割线-------------------------------------------------------------------
-STATIC mp_obj_t ILI9341_drawCircle(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
+STATIC mp_obj_t ST7789_drawCircle(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
   STATIC const mp_arg_t tft_allowed_args[] = {
 	{ MP_QSTR_x, 			 			MP_ARG_INT, {.u_int = 0} },
 	{ MP_QSTR_y, 			 			MP_ARG_INT, {.u_int = 0} },
@@ -541,7 +417,7 @@ STATIC mp_obj_t ILI9341_drawCircle(size_t n_args, const mp_obj_t *pos_args, mp_m
 			
 			
         for(uint16_t i=0; i < args[4].u_int ;i++) {
-          grap_drawColorCircle(&g_lcd,
+          grap_drawColorCircle(&st7789_glcd,
 														args[0].u_int,args[1].u_int,args[2].u_int-i,color);
         }
     }else{
@@ -561,15 +437,15 @@ STATIC mp_obj_t ILI9341_drawCircle(size_t n_args, const mp_obj_t *pos_args, mp_m
     color = get_rgb565(mp_obj_get_int(params[0]), mp_obj_get_int(params[1]), mp_obj_get_int(params[2]));
 
     for(uint16_t i=0 ; i <= (args[2].u_int-args[4].u_int); i++ ) {
-      grap_drawColorCircle(&g_lcd,
+      grap_drawColorCircle(&st7789_glcd,
 						args[0].u_int, args[1].u_int, args[2].u_int-args[4].u_int-i, color);
     }
   }
   return mp_const_none;
 }
-STATIC MP_DEFINE_CONST_FUN_OBJ_KW(ILI9341_drawCircle_obj, 1, ILI9341_drawCircle);
+STATIC MP_DEFINE_CONST_FUN_OBJ_KW(ST7789_drawCircle_obj, 1, ST7789_drawCircle);
 //---------------------------华丽的分割线-------------------------------------------------------------------
-STATIC mp_obj_t ILI9341_drawStr(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
+STATIC mp_obj_t ST7789_drawStr(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
 
   STATIC const mp_arg_t tft_allowed_args[] = {
 		{ MP_QSTR_text,     		MP_ARG_REQUIRED | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL} },
@@ -626,7 +502,7 @@ STATIC mp_obj_t ILI9341_drawStr(size_t n_args, const mp_obj_t *pos_args, mp_map_
         else if(text_size == 4) text_size = 48;
         else mp_raise_ValueError(MP_ERROR_TEXT("lcd size parameter error"));
 				
-        grap_drawStr(&g_lcd, args[1].u_int, args[2].u_int, 
+        grap_drawStr(&st7789_glcd, args[1].u_int, args[2].u_int, 
 									text_size* bufinfo.len, text_size , text_size,str ,color, lcddev.backcolor);
 													
     }
@@ -636,40 +512,140 @@ STATIC mp_obj_t ILI9341_drawStr(size_t n_args, const mp_obj_t *pos_args, mp_map_
   }
   return mp_const_none;
 }
-STATIC MP_DEFINE_CONST_FUN_OBJ_KW(ILI9341_drawStr_obj, 1, ILI9341_drawStr);
+STATIC MP_DEFINE_CONST_FUN_OBJ_KW(ST7789_drawStr_obj, 1, ST7789_drawStr);
 //---------------------------华丽的分割线-------------------------------------------------------------------
 
 #if MICROPY_PY_PICLIB
-// cached file
-mp_obj_t ILI9341_CachePicture(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
+static uint8_t is_sdcard = 0;
 
-  STATIC const mp_arg_t tft_allowed_args[] = { 
+mp_obj_t ST7789_CachePicture(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
+
+  STATIC const mp_arg_t ST7789_allowed_args[] = { 
     { MP_QSTR_file,     MP_ARG_REQUIRED | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL} },
 		{ MP_QSTR_path,     MP_ARG_KW_ONLY 	| MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL} },
 		{ MP_QSTR_replace, 	MP_ARG_KW_ONLY 	| MP_ARG_BOOL,{.u_bool = false} },
   };
 
-  uint8_t arg_num = MP_ARRAY_SIZE(tft_allowed_args);
+  uint8_t arg_num = MP_ARRAY_SIZE(ST7789_allowed_args);
   mp_arg_val_t args[arg_num];
-  mp_arg_parse_all(n_args-1, pos_args+1, kw_args, arg_num, tft_allowed_args, args);
+  mp_arg_parse_all(n_args-1, pos_args+1, kw_args, arg_num, ST7789_allowed_args, args);
+	
+	uint8_t res=0;
+	
+	char *path_buf = (char *)m_malloc(50);  //最大支持50字符
+	memset(path_buf, '\0', 50);
+	
+  if(args[0].u_obj !=MP_OBJ_NULL) 
+  {
+    mp_buffer_info_t bufinfo;
+    if (mp_obj_is_int(args[0].u_obj)) {
+      mp_raise_ValueError(MP_ERROR_TEXT("CachePicture parameter error,should is .cache"));
+    } 
+		else 
+		{
+			mp_get_buffer_raise(args[0].u_obj, &bufinfo, MP_BUFFER_READ);
 
+			const char *file_path = mp_obj_str_get_str(get_path(bufinfo.buf ,&res));
+			const char *ftype = mp_obj_str_get_str(file_type(file_path));
+			 mp_vfs_mount_t *vfs = MP_STATE_VM(vfs_mount_table);
+			 
+			 if(res == 1){
+				 vfs = vfs->next;
+				 is_sdcard = 1;
+			 }else{
+			 	is_sdcard = 0;
+			 }
+			fs_user_mount_t *vfs_fat = MP_OBJ_TO_PTR(vfs->obj);
+
+			//test file
+			FIL		*f_file;
+			f_file=(FIL *)m_malloc(sizeof(FIL));
+			if(f_file == NULL){
+				mp_raise_ValueError(MP_ERROR_TEXT("malloc f_file error"));
+			}
+			sprintf(path_buf,"%s%s",file_path,".cache");
+			res = f_open(&vfs_fat->fatfs,f_file,path_buf,FA_READ);
+			f_close(f_file);
+			f_sync(f_file);
+			if(res == FR_OK && args[2].u_bool == false){
+				return mp_const_none;
+			}else{
+				args[2].u_bool = true;
+			}
+
+			memset(path_buf, '\0', 50);
+printf("start loading->%s\r\n",file_path);
+
+			piclib_init();
+			if(strncmp(ftype,"jpg",3) == 0 || strncmp(ftype,"jpeg",4) == 0)
+			{
+				res = jpg_decode(&vfs_fat->fatfs,file_path, 0, 0 ,1);
+				if(res){
+					printf("jpg_decode err:%d\r\n",res);
+					return mp_const_none;
+				}
+			}
+			else if(strncmp(ftype , "bmp" , 3) == 0)
+			{
+				res = stdbmp_decode(&vfs_fat->fatfs ,file_path, 0, 0) ;
+				printf("bmp_decode err:%d\r\n",res);
+				if(res)return mp_const_none;
+			}
+			else
+			{
+				mp_raise_ValueError(MP_ERROR_TEXT("picture file type error"));
+				return mp_const_none;
+			}
+//-----------------------------------------------------------
+			if(args[1].u_obj !=MP_OBJ_NULL)
+			{
+				mp_get_buffer_raise(args[1].u_obj, &bufinfo, MP_BUFFER_READ);
+				const char *path = mp_obj_str_get_str(get_path(bufinfo.buf ,&res));
+				const char *path_ftype = mp_obj_str_get_str(file_type(path));
+
+				if(strncmp(path_ftype , "cache" , 5))
+				{
+					mp_raise_ValueError(MP_ERROR_TEXT("CachePicture path file type error"));
+					return mp_const_none;
+				}
+				sprintf(path_buf,"%s",path);
+			}else
+			{
+				sprintf(path_buf,"%s%s",file_path,".cache");
+			}
+//------------------------------------------------
+			res = f_open(&vfs_fat->fatfs,f_file,path_buf,FA_READ);
+			f_close(f_file);
+			f_sync(f_file);
+			
+			if(args[2].u_bool == true || res != 0)
+			{
+				grap_newCached(&ili_glcd, is_sdcard,&vfs_fat->fatfs, path_buf,picinfo.S_Width, picinfo.S_Height);	
+			}
+			
+			f_sync(f_file);
+			m_free(f_file);
+    }
+  }
+	else{
+      mp_raise_ValueError(MP_ERROR_TEXT("CachePicture parameter is empty"));
+  }
+	m_free(path_buf);
   return mp_const_none;
 }
-STATIC MP_DEFINE_CONST_FUN_OBJ_KW(ILI9341_CachePicture_obj, 1, ILI9341_CachePicture);
-
+STATIC MP_DEFINE_CONST_FUN_OBJ_KW(ST7789_CachePicture_obj, 1, ST7789_CachePicture);
 //---------------------------华丽的分割线-------------------------------------------------------------------
-STATIC mp_obj_t ILI9341_drawPicture(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
+STATIC mp_obj_t ST7789_drawPicture(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
 
-  STATIC const mp_arg_t ILI9341_allowed_args[] = { 
+  STATIC const mp_arg_t ST7789_allowed_args[] = { 
     { MP_QSTR_x,       MP_ARG_REQUIRED | MP_ARG_INT, {.u_int = 0} },
     { MP_QSTR_y,       MP_ARG_REQUIRED | MP_ARG_INT, {.u_int = 0} },
     { MP_QSTR_file,    MP_ARG_REQUIRED | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL} },
 		{ MP_QSTR_cached,  MP_ARG_KW_ONLY  | MP_ARG_BOOL, {.u_bool = true} },
   };
-
-  uint8_t arg_num = MP_ARRAY_SIZE(ILI9341_allowed_args);
+  uint8_t arg_num = MP_ARRAY_SIZE(ST7789_allowed_args);
   mp_arg_val_t args[arg_num];
-  mp_arg_parse_all(n_args-1, pos_args+1, kw_args, arg_num, ILI9341_allowed_args, args);
+  mp_arg_parse_all(n_args-1, pos_args+1, kw_args, arg_num, ST7789_allowed_args, args);
 
   if(args[2].u_obj !=MP_OBJ_NULL) 
   {
@@ -679,67 +655,75 @@ STATIC mp_obj_t ILI9341_drawPicture(size_t n_args, const mp_obj_t *pos_args, mp_
     } 
 		else 
 		{
-			mp_get_buffer_raise(args[2].u_obj, &bufinfo, MP_BUFFER_READ);
+        mp_get_buffer_raise(args[2].u_obj, &bufinfo, MP_BUFFER_READ);
 
-			uint8_t res=0;
-			mp_obj_t tuple[2];
-			const char *file_path = (const char *)bufinfo.buf;
-			const char *ftype = mp_obj_str_get_str(file_type(file_path));
-			
-			 //---------------------------------------------------------------
-				if(args[3].u_bool == true){
-					
-					uint8_t file_len = strlen(file_path);
-					char *file_buf = (char *)m_malloc(file_len+7); 
-					memset(file_buf, '\0', file_len+7);
-					sprintf(file_buf,"%s%s",file_path,".cache");
-					res = check_sys_file((const char *)file_buf);
-					 if(res){
-							grap_drawCached(&g_lcd,NULL, args[0].u_int, args[1].u_int, (const char *)file_buf); 
-					 }
-					 
-					 m_free(file_buf);
-					 if(res) return mp_const_none;
+				uint8_t res=0;
+				
+				mp_obj_t tuple[2];
+				
+				const char *file_path = mp_obj_str_get_str(get_path(bufinfo.buf ,&res));
+				const char *ftype = mp_obj_str_get_str(file_type(file_path));
+				 
+				 mp_vfs_mount_t *vfs = MP_STATE_VM(vfs_mount_table);
+				 if(res == 1){
+					 vfs = vfs->next;
+					 is_sdcard = 1;
+				 }else{
+					 is_sdcard = 0;
 				 }
-			 //---------------------------------------------------------------
+				 fs_user_mount_t *vfs_fat = MP_OBJ_TO_PTR(vfs->obj);
+				 //---------------------------------------------------------------
+					 if(args[3].u_bool == true){
+						 uint8_t file_len = strlen(file_path);
+						 char *file_buf = (char *)m_malloc(file_len+7);  
+		 
+						 memset(file_buf, '\0', file_len+7);
+						 sprintf(file_buf,"%s%s",file_path,".cache");
+						 res = grap_drawCached(&ili_glcd,&vfs_fat->fatfs, args[0].u_int, args[1].u_int, (const char *)file_buf);
+						 m_free(file_buf);
+						 if(!res) return mp_const_none;
+					 }
+				 //---------------------------------------------------------------
 
-			 piclib_init();
-			 
-			if(strncmp(ftype,"jpg",3) == 0 || strncmp(ftype,"jpeg",4) == 0)
-				{
-					jpg_decode(NULL,file_path, args[0].u_int,args[1].u_int ,1);
-				}else if(strncmp(ftype , "bmp" , 3) == 0)
-				{
-					minibmp_decode(NULL ,file_path, args[0].u_int, args[1].u_int,lcddev.width, lcddev.height,0);
-				}else
-				{
-					mp_raise_ValueError(MP_ERROR_TEXT("picture file type error"));
-					return mp_const_none;
-				}
+				 piclib_init();
+				 
+				if(strncmp(ftype,"jpg",3) == 0 || strncmp(ftype,"jpeg",4) == 0)
+					{
+						jpg_decode(&vfs_fat->fatfs,file_path, args[0].u_int,args[1].u_int ,1);
+					}
+				else if(strncmp(ftype , "bmp" , 3) == 0)
+					{
+						stdbmp_decode(&vfs_fat->fatfs ,file_path, args[0].u_int, args[1].u_int) ;
+					}
+				else
+					{
+						mp_raise_ValueError(MP_ERROR_TEXT("picture file type error"));
+						return mp_const_none;
+					}
 
-			tuple[0] = mp_obj_new_int(picinfo.S_Height);
-			tuple[1] = mp_obj_new_int(picinfo.S_Width);
-			return mp_obj_new_tuple(2, tuple);
+				tuple[0] = mp_obj_new_int(picinfo.S_Height);
+				tuple[1] = mp_obj_new_int(picinfo.S_Width);
+				return mp_obj_new_tuple(2, tuple);
     }
   }
 	else{
       mp_raise_ValueError(MP_ERROR_TEXT("picture parameter is empty"));
   }
-    return mp_const_none;
+  return mp_const_none;
 }
-STATIC MP_DEFINE_CONST_FUN_OBJ_KW(ILI9341_drawPicture_obj, 1, ILI9341_drawPicture);
+STATIC MP_DEFINE_CONST_FUN_OBJ_KW(ST7789_drawPicture_obj, 1, ST7789_drawPicture);
 
 #endif
 
 //---------------------------华丽的分割线-------------------------------------------------------------------
-STATIC mp_obj_t ILI9341_deinit(mp_obj_t self_in) {
+STATIC mp_obj_t ST7789_deinit(mp_obj_t self_in) {
 	lcd_spibus_deinit();
 	return mp_const_none;
 }
-STATIC MP_DEFINE_CONST_FUN_OBJ_1(ILI9341_deinit_obj, ILI9341_deinit);
+STATIC MP_DEFINE_CONST_FUN_OBJ_1(ST7789_deinit_obj, ST7789_deinit);
 //---------------------------华丽的分割线-------------------------------------------------------------------
 
-STATIC mp_obj_t ILI9341_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_kw, const mp_obj_t *all_args) {
+STATIC mp_obj_t ST7789_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_kw, const mp_obj_t *all_args) {
 
 	enum { ARG_portrait };
 	static const mp_arg_t allowed_args[] = {
@@ -751,45 +735,50 @@ STATIC mp_obj_t ILI9341_make_new(const mp_obj_type_t *type, size_t n_args, size_
 
 	lcd_spibus_t *self = m_new_obj(lcd_spibus_t);
 	
-	mp_init_ILI9341();
+	lcddev.width=240;
+	lcddev.height=240;
+	st7789_glcd.width = lcddev.width;
+	st7789_glcd.height = lcddev.height;
 	
-	self = p_ili9341;
+	mp_init_ST7789();
+	
+	self = p_st7789;
 	self->base.type = type;
 	
-	ili9341_set_dir(args[ARG_portrait].u_int);
+	st7789_set_dir(args[ARG_portrait].u_int);
 	
-	lcddev.type = 4;
+	lcddev.type = 5;
 	lcddev.backcolor = 0x0000;
 
-	ili9341_Fill(0,0,lcddev.width,lcddev.height,lcddev.backcolor);
+	st7789_Fill(0,0,lcddev.width,lcddev.height,lcddev.backcolor);
 
 	lcddev.clercolor = lcddev.backcolor;
 	
 	return MP_OBJ_FROM_PTR(self);
 }
 //---------------------------华丽的分割线-------------------------------------------------------------------
-STATIC const mp_rom_map_elem_t ILI9341_locals_dict_table[] = {
+STATIC const mp_rom_map_elem_t ST7789_locals_dict_table[] = {
 	// instance methods
-	{ MP_ROM_QSTR(MP_QSTR___del__), MP_ROM_PTR(&ILI9341_deinit_obj) },
-  { MP_ROM_QSTR(MP_QSTR_deinit), MP_ROM_PTR(&ILI9341_deinit_obj) },
-	{ MP_ROM_QSTR(MP_QSTR_fill), MP_ROM_PTR(&ILI9341_drawpFull_obj) },
-	{ MP_ROM_QSTR(MP_QSTR_drawPixel), MP_ROM_PTR(&ILI9341_drawpPixel_obj) },
-	{ MP_ROM_QSTR(MP_QSTR_drawLine), MP_ROM_PTR(&ILI9341_drawLin_obj) },
-	{ MP_ROM_QSTR(MP_QSTR_drawRect), MP_ROM_PTR(&ILI9341_drawRect_obj) },
-	{ MP_ROM_QSTR(MP_QSTR_drawCircle), MP_ROM_PTR(&ILI9341_drawCircle_obj) },
-	{ MP_ROM_QSTR(MP_QSTR_printStr), MP_ROM_PTR(&ILI9341_drawStr_obj) },
+	{ MP_ROM_QSTR(MP_QSTR___del__), MP_ROM_PTR(&ST7789_deinit_obj) },
+  { MP_ROM_QSTR(MP_QSTR_deinit), MP_ROM_PTR(&ST7789_deinit_obj) },
+	{ MP_ROM_QSTR(MP_QSTR_fill), MP_ROM_PTR(&ST7789_drawpFull_obj) },
+	{ MP_ROM_QSTR(MP_QSTR_drawPixel), MP_ROM_PTR(&ST7789_drawpPixel_obj) },
+	{ MP_ROM_QSTR(MP_QSTR_drawLine), MP_ROM_PTR(&ST7789_drawLin_obj) },
+	{ MP_ROM_QSTR(MP_QSTR_drawRect), MP_ROM_PTR(&ST7789_drawRect_obj) },
+	{ MP_ROM_QSTR(MP_QSTR_drawCircle), MP_ROM_PTR(&ST7789_drawCircle_obj) },
+	{ MP_ROM_QSTR(MP_QSTR_printStr), MP_ROM_PTR(&ST7789_drawStr_obj) },
 	#if MICROPY_PY_PICLIB
-	{ MP_ROM_QSTR(MP_QSTR_Picture), MP_ROM_PTR(&ILI9341_drawPicture_obj) },
-	{ MP_ROM_QSTR(MP_QSTR_CachePicture), MP_ROM_PTR(&ILI9341_CachePicture_obj) },
+	{ MP_ROM_QSTR(MP_QSTR_Picture), MP_ROM_PTR(&ST7789_drawPicture_obj) },
+	{ MP_ROM_QSTR(MP_QSTR_CachePicture), MP_ROM_PTR(&ST7789_CachePicture_obj) },
 	#endif
 };
-STATIC MP_DEFINE_CONST_DICT(ILI9341_locals_dict, ILI9341_locals_dict_table);
+STATIC MP_DEFINE_CONST_DICT(ST7789_locals_dict, ST7789_locals_dict_table);
 //---------------------------华丽的分割线-------------------------------------------------------------------
-const mp_obj_type_t ILI9341_type = {
+const mp_obj_type_t ST7789_type = {
     { &mp_type_type },
-    .name = MP_QSTR_ILI9341,
-    .make_new = ILI9341_make_new,
-    .locals_dict = (mp_obj_dict_t*)&ILI9341_locals_dict,
+    .name = MP_QSTR_ST7789,
+    .make_new = ST7789_make_new,
+    .locals_dict = (mp_obj_dict_t*)&ST7789_locals_dict,
 };
 
 //-------------------------------------------------------------------------------------------

@@ -36,10 +36,14 @@
 #include "ov2640.h"
 #include "ov2640_regs.h"
 
-
+#if MICROPY_ENABLE_TFTLCD
+#include "modtftlcd.h"
 #if MICROPY_HW_LCD43M
 #include "lcd43m.h"
 #endif
+
+#endif
+
 
 //#define OV2640_DEBUG 1
 
@@ -137,7 +141,7 @@ void HAL_DCMI_FrameEventCallback(DCMI_HandleTypeDef *hdcmi)
 		uint16_t sx = (lcddev.width - display_w)>>1;
 		uint16_t sy = (lcddev.height - display_h)>>1;
 		LCD_SetCursor(sx,sy);  
-		LCD43M_REG=lcddev.wramcmd;	
+		LCD43M_REG=WRAMCMD;	
 	}
 	
 	__HAL_DCMI_ENABLE_IT(&DCMI_Handler,DCMI_IT_FRAME);	
@@ -163,7 +167,7 @@ void jpeg_dcmi_rx_callback(void)
 //====================================================================================
 void DCMI_Start(void)
 {  
-	LCD43M_REG=lcddev.wramcmd;	
+	LCD43M_REG=WRAMCMD;	
 	__HAL_DMA_ENABLE(&DMADMCI_Handler); 
 	DCMI->CR|=DCMI_CR_CAPTURE;    			
 }

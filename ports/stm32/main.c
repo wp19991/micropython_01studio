@@ -89,6 +89,10 @@
 #include "lcd43m.h"
 #endif
 
+#if MICROPY_ENABLE_SPILCD
+#include "lcd_spibus.h"
+#endif
+
 #if MICROPY_PY_THREAD
 STATIC pyb_thread_t pyb_thread_main;
 #endif
@@ -505,7 +509,7 @@ void stm32_main(uint32_t reset_mode) {
     uart_attach_to_repl(&pyb_uart_repl_obj, true);
     MP_STATE_PORT(pyb_uart_obj_all)[MICROPY_HW_UART_REPL - 1] = &pyb_uart_repl_obj;
     #endif
-		
+
     boardctrl_state_t state;
     state.reset_mode = reset_mode;
     state.log_soft_reset = false;
@@ -564,7 +568,9 @@ soft_reset:
     #if MICROPY_HW_ENABLE_USB
     pyb_usb_init0();
     #endif
-
+		#if MICROPY_ENABLE_SPILCD
+		lcd_spibus_deinit();
+		#endif
     // Initialise the local flash filesystem.
     // Create it if needed, mount in on /flash, and set it as current dir.
     bool mounted_flash = false;

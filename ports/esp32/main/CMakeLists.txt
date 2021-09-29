@@ -193,6 +193,8 @@ set(MICROPY_SOURCE_PORT
     ${PROJECT_DIR}/machine_sdcard.c
 		${PROJECT_DIR}/modtftlcd.c
 		${PROJECT_DIR}/ILI9341.c
+		${PROJECT_DIR}/ST7789.c
+		${PROJECT_DIR}/ST7735.c
 		${PROJECT_DIR}/modtouch.c
 		${PROJECT_DIR}/xpt2046.c
 		${PROJECT_DIR}/modgui.c
@@ -201,6 +203,7 @@ set(MICROPY_SOURCE_PORT
 		${PROJECT_DIR}/modov2640.c
 		${PROJECT_DIR}/modespusb.c
 		${PROJECT_DIR}/modusbcam.c
+		${PROJECT_DIR}/lcd_spibus.c
 )
 
 set(MICROPY_SOURCE_QSTR

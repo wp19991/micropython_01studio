@@ -35,10 +35,14 @@
 #include "gt1151.h"
 #include "lcd43m.h"
 #endif
+
 #if MICROPY_GUI_BUTTON
 #include "gui_button.h"
 #endif
 
+#if MICROPY_ENABLE_TFTLCD
+#include "modtftlcd.h"
+#endif
 
 #include "mjpeg.h" 
 #include "avi.h"
@@ -161,7 +165,7 @@ uint8_t video_play_mjpeg(const 	    char *pname)
 						mp_raise_ValueError(MP_ERROR_TEXT("avi decode error!"));
 					} 
 					//mp_hal_delay_us(100);
-					if(is_init){
+					if(gt1151_is_init){
 							#if MICROPY_GUI_BUTTON
 									gtxx_read_point();
 									button_task();
@@ -186,7 +190,7 @@ uint8_t video_play_mjpeg(const 	    char *pname)
 			}else{
 				//mp_hal_delay_ms(500);
 				
-				if(is_init){
+				if(gt1151_is_init){
 						#if MICROPY_GUI_BUTTON
 								mp_hal_delay_ms(10);
 								gtxx_read_point();

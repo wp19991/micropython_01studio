@@ -16,10 +16,13 @@
 //------------------------------------------------------------------------------------
 #define MICROPY_HW_BOARD_COLUMBUS 		(1) //哥伦布
 #define MICROPY_PY_PICLIB							(1) //图片解码
+#define MICROPY_ENABLE_VIDEO					(1)
+#define MICROPY_ENABLE_MP3						(1)
 //gui
 #define MICROPY_ENABLE_GUI						(1) 	//GUI支持
 #define MICROPY_GUI_BUTTON						(1) 	//按钮控件
 #define GUI_BTN_NUM_MAX 							(50) 	//最大支持按钮数量
+#define GUI_BTN_STR_LEN 							(20)
 
 //touch
 #define	MICROPY_ENABLE_TOUCH					(1)   //enable mode

@@ -323,7 +323,7 @@ uint8_t mp3_play_song(const char* fname)
 						bytesleft=MP3_FILE_BUF_SZ;  
 						readptr=buffer; 
 					} 	
-					if(is_init){
+					if(gt1151_is_init){
 					#if MICROPY_GUI_BUTTON
 						gtxx_read_point();
 						button_task();
@@ -335,7 +335,7 @@ uint8_t mp3_play_song(const char* fname)
 					}
 					while((audiodev.status&0X01)==0){
 						mp_hal_delay_ms(100);
-						if(is_init){
+						if(gt1151_is_init){
 							#if MICROPY_GUI_BUTTON
 							gtxx_read_point();
 							button_task();

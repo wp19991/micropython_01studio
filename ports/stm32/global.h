@@ -23,6 +23,7 @@ extern mp_obj_t get_path(const char *src_path , uint8_t *res );
 extern mp_obj_t file_type(const char *fileName);
 extern FRESULT f_open_helper(FIL *fp, const TCHAR *path, BYTE mode);
 extern int sprintf(char * str, const char *fmt, ...);
+extern bool check_sys_file(const char *check_file);
 
 #define my_isdigit(c) ((c) >= '0' && (c) <= '9')
 
@@ -34,6 +35,18 @@ extern int sprintf(char * str, const char *fmt, ...);
 
 #ifdef __GLOBAL_H
 //-----------------------------------------------------------------------
+__attribute__((weak)) bool check_sys_file(const char *check_file) {
+	mp_obj_t iter = mp_vfs_ilistdir(0, NULL);
+	mp_obj_t next;
+	while ((next = mp_iternext(iter)) != MP_OBJ_STOP_ITERATION) {
+		const char *flie = mp_obj_str_get_str(mp_obj_subscr(next, MP_OBJ_NEW_SMALL_INT(0), MP_OBJ_SENTINEL));
+		if(0 == strcmp(check_file,flie)){
+			return true;
+		}
+	}
+	return false;
+}
+
  __weak char* itoa(int num,char* str,int radix)
 {
 	char index[]="0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";

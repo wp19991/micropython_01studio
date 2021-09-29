@@ -22,6 +22,10 @@
 #include "py/objstr.h"
 #include "py/objlist.h"
 
+#if MICROPY_ENABLE_TFTLCD
+#include "modtftlcd.h"
+#include "lcd43m.h"
+#endif
 
 #include <stdio.h>
 #include <setjmp.h>
@@ -58,7 +62,7 @@ static void my_error_exit(j_common_ptr cinfo)
 	my_error_ptr myerr=(my_error_ptr) cinfo->err; 
 	(*cinfo->err->output_message) (cinfo);	 
 	longjmp(myerr->setjmp_buffer, 1);	 
-	#endif
+#endif
 } 
 
 METHODDEF(void) my_emit_message(j_common_ptr cinfo, int msg_level)
@@ -206,7 +210,7 @@ uint8_t mjpegdec_decode(uint8_t* buf,uint32_t bsize)
 	jpeg_start_decompress(cinfo); 
 
 	LCD_Set_Window(imgoffx,imgoffy,cinfo->output_width,cinfo->output_height);
-	LCD43M_REG = lcddev.wramcmd;
+	LCD43M_REG = WRAMCMD;
 	while (cinfo->output_scanline < cinfo->output_height) 
 	{ 
 		jpeg_read_scanlines(cinfo, buffer, 1);

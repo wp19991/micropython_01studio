@@ -34,42 +34,38 @@
 #include "systick.h"
 
 
-//#include "GUI.h"
-
-//#include "lcd43m_driver.h"
-
-
 #if (MICROPY_ENABLE_TFTLCD && MICROPY_HW_LCD43M)
 
 #include "lcd43m.h"
+#include "modtftlcd.h"
 
-#include "font.h" 
+//#include "font.h" 
 
-#include "piclib.h" 
+#ifdef MICROPY_PY_PICLIB
+#include "piclib.h"
+#endif
+
 #include "global.h" 
-
 
 #define LCD_BL_PIN                    GPIO_PIN_15
 #define LCD_BL_GPIO_PORT              GPIOB
 
-
-//static uint16_t backcolor = 0; //默认字体背景色
+Graphics_Display lcd43_glcd;
 
 _lcd_dev lcddev;
 
 void LCD_SetCursor(uint16_t Xpos, uint16_t Ypos)
 {	 
-	LCD43M_REG = (lcddev.setxcmd); 		LCD43M_RAM = (Xpos>>8); 		
-	LCD43M_REG = (lcddev.setxcmd+1); 	LCD43M_RAM = (Xpos&0XFF); 		 
-	LCD43M_REG = (lcddev.setycmd); 		LCD43M_RAM = (Ypos>>8); 		
-	LCD43M_REG = (lcddev.setycmd+1); 	LCD43M_RAM = (Ypos&0XFF); 	
+	LCD43M_REG = (SETXCMD); 		LCD43M_RAM = (Xpos>>8); 		
+	LCD43M_REG = (SETXCMD+1); 	LCD43M_RAM = (Xpos&0XFF); 		 
+	LCD43M_REG = (SETYCMD); 		LCD43M_RAM = (Ypos>>8); 		
+	LCD43M_REG = (SETYCMD+1); 	LCD43M_RAM = (Ypos&0XFF); 	
 }
 		 
 //设置LCD的自动扫描方向
 void LCD_Scan_Dir(uint8_t dir)
 {
 	uint16_t regval=0;
-	uint16_t dirreg=0;
 	uint16_t temp;  
 		switch(dir)
 		{
@@ -98,9 +94,8 @@ void LCD_Scan_Dir(uint8_t dir)
 				regval|=(1<<7)|(1<<6)|(1<<5); 
 				break;	 
 		}
-		dirreg=0X3600;
 
-		LCD43M_REG = dirreg;		LCD43M_RAM = regval;
+		LCD43M_REG = 0X3600;		LCD43M_RAM = regval;
 
 		if(regval&0X20)
 		{
@@ -120,30 +115,30 @@ void LCD_Scan_Dir(uint8_t dir)
 			}
 		}  
 		
-		LCD43M_REG = (lcddev.setxcmd);		LCD43M_RAM = (0); 
-		LCD43M_REG = (lcddev.setxcmd+1);	LCD43M_RAM = (0); 
-		LCD43M_REG = (lcddev.setxcmd+2);	LCD43M_RAM = ((lcddev.width-1)>>8); 
-		LCD43M_REG = (lcddev.setxcmd+3);	LCD43M_RAM = ((lcddev.width-1)&0XFF); 
-		LCD43M_REG = (lcddev.setycmd);		LCD43M_RAM = (0); 
-		LCD43M_REG = (lcddev.setycmd+1);	LCD43M_RAM = (0); 
-		LCD43M_REG = (lcddev.setycmd+2);	LCD43M_RAM = ((lcddev.height-1)>>8); 
-		LCD43M_REG = (lcddev.setycmd+3);	LCD43M_RAM = ((lcddev.height-1)&0XFF); 
+		LCD43M_REG = (SETXCMD);		LCD43M_RAM = (0); 
+		LCD43M_REG = (SETXCMD+1);	LCD43M_RAM = (0); 
+		LCD43M_REG = (SETXCMD+2);	LCD43M_RAM = ((lcddev.width-1)>>8); 
+		LCD43M_REG = (SETXCMD+3);	LCD43M_RAM = ((lcddev.width-1)&0XFF); 
+		LCD43M_REG = (SETYCMD);		LCD43M_RAM = (0); 
+		LCD43M_REG = (SETYCMD+1);	LCD43M_RAM = (0); 
+		LCD43M_REG = (SETYCMD+2);	LCD43M_RAM = ((lcddev.height-1)>>8); 
+		LCD43M_REG = (SETYCMD+3);	LCD43M_RAM = ((lcddev.height-1)&0XFF); 
 		
 }    
 
 //快速画点
 //x,y:坐标
 //color:颜色
-void LCD_Fast_DrawPoint(uint16_t x,uint16_t y,uint16_t color)
+void LCD43M_DrawPoint(uint16_t x,uint16_t y,uint16_t color)
 {	   
-	LCD43M_REG = lcddev.setxcmd;			LCD43M_RAM = (x>>8);
-	LCD43M_REG = (lcddev.setxcmd+1);	LCD43M_RAM = (x&0XFF);
-	LCD43M_REG = lcddev.setycmd;			LCD43M_RAM = (y>>8);
-	LCD43M_REG = (lcddev.setycmd+1);	LCD43M_RAM = (y&0XFF);
-	LCD43M_REG = lcddev.wramcmd;			LCD43M_RAM=color; 
+	LCD43M_REG = SETXCMD;			LCD43M_RAM = (x>>8);
+	LCD43M_REG = (SETXCMD+1);	LCD43M_RAM = (x&0XFF);
+	LCD43M_REG = SETYCMD;			LCD43M_RAM = (y>>8);
+	LCD43M_REG = (SETYCMD+1);	LCD43M_RAM = (y&0XFF);
+	LCD43M_REG = WRAMCMD;			LCD43M_RAM=color; 
 }	 
 
-uint16_t LCD_ReadPoint(uint16_t x , uint16_t y)
+uint16_t LCD43M_ReadPoint(uint16_t x , uint16_t y)
 {
   uint16_t r = 0, g = 0, b=0;
   if(x >= lcddev.width || y >= lcddev.height) return 0;
@@ -159,7 +154,24 @@ uint16_t LCD_ReadPoint(uint16_t x , uint16_t y)
   return (uint16_t)(((r>>11)<<11)|(g>>5)|(b>>11));
 }
 
+void LCD43M_Fill(uint16_t sx,uint16_t sy,uint16_t ex,uint16_t ey,uint16_t color)
+{
+  uint16_t i,j;
+  uint16_t xlen=0;
+  xlen = ex - sx + 1;
+  for(i = sy; i< ey; i++)
+  {
+    LCD_SetCursor(sx, i);
+    LCD43M_REG = WRAMCMD;
+    for(j=0; j<xlen; j++) LCD43M_RAM = color;
+  }
+}
 
+void lcd43m_hline(uint16_t x0,uint16_t y0,uint16_t len,uint16_t color)
+{
+	if((len==0)||(x0>lcddev.width)||(y0>lcddev.height))return;
+	LCD43M_Fill(x0,y0,x0+len-1,y0,color);	
+}
 //画线
 //x1,y1:起点坐标
 //x2,y2:终点坐标  
@@ -182,7 +194,7 @@ void LCD43M_DrawLine(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_
 	else distance=delta_y; 
 	for(t=0;t<=distance+1;t++ )
 	{  
-		LCD_Fast_DrawPoint(uRow,uCol ,color);
+		LCD43M_DrawPoint(uRow,uCol ,color);
 		xerr+=delta_x ; 
 		yerr+=delta_y ; 
 		if(xerr>distance) 
@@ -198,68 +210,6 @@ void LCD43M_DrawLine(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_
 	}  
 } 
 
-/**
- * @breif	带颜色画圆函数
- * @param   x1,x2 —— 圆心坐标
- * @param	r —— 半径
- * @param	color —— 颜色
- * @retval	none
- */
-void LCD_Draw_ColorCircle(uint16_t x, uint16_t y, uint16_t r, uint16_t color)
-{
-
-  int16_t a = 0, b = r;
-  //int16_t d = 3 - (r << 1);
-	uint16_t net_r = 0;
-
-	net_r = r;
-	if((x - r) < 0){
-		net_r = x;
-	}else if((x+r) > lcddev.width){
-		net_r = lcddev.width - x;
-	}
-	
-	if((y - net_r) < 0){
-		net_r = y;
-	}else if((y+net_r) > lcddev.height){
-		net_r = lcddev.height - y;
-	}	
-	
-	/* 如果圆在屏幕可见区域外，直接退出 */
-	if (x - net_r < 0 || x + net_r > lcddev.width || y - net_r < 0 || y + net_r > lcddev.height) 
-	{
-		return;
-	}
-	int16_t d = 3 - (net_r << 1);
-
-	/* 开始画圆 */
-    while(a <= b)
-    {
-        LCD_Fast_DrawPoint(x - b, y - a, color);
-        LCD_Fast_DrawPoint(x + b, y - a, color);
-        LCD_Fast_DrawPoint(x - a, y + b, color);
-        LCD_Fast_DrawPoint(x - b, y - a, color);
-        LCD_Fast_DrawPoint(x - a, y - b, color);
-        LCD_Fast_DrawPoint(x + b, y + a, color);
-        LCD_Fast_DrawPoint(x + a, y - b, color);
-        LCD_Fast_DrawPoint(x + a, y + b, color);
-        LCD_Fast_DrawPoint(x - b, y + a, color);
-        a++;
-
-        if(d < 0)
-			//d += 4 * a + 6;
-        d += (a<<2) + 6;
-        else
-        {
-            //d += 10 + 4 * (a - b);
-            d += 10 + ((a - b)<<2);
-            b--;
-        }
-
-        LCD_Fast_DrawPoint(x + a, y + b, color);
-    }
-
-}
 
 
 //设置LCD显示方向
@@ -267,9 +217,6 @@ void LCD_Draw_ColorCircle(uint16_t x, uint16_t y, uint16_t r, uint16_t color)
 void LCD_Display_Dir(uint8_t dir)
 {
 	lcddev.dir=dir;		//竖屏
-	lcddev.wramcmd=0X2C00;
-	lcddev.setxcmd=0X2A00;
-	lcddev.setycmd=0X2B00; 
 	switch (dir)
 		{
 		case 2:
@@ -293,42 +240,48 @@ void LCD_Display_Dir(uint8_t dir)
 		LCD_Scan_Dir(DFT_SCAN_DIR);	//默认扫描方向
 		break;
 		}
-	
+	lcd43_glcd.width = lcddev.width;
+	lcd43_glcd.height = lcddev.height;
 }	 
-
 //在指定区域内填充指定颜色块			 
 //(sx,sy),(ex,ey):填充矩形对角坐标,区域大小为:(ex-sx+1)*(ey-sy+1)   
-//color:要填充的颜色
-void LCD_Color_Fill(uint16_t sx,uint16_t sy,uint16_t ex,uint16_t ey,uint16_t *color)
+//color:要填充的颜色 LCD_Color_Fill(x,y,x+width-1,y+height-1,color);	
+// void LCD_Color_Fill(uint16_t sx,uint16_t sy,uint16_t ex,uint16_t ey,uint16_t *color)
+// {  
+	// uint16_t height,width;
+	// uint16_t i,j; 
+	// width=ex-sx+1; 			//得到填充的宽度
+	// height=ey-sy+1;			//高度
+	
+	// for(i=0;i<height;i++)
+	// {
+		// LCD43M_REG = (SETXCMD);		LCD43M_RAM = (sx>>8); 		
+		// LCD43M_REG = (SETXCMD+1);	LCD43M_RAM = (sx&0XFF);			 
+		// LCD43M_REG = (SETYCMD);		LCD43M_RAM = ((sy+i)>>8);  		
+		// LCD43M_REG = (SETYCMD+1);	LCD43M_RAM = ((sy+i)&0XFF);
+		// LCD43M_REG = WRAMCMD;
+
+		// for(j=0;j<width;j++)	LCD43M_RAM=color[i*width+j];//写入数据 
+	// } 
+// } 
+
+void LCD43M_Full(uint16_t sx,uint16_t sy,uint16_t ex,uint16_t ey,uint16_t *color)
 {  
 	uint16_t height,width;
 	uint16_t i,j; 
-	width=ex-sx+1; 			//得到填充的宽度
-	height=ey-sy+1;			//高度
-	
+	width=ex; 			//得到填充的宽度
+	height=ey;			//高度
 	for(i=0;i<height;i++)
 	{
-		LCD43M_REG = (lcddev.setxcmd);		LCD43M_RAM = (sx>>8); 		
-		LCD43M_REG = (lcddev.setxcmd+1);	LCD43M_RAM = (sx&0XFF);			 
-		LCD43M_REG = (lcddev.setycmd);		LCD43M_RAM = ((sy+i)>>8);  		
-		LCD43M_REG = (lcddev.setycmd+1);	LCD43M_RAM = ((sy+i)&0XFF);
-		LCD43M_REG = lcddev.wramcmd;
+		LCD43M_REG = (SETXCMD);		LCD43M_RAM = (sx>>8); 		
+		LCD43M_REG = (SETXCMD+1);	LCD43M_RAM = (sx&0XFF);			 
+		LCD43M_REG = (SETYCMD);		LCD43M_RAM = ((sy+i)>>8);  		
+		LCD43M_REG = (SETYCMD+1);	LCD43M_RAM = ((sy+i)&0XFF);
+		LCD43M_REG = WRAMCMD;
 
 		for(j=0;j<width;j++)	LCD43M_RAM=color[i*width+j];//写入数据 
 	} 
 } 
-void LCD_Fill(uint16_t sx,uint16_t sy,uint16_t ex,uint16_t ey,uint16_t color)
-{
-  uint16_t i,j;
-  uint16_t xlen=0;
-  xlen = ex - sx + 1;
-  for(i = sy; i< ey; i++)
-  {
-    LCD_SetCursor(sx, i);
-    LCD43M_REG = lcddev.wramcmd;
-    for(j=0; j<xlen; j++) LCD43M_RAM = color;
-  }
-}
 
 //清屏函数
 //color:要清屏的填充色
@@ -338,7 +291,7 @@ void LCD_Clear(uint16_t color)
 	uint32_t totalpoint=lcddev.width; 
 	totalpoint*=lcddev.height;
 	LCD_SetCursor(0x00,0x0000);			//设置光标位置 
-	LCD43M_REG=lcddev.wramcmd;     		//开始写入GRAM	 	  
+	LCD43M_REG=WRAMCMD;     		//开始写入GRAM	 	  
 	for(index=0;index<totalpoint;index++)
 	{
 		LCD43M_RAM=color;	
@@ -348,104 +301,35 @@ void LCD_Clear(uint16_t color)
 
 void LCD_Set_Window(uint16_t sx,uint16_t sy,uint16_t width,uint16_t height)
 {  
-
 	uint16_t twidth,theight;
 	twidth=sx+width-1;
 	theight=sy+height-1;
 
-	LCD43M_REG = (lcddev.setxcmd);		LCD43M_RAM = (sx>>8);  
-	LCD43M_REG = (lcddev.setxcmd+1);	LCD43M_RAM = (sx&0XFF);	  
-	LCD43M_REG = (lcddev.setxcmd+2);	LCD43M_RAM = (twidth>>8);   
-	LCD43M_REG = (lcddev.setxcmd+3);	LCD43M_RAM = (twidth&0XFF);   
-	LCD43M_REG = (lcddev.setycmd);		LCD43M_RAM = (sy>>8);   
-	LCD43M_REG = (lcddev.setycmd+1);	LCD43M_RAM = (sy&0XFF);  
-	LCD43M_REG = (lcddev.setycmd+2);	LCD43M_RAM = (theight>>8);   
-	LCD43M_REG = (lcddev.setycmd+3);	LCD43M_RAM = (theight&0XFF);  
+	LCD43M_REG = (SETXCMD);		LCD43M_RAM = (sx>>8);  
+	LCD43M_REG = (SETXCMD+1);	LCD43M_RAM = (sx&0XFF);	  
+	LCD43M_REG = (SETXCMD+2);	LCD43M_RAM = (twidth>>8);   
+	LCD43M_REG = (SETXCMD+3);	LCD43M_RAM = (twidth&0XFF);   
+	LCD43M_REG = (SETYCMD);		LCD43M_RAM = (sy>>8);   
+	LCD43M_REG = (SETYCMD+1);	LCD43M_RAM = (sy&0XFF);  
+	LCD43M_REG = (SETYCMD+2);	LCD43M_RAM = (theight>>8);   
+	LCD43M_REG = (SETYCMD+3);	LCD43M_RAM = (theight&0XFF);  
 }
+
+Graphics_Display lcd43_glcd =
+{
+	16,
+	480,
+	800,
+	LCD43M_DrawPoint,
+	LCD43M_ReadPoint,
+	lcd43m_hline,
+	NULL,
+	LCD43M_Fill,
+	LCD43M_Full
+};
 
 //=============================================================================
-void LCD_DisplayChar(uint16_t x,uint16_t y,uint8_t num,uint8_t size,uint8_t mode ,uint16_t color)
-{  							  
-    uint8_t temp,t1,t;
-	uint16_t y0=y;
-	uint8_t csize=((size>>3)+((size%8)?1:0))*(size>>1);		//得到字体一个字符对应点阵集所占的字节数	
- 	num=num-' ';//得到偏移后的值（ASCII字库是从空格开始取模，所以-' '就是对应字符的字库）
-	for(t=0;t<csize;t++)
-	{   
-		if(size==24)temp=asc2_2412[num][t];
-		else if(size==32)temp=asc2_3216[num][t];	
-		else if(size==48)temp=asc2_4824[num][t];	
-		else temp=asc2_1608[num][t];	//调用1608字体
-		for(t1=0;t1<8;t1++)
-		{			    
-			//if(temp&0x80)LCD_Fast_DrawPoint(x,y,POINT_COLOR);
-			//else if(mode==0)LCD_Fast_DrawPoint(x,y,BACK_COLOR);
-			if(temp&0x80)LCD_Fast_DrawPoint(x,y,color);
-			else if(mode==0)LCD_Fast_DrawPoint(x,y,lcddev.backcolor);  //back color
 
-			temp<<=1;
-			y++;
-			if(y>=lcddev.height)return;		//超区域了
-			if((y-y0)==size)
-			{
-				y=y0;
-				x++;
-				if(x>=lcddev.width)return;	//超区域了
-				break;
-			}
-		}  	 
-	} 
-}
-//============================================================================== 
-
-void LCD_DisplayStr(uint16_t x,uint16_t y,uint16_t width,uint16_t height,uint8_t size,char *p , uint16_t color)
-{         
-	uint8_t x0=x;
-	width+=x;
-	height+=y;
-    while((*p<='~')&&(*p>=' '))//判断是不是非法字符!
-    {       
-        if(x>=width)
-		{
-			x=x0;
-			y+=size;
-		}
-        if(y>=height)break;//退出
-        LCD_DisplayChar(x,y,*p,size,0 ,color);
-        x+=(size>>1);
-        p++;
-    }  
-}
-
-//==============================================================================
-uint32_t lcd_Pow(uint8_t m,uint8_t n)
-{
-	uint32_t result=1;	 
-	while(n--)result*=m;    
-	return result;
-}			 
-
-void LCD_displayNum(uint16_t x,uint16_t y,uint32_t num,uint8_t len,uint8_t size,uint16_t color)
-{         	
-	uint8_t t,temp;
-	uint8_t enshow=0;						   
-	for(t=0;t<len;t++)
-	{
-		temp=(num/lcd_Pow(10,len-t-1))%10;
-		if(enshow==0&&t<(len-1))
-		{
-			if(temp==0)
-			{
-				LCD_DisplayChar(x+(size/2)*t,y,' ',size,0,color);
-				continue;
-			}else enshow=1; 
-		 	 
-		}
-	 	LCD_DisplayChar(x+(size/2)*t,y,temp+'0',size,0,color); 
-	}
-} 
-
-//==============================================================================
 void lcd43m_init()
 {
 STATIC bool init_flag = false;
@@ -961,15 +845,6 @@ if(lcddev.id==0x5510)
 	init_flag = true;
 
 }
-//-------------------------------------------------------------------------------
-uint16_t rgb888to565(uint8_t r_color, uint8_t g_color , uint8_t b_color)
-{
-    r_color = ((r_color & 0xF8));
-    g_color = ((g_color & 0xFC));
-    b_color = ((b_color & 0xF8)>>3);
-    return (((uint16_t)r_color << 8) + ((uint16_t)g_color << 3) + b_color );
-}
-
 
 //==============================================================================================================
 typedef struct _tftlcd_lcd43m_obj_t {
@@ -1001,7 +876,8 @@ STATIC mp_obj_t tftlcd_lcd43m_make_new(const mp_obj_type_t *type, size_t n_args,
 
 	lcddev.dir = args[ARG_portrait].u_int;
 	lcddev.backcolor = BLACK;
-
+	lcddev.type = 1;
+	
 	lcd43m_init();
 	LCD_Display_Dir(lcddev.dir);
 
@@ -1013,26 +889,25 @@ STATIC mp_obj_t tftlcd_lcd43m_make_new(const mp_obj_type_t *type, size_t n_args,
 
 //------------------------------------------------------------------------------------------------------
 STATIC mp_obj_t tftlcd_lcd43m_clear(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args)  {
-    static const mp_arg_t clear_args[] = {
-        //{ MP_QSTR_fillcolor,   MP_ARG_REQUIRED | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL} },
-        { MP_QSTR_fillcolor,    MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL} },
-    };
-    mp_arg_val_t args[MP_ARRAY_SIZE(clear_args)];
-    mp_arg_parse_all(n_args - 1, pos_args + 1, kw_args, MP_ARRAY_SIZE(clear_args), clear_args, args);
+	static const mp_arg_t clear_args[] = {
+			{ MP_QSTR_fillcolor,    MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL} },
+	};
+	mp_arg_val_t args[MP_ARRAY_SIZE(clear_args)];
+	mp_arg_parse_all(n_args - 1, pos_args + 1, kw_args, MP_ARRAY_SIZE(clear_args), clear_args, args);
 
-    if(args[0].u_obj !=MP_OBJ_NULL) 
-    {
-          size_t len;
-          mp_obj_t *params;
-          mp_obj_get_array(args[0].u_obj, &len, &params);
-          if(len == 3){
-            lcddev.backcolor = rgb888to565(mp_obj_get_int(params[0]), mp_obj_get_int(params[1]), mp_obj_get_int(params[2]));
-            LCD_Clear(lcddev.backcolor);
-						lcddev.clercolor = lcddev.backcolor;
-          }else{
-            mp_raise_ValueError(MP_ERROR_TEXT("lcd fill parameter error \nCorrect call:fill((r,g,b))"));
-          }
-    }
+	if(args[0].u_obj !=MP_OBJ_NULL) 
+	{
+		size_t len;
+		mp_obj_t *params;
+		mp_obj_get_array(args[0].u_obj, &len, &params);
+		if(len == 3){
+			lcddev.backcolor = rgb888to565(mp_obj_get_int(params[0]), mp_obj_get_int(params[1]), mp_obj_get_int(params[2]));
+			LCD_Clear(lcddev.backcolor);
+			lcddev.clercolor = lcddev.backcolor;
+		}else{
+			mp_raise_ValueError(MP_ERROR_TEXT("lcd fill parameter error \nCorrect call:fill((r,g,b))"));
+		}
+	}
 
   return mp_const_none;
 }
@@ -1054,7 +929,7 @@ STATIC mp_obj_t tftlcd_lcd43m_drawp(size_t n_args, const mp_obj_t *pos_args, mp_
           mp_obj_t *params;
           mp_obj_get_array(args[2].u_obj, &len, &params);
           if(len == 3){
-            LCD_Fast_DrawPoint(args[0].u_int,args[1].u_int ,
+            LCD43M_DrawPoint(args[0].u_int,args[1].u_int ,
             rgb888to565(mp_obj_get_int(params[0]), mp_obj_get_int(params[1]), mp_obj_get_int(params[2])));
           }else{
             mp_raise_ValueError(MP_ERROR_TEXT("lcd drawPixel parameter error \nCorrect call:drawPixel(x,y,(r,g,b)"));
@@ -1079,32 +954,21 @@ STATIC mp_obj_t tftlcd_lcd43m_drawL(size_t n_args, const mp_obj_t *pos_args, mp_
 
     if(args[4].u_obj !=MP_OBJ_NULL) 
     {
-          size_t len;
-          mp_obj_t *params;
-          mp_obj_get_array(args[4].u_obj, &len, &params);
-          if(len == 3){
-            LCD43M_DrawLine(args[0].u_int ,args[1].u_int,args[2].u_int,args[3].u_int ,
-             rgb888to565(mp_obj_get_int(params[0]), mp_obj_get_int(params[1]), mp_obj_get_int(params[2])));
-          }else{
-            mp_raise_ValueError(MP_ERROR_TEXT("lcd drawL parameter error \nCorrect call:drawPixel(x,y,(r,g,b)"));
-          }
+			size_t len;
+			mp_obj_t *params;
+			mp_obj_get_array(args[4].u_obj, &len, &params);
+			if(len == 3){
+				grap_drawLine(&lcd43_glcd,args[0].u_int ,args[1].u_int,args[2].u_int,args[3].u_int ,
+				 rgb888to565(mp_obj_get_int(params[0]), mp_obj_get_int(params[1]), mp_obj_get_int(params[2])));
+				 
+			}else{
+				mp_raise_ValueError(MP_ERROR_TEXT("lcd drawL parameter error \nCorrect call:drawPixel(x,y,(r,g,b)"));
+			}
     }
     return mp_const_none;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_KW(tftlcd_lcd43m_drawL_obj, 4, tftlcd_lcd43m_drawL);
-
 //------------------------------------------------------------------------------------------------------
-
-STATIC void dwRect(uint16_t x, uint16_t y, uint16_t width, uint16_t height, uint16_t border, uint16_t color)
-{
-	for(uint16_t i=0 ; i < border; i++ )
-	{
-		LCD43M_DrawLine(x,y+i,x+width,y+i,color);
-		LCD43M_DrawLine(x+i,y,x+i,y+height,color);
-		LCD43M_DrawLine(x,y+height-i,x+width,y+height-i,color);
-		LCD43M_DrawLine(x+width-i,y,x+width-i,y+height,color);
-	}
-}
 
 STATIC mp_obj_t tftlcd_lcd43m_drawRect(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
 
@@ -1127,7 +991,7 @@ STATIC mp_obj_t tftlcd_lcd43m_drawRect(size_t n_args, const mp_obj_t *pos_args, 
     mp_obj_t *params;
     mp_obj_get_array(args[4].u_obj, &len, &params);
     if(len == 3){
-     dwRect(args[0].u_int,args[1].u_int,args[2].u_int,args[3].u_int,args[5].u_int,
+			 grap_drawRect(&lcd43_glcd,args[0].u_int,args[1].u_int,args[2].u_int,args[3].u_int,args[5].u_int,
           rgb888to565(mp_obj_get_int(params[0]), mp_obj_get_int(params[1]), mp_obj_get_int(params[2])));
     }else{
       mp_raise_ValueError(MP_ERROR_TEXT("lcd drawRect parameter error \n"));
@@ -1146,8 +1010,8 @@ STATIC mp_obj_t tftlcd_lcd43m_drawRect(size_t n_args, const mp_obj_t *pos_args, 
     }
     uint16_t color=rgb888to565(mp_obj_get_int(params[0]), mp_obj_get_int(params[1]), mp_obj_get_int(params[2]));
     for(uint16_t i=0 ; i <= (args[3].u_int-(args[5].u_int*2)); i++ ) 
-      LCD43M_DrawLine(args[0].u_int+args[5].u_int,args[1].u_int+args[5].u_int+i,args[0].u_int+args[2].u_int-args[5].u_int,args[1].u_int+args[5].u_int+i,color);
-     
+     grap_drawLine(&lcd43_glcd,args[0].u_int+args[5].u_int,args[1].u_int+args[5].u_int+i,
+					args[0].u_int+args[2].u_int-args[5].u_int,args[1].u_int+args[5].u_int+i,color);
   }
   return mp_const_none;
 }
@@ -1179,7 +1043,8 @@ STATIC mp_obj_t tftlcd_lcd43m_drawCircle(size_t n_args, const mp_obj_t *pos_args
     if(len == 3){
       color = rgb888to565(mp_obj_get_int(params[0]), mp_obj_get_int(params[1]), mp_obj_get_int(params[2]));
         for(uint16_t i=0; i < args[4].u_int ;i++) {
-          LCD_Draw_ColorCircle(args[0].u_int,args[1].u_int,args[2].u_int-i,color);
+          grap_drawColorCircle(&lcd43_glcd,
+														args[0].u_int,args[1].u_int,args[2].u_int-i,color);
         }
     }else{
       mp_raise_ValueError(MP_ERROR_TEXT("lcd color parameter error \n"));
@@ -1198,7 +1063,8 @@ STATIC mp_obj_t tftlcd_lcd43m_drawCircle(size_t n_args, const mp_obj_t *pos_args
     color = rgb888to565(mp_obj_get_int(params[0]), mp_obj_get_int(params[1]), mp_obj_get_int(params[2]));
 
     for(uint16_t i=0 ; i <= (args[2].u_int-args[4].u_int); i++ ) {
-      LCD_Draw_ColorCircle(args[0].u_int,args[1].u_int,args[2].u_int-args[4].u_int-i,color);
+			grap_drawColorCircle(&lcd43_glcd,
+						args[0].u_int, args[1].u_int, args[2].u_int-args[4].u_int-i, color);
     }
   }
   return mp_const_none;
@@ -1262,7 +1128,8 @@ STATIC mp_obj_t tftlcd_lcd43m_printStr(size_t n_args, const mp_obj_t *pos_args, 
         else if(text_size == 3) text_size = 32;
         else if(text_size == 4) text_size = 48;
         else mp_raise_ValueError(MP_ERROR_TEXT("lcd size parameter error"));
-        LCD_DisplayStr(args[1].u_int, args[2].u_int, text_size* bufinfo.len, text_size , text_size,str ,color);
+        grap_drawStr(&lcd43_glcd, args[1].u_int, args[2].u_int, 
+									text_size* bufinfo.len, text_size , text_size,str ,color, lcddev.backcolor);
     }
   }
 	else{
@@ -1274,60 +1141,6 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_KW(tftlcd_lcd43m_printStr_obj, 1, tftlcd_lcd43m_p
 //------------------------------------------------------------------------------------------------------
 #if MICROPY_PY_PICLIB
 uint8_t is_sdcard = 0;
-
-//显示成功返回0，其他失败
-STATIC uint8_t display_cached(FATFS *fs, uint16_t x, uint16_t y, const char *filename)
-{
-	uint32_t readlen = 0;
-	uint8_t *databuf;    		//数据读取存 
-	uint8_t *hardbuf;    		//数据读取存 
-	UINT br;
-	IMAGE2LCD *image2lcd;
-	uint16_t display_w,display_h;
-	uint16_t *d_color;
-	
-	FIL* f_file;
-	f_file=(FIL *)m_malloc(sizeof(FIL));
-	hardbuf=(uint8_t*)m_malloc(8);
-
-	uint8_t res = f_open(fs,f_file,filename,FA_READ);
-	res = f_read(f_file,hardbuf,8,&br); //读取头信息
-	
-	if(res == 0){
-		image2lcd = (IMAGE2LCD *)hardbuf;
-		display_w = image2lcd->w;
-		display_h = image2lcd->h;
-		readlen = display_w * 2;
-		databuf=(uint8_t*)m_malloc(readlen);		//开辟readlen字节的内存区域
-		
-		if(databuf == NULL)
-		{
-			m_free(databuf);
-			res = 1;
-			goto error;
-		}else
-		{
-			for(uint16_t i=0; i < display_h; i++)
-			{
-				f_read(f_file,(uint8_t *)databuf,readlen,&br);
-				d_color = (uint16_t *)&databuf[0];
-				for(uint16_t j = 0; j < display_w; j++){
-					LCD_Fast_DrawPoint(x+j, y+i, *d_color);
-					d_color++;
-				}
-			}
-		}
-
-	}
-	
-error:
-	f_close(f_file);
-	
-	m_free(f_file);
-	m_free(hardbuf);
-	
-	return res;
-}
 
 STATIC mp_obj_t tftlcd_lcd43m_Picture(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
 
@@ -1369,14 +1182,12 @@ STATIC mp_obj_t tftlcd_lcd43m_Picture(size_t n_args, const mp_obj_t *pos_args, m
 				 fs_user_mount_t *vfs_fat = MP_OBJ_TO_PTR(vfs->obj);
 				 //---------------------------------------------------------------
 					 if(args[3].u_bool == true){
-						 
 						 uint8_t file_len = strlen(file_path);
 						 char *file_buf = (char *)m_malloc(file_len+7);  
 		 
 						 memset(file_buf, '\0', file_len+7);
 						 sprintf(file_buf,"%s%s",file_path,".cache");
-		 
-						 res = display_cached(&vfs_fat->fatfs, args[0].u_int, args[1].u_int, (const char *)file_buf);
+						 res = grap_drawCached(&lcd43_glcd,&vfs_fat->fatfs, args[0].u_int, args[1].u_int, (const char *)file_buf);
 						 m_free(file_buf);
 						 if(!res) return mp_const_none;
 					 }
@@ -1401,7 +1212,6 @@ STATIC mp_obj_t tftlcd_lcd43m_Picture(size_t n_args, const mp_obj_t *pos_args, m
 				tuple[0] = mp_obj_new_int(picinfo.S_Height);
 				tuple[1] = mp_obj_new_int(picinfo.S_Width);
 				return mp_obj_new_tuple(2, tuple);
-
     }
   }
 	else{
@@ -1457,6 +1267,25 @@ STATIC mp_obj_t tftlcd_lcd43g_CachePicture(size_t n_args, const mp_obj_t *pos_ar
 			 }
 			fs_user_mount_t *vfs_fat = MP_OBJ_TO_PTR(vfs->obj);
 
+			//test file
+			FIL		*f_file;
+			f_file=(FIL *)m_malloc(sizeof(FIL));
+			if(f_file == NULL){
+				mp_raise_ValueError(MP_ERROR_TEXT("malloc f_file error"));
+			}
+			sprintf(path_buf,"%s%s",file_path,".cache");
+			res = f_open(&vfs_fat->fatfs,f_file,path_buf,FA_READ);
+			f_close(f_file);
+			f_sync(f_file);
+			if(res == FR_OK && args[2].u_bool == false){
+				return mp_const_none;
+			}else{
+				args[2].u_bool = true;
+			}
+
+			memset(path_buf, '\0', 50);
+printf("start loading->%s\r\n",file_path);
+
 			piclib_init();
 			if(strncmp(ftype,"jpg",3) == 0 || strncmp(ftype,"jpeg",4) == 0)
 			{
@@ -1495,83 +1324,17 @@ STATIC mp_obj_t tftlcd_lcd43g_CachePicture(size_t n_args, const mp_obj_t *pos_ar
 				sprintf(path_buf,"%s%s",file_path,".cache");
 			}
 //------------------------------------------------
-			UINT bw;
-			FIL		*f_file;
-			uint16_t display_w,display_h;
-			uint16_t *r_buf;    		//数据读取存 
-			uint16_t i=0,j = 0;
-			uint8_t bar = 0;
-			uint8_t last_bar = 0;
-			f_file=(FIL *)m_malloc(sizeof(FIL));
-			if(f_file == NULL){
-				mp_raise_ValueError(MP_ERROR_TEXT("malloc f_file error"));
-			}
-
 			res = f_open(&vfs_fat->fatfs,f_file,path_buf,FA_READ);
 			f_close(f_file);
+			f_sync(f_file);
 			
 			if(args[2].u_bool == true || res != 0)
 			{
-				uint8_t hard_buf[8] = {0x00,0X10,0x00,0x00,0x00,0x00,0X01,0X1B};
-				hard_buf[2] = (uint8_t)picinfo.S_Width;
-				hard_buf[3] = (uint8_t)(picinfo.S_Width >> 8);
-				hard_buf[4] = (uint8_t)picinfo.S_Height;
-				hard_buf[5] = (uint8_t)(picinfo.S_Height >> 8);
-
-				printf("start loading:0%%\r\n");
-				
-				display_w = picinfo.S_Width;
-				display_h = picinfo.S_Height;
-
-				r_buf = (uint16_t *)m_malloc(display_w);
-				if(r_buf == NULL){
-					mp_raise_ValueError(MP_ERROR_TEXT("malloc r_buf error"));
-				}
-
-				res = f_open(&vfs_fat->fatfs,f_file,path_buf,FA_WRITE|FA_CREATE_ALWAYS);
-				if(res != FR_OK){
-					mp_raise_ValueError(MP_ERROR_TEXT("path_buf open file error"));
-				}
-				res=f_write(f_file,hard_buf,8,&bw);
-				if(res != FR_OK){
-					mp_raise_ValueError(MP_ERROR_TEXT("file write hard error"));
-				}
-				
-				for(i =0; i < display_h; i++)
-				{
-					for(j =0; j<display_w; j++){
-						r_buf[j] = LCD_ReadPoint(j , i);
-					}
-					res=f_write(f_file,(uint8_t *)r_buf,display_w*2,&bw);
-					if(res != FR_OK){
-						LCD_DisplayStr(0,0,12*17,25,24,"Cache Error!     ",RED);
-						mp_raise_ValueError(MP_ERROR_TEXT("file write hard error"));
-					}
-					bar = (i*100)/display_h;
-					if((bar != last_bar) && !(bar%10)) printf("loading:%d%%\r\n",bar);
-
-					if(i==25){
-						LCD_DisplayStr(0,0,12*17,25,24,"Image Caching:00%",RED);
-					}
-					if((i >= 25) && (bar != last_bar)){
-						LCD_displayNum(168,0,bar,2,24,RED);
-					}
-					last_bar = bar;
-					if(is_sdcard){
-						mp_hal_delay_ms(2);
-					}
-				}
-
-				LCD_DisplayStr(0,0,12*17,25,24,"Cache Done!      ",RED);
-				printf("cache done!\r\n");
-
-				f_close(f_file);
-				m_free(r_buf);
+				grap_newCached(&lcd43_glcd, is_sdcard,&vfs_fat->fatfs, path_buf,picinfo.S_Width, picinfo.S_Height);	
 			}
 			
 			f_sync(f_file);
 			m_free(f_file);
-			
     }
   }
 	else{

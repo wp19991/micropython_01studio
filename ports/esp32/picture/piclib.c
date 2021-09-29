@@ -9,11 +9,45 @@ _pic_phy pic_phy;		//图片显示物理接口
 //指定画点/读点
 void piclib_init(void)
 {
-	pic_phy.read_point=lcd_readPoint;  		//读点函数实现
-	pic_phy.draw_point=lcd_DrawPoint;	//画点函数实现
-	pic_phy.fill=lcd_Fill;					//填充函数实现
-	pic_phy.draw_hline=lcd_draw_hline;  	//画线函数实现
-	pic_phy.fillcolor=lcd_Full;  	//颜色填充函数实现 
+	switch (lcddev.type)
+		{
+			case 1:
+
+			break;
+			case 2:
+
+			break;
+			case 3:
+
+			break;
+			case 4:
+			#if MICROPY_HW_LCD32
+				pic_phy.read_point=ili9341_readPoint;
+				pic_phy.draw_point=ili9341_DrawPoint;
+				pic_phy.fill=ili9341_Fill;
+				pic_phy.draw_hline=ili9341_draw_hline;
+				pic_phy.fillcolor=ili9341_Full;
+			#endif
+			break;
+			case 5:
+			#if MICROPY_HW_LCD15
+				pic_phy.read_point=st7789_readPoint;
+				pic_phy.draw_point=st7789_DrawPoint;
+				pic_phy.fill=st7789_Fill;
+				pic_phy.draw_hline=st7789_draw_hline;
+				pic_phy.fillcolor=st7789_Full;
+			#endif
+			break;
+			case 6:
+			#if MICROPY_HW_LCD18
+				pic_phy.read_point=st7735_readPoint;
+				pic_phy.draw_point=st7735_DrawPoint;
+				pic_phy.fill=st7735_Fill;
+				pic_phy.draw_hline=st7735_draw_hline;
+				pic_phy.fillcolor=st7735_Full;
+			#endif
+			break;
+		}
 
 	picinfo.lcdwidth=lcddev.width;	//得到LCD的宽度像素
 	picinfo.lcdheight=lcddev.height;//得到LCD的高度像素

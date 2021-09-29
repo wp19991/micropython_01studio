@@ -22,8 +22,27 @@
 #include "py/objlist.h"
 #include "py/stream.h"
 
-#include "lcd43m.h"
+#if MICROPY_ENABLE_TFTLCD
 
+#include "modtftlcd.h"
+
+#if MICROPY_ENABLE_TFTLCD
+#include "lcd43m.h"
+#endif
+
+#if MICROPY_HW_LCD18
+#include "ST7735.h"
+#endif
+
+#if MICROPY_HW_LCD15
+#include "ST7789.h"
+#endif
+
+#if MICROPY_HW_LCD32
+#include "ILI9341.h"
+#endif
+
+#endif
 
 #include "bmp.h"
 #include "tjpgd.h"
