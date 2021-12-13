@@ -1026,7 +1026,7 @@ UINT jpeg_in_func(JDEC* jd,BYTE* buf,UINT num)
     }else return (f_lseek(dev,f_tell(dev)+num)==FR_OK)?num:0;
 }  
 
-UINT jpeg_out_func_fill(JDEC* jd,void* rgbbuf,JRECT* rect) 
+static UINT jpeg_out_func_fill(JDEC* jd,void* rgbbuf,JRECT* rect) 
 { 
 	uint16_t *pencolor=(uint16_t*)rgbbuf;
 	uint16_t width=rect->right-rect->left+1;		
@@ -1117,48 +1117,6 @@ uint8_t jpg_decode(FATFS *fs, const char *filename,uint16_t x,uint16_t y,uint8_t
 
 	return res;	 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

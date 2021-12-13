@@ -604,6 +604,16 @@ void DMA1_Stream0_IRQHandler(void) {
 }
 void DMA1_Stream1_IRQHandler(void) {
     IRQ_ENTER(DMA1_Stream1_IRQn);
+		#if defined(STM32H7)
+		#if MICROPY_HW_OV2640
+		if(__HAL_DMA_GET_FLAG(&DMADMCI_Handler,DMA_FLAG_TCIF1_5)!=RESET)
+			{
+				__HAL_DMA_CLEAR_FLAG(&DMADMCI_Handler,DMA_FLAG_TCIF1_5);
+				dcmi_rx_callback();
+				SCB_CleanInvalidateDCache();	//清除无效的D-Cache
+			} 
+		#endif
+		#endif
     if (dma_handle[dma_id_1] != NULL) {
         HAL_DMA_IRQHandler(dma_handle[dma_id_1]);
     }
@@ -617,7 +627,7 @@ void DMA1_Stream2_IRQHandler(void) {
     IRQ_EXIT(DMA1_Stream2_IRQn);
 }
 
-  void DMA1_Stream3_IRQHandler(void) {
+void DMA1_Stream3_IRQHandler(void) {
     IRQ_ENTER(DMA1_Stream3_IRQn);
     #if MICROPY_HW_WM8978
     if(__HAL_DMA_GET_FLAG(&I2S2_RXDMA_Handler,DMA_FLAG_TCIF3_7)!=RESET) 
@@ -677,13 +687,14 @@ void DMA2_Stream0_IRQHandler(void) {
 }
 void DMA2_Stream1_IRQHandler(void) {
     IRQ_ENTER(DMA2_Stream1_IRQn);
-
+		#if defined(STM32F4)
 		#if MICROPY_HW_OV2640
 		if(__HAL_DMA_GET_FLAG(&DMADMCI_Handler,DMA_FLAG_TCIF1_5)!=RESET)
 			{
 				__HAL_DMA_CLEAR_FLAG(&DMADMCI_Handler,DMA_FLAG_TCIF1_5);
 				dcmi_rx_callback();
 			} 
+		#endif
 		#endif
     if (dma_handle[dma_id_9] != NULL) {
         HAL_DMA_IRQHandler(dma_handle[dma_id_9]);

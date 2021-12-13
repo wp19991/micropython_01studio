@@ -21,8 +21,10 @@ extern const mp_obj_type_t tftlcd_lcd43m_type;
 
 /* Includes ------------------------------------------------------------------*/  
 
+#ifndef LCD43M_REG
 #define LCD43M_REG	(*(volatile uint16_t *)(0x6C000000))
 #define LCD43M_RAM	(*(volatile uint16_t *)(0x6C000002))
+#endif
 
 #define WRAMCMD					0X2C00
 #define SETXCMD					0X2A00
@@ -50,7 +52,7 @@ extern void LCD_Clear(uint16_t color);
 extern void LCD_Set_Window(uint16_t sx,uint16_t sy,uint16_t width,uint16_t height);
 
 extern void LCD43M_Fill(uint16_t sx,uint16_t sy,uint16_t ex,uint16_t ey,uint16_t color);
-extern void LCD43M_Full(uint16_t sx,uint16_t sy,uint16_t ex,uint16_t ey,uint16_t *color);
+extern void LCD43M_Full(uint16_t sx,uint16_t sy,uint16_t width,uint16_t height,uint16_t *color);
 extern uint16_t LCD43M_ReadPoint(uint16_t x , uint16_t y);
 extern void LCD43M_DrawPoint(uint16_t x,uint16_t y,uint16_t color);
 extern void lcd43m_hline(uint16_t x0,uint16_t y0,uint16_t len,uint16_t color);

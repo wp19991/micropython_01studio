@@ -13,42 +13,28 @@
 
 #include "py/runtime.h"
 #include "py/mphal.h"
-#include "softtimer.h"
 #include "bufhelper.h"
-
 #include <math.h>
-
 #include "py/builtin.h"
-
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdio.h>
-
-#include "i2c.h"
-
 #include "py/obj.h"
-
 #include "pin.h"
 #include "pin_static_af.h"
 #include "mpu.h"
 #include "systick.h"
-
 
 #if (MICROPY_ENABLE_TFTLCD && MICROPY_HW_LCD43M)
 
 #include "lcd43m.h"
 #include "modtftlcd.h"
 
-//#include "font.h" 
-
 #ifdef MICROPY_PY_PICLIB
 #include "piclib.h"
 #endif
 
 #include "global.h" 
-
-#define LCD_BL_PIN                    GPIO_PIN_15
-#define LCD_BL_GPIO_PORT              GPIOB
 
 Graphics_Display lcd43_glcd;
 
@@ -131,6 +117,7 @@ void LCD_Scan_Dir(uint8_t dir)
 //color:颜色
 void LCD43M_DrawPoint(uint16_t x,uint16_t y,uint16_t color)
 {	   
+if(x >= lcddev.width || y >= lcddev.height) return;
 	LCD43M_REG = SETXCMD;			LCD43M_RAM = (x>>8);
 	LCD43M_REG = (SETXCMD+1);	LCD43M_RAM = (x&0XFF);
 	LCD43M_REG = SETYCMD;			LCD43M_RAM = (y>>8);
@@ -151,7 +138,7 @@ uint16_t LCD43M_ReadPoint(uint16_t x , uint16_t y)
   b = LCD43M_RAM;
   g = r & 0xFF;
   g <<= 8;
-  return (uint16_t)(((r>>11)<<11)|(g>>5)|(b>>11));
+  return (uint16_t)((r & 0xF800)|(g>>5)|((b&0xF800)>>11));
 }
 
 void LCD43M_Fill(uint16_t sx,uint16_t sy,uint16_t ex,uint16_t ey,uint16_t color)
@@ -243,34 +230,12 @@ void LCD_Display_Dir(uint8_t dir)
 	lcd43_glcd.width = lcddev.width;
 	lcd43_glcd.height = lcddev.height;
 }	 
-//在指定区域内填充指定颜色块			 
-//(sx,sy),(ex,ey):填充矩形对角坐标,区域大小为:(ex-sx+1)*(ey-sy+1)   
-//color:要填充的颜色 LCD_Color_Fill(x,y,x+width-1,y+height-1,color);	
-// void LCD_Color_Fill(uint16_t sx,uint16_t sy,uint16_t ex,uint16_t ey,uint16_t *color)
-// {  
-	// uint16_t height,width;
-	// uint16_t i,j; 
-	// width=ex-sx+1; 			//得到填充的宽度
-	// height=ey-sy+1;			//高度
-	
-	// for(i=0;i<height;i++)
-	// {
-		// LCD43M_REG = (SETXCMD);		LCD43M_RAM = (sx>>8); 		
-		// LCD43M_REG = (SETXCMD+1);	LCD43M_RAM = (sx&0XFF);			 
-		// LCD43M_REG = (SETYCMD);		LCD43M_RAM = ((sy+i)>>8);  		
-		// LCD43M_REG = (SETYCMD+1);	LCD43M_RAM = ((sy+i)&0XFF);
-		// LCD43M_REG = WRAMCMD;
 
-		// for(j=0;j<width;j++)	LCD43M_RAM=color[i*width+j];//写入数据 
-	// } 
-// } 
-
-void LCD43M_Full(uint16_t sx,uint16_t sy,uint16_t ex,uint16_t ey,uint16_t *color)
+void LCD43M_Full(uint16_t sx,uint16_t sy,uint16_t width,uint16_t height,uint16_t *color)
 {  
-	uint16_t height,width;
 	uint16_t i,j; 
-	width=ex; 			//得到填充的宽度
-	height=ey;			//高度
+	if(width > lcddev.width || height > lcddev.height) return;
+
 	for(i=0;i<height;i++)
 	{
 		LCD43M_REG = (SETXCMD);		LCD43M_RAM = (sx>>8); 		
@@ -278,8 +243,11 @@ void LCD43M_Full(uint16_t sx,uint16_t sy,uint16_t ex,uint16_t ey,uint16_t *color
 		LCD43M_REG = (SETYCMD);		LCD43M_RAM = ((sy+i)>>8);  		
 		LCD43M_REG = (SETYCMD+1);	LCD43M_RAM = ((sy+i)&0XFF);
 		LCD43M_REG = WRAMCMD;
+		
+		for(j=0;j<width;j++)	{
+			LCD43M_RAM=color[i*width+j];//写入数据 
+		}
 
-		for(j=0;j<width;j++)	LCD43M_RAM=color[i*width+j];//写入数据 
 	} 
 } 
 
@@ -328,23 +296,54 @@ Graphics_Display lcd43_glcd =
 	LCD43M_Full
 };
 
-//=============================================================================
+#if MICROPY_HW_BOARD_MAGELLAM
+
+#if defined(STM32H7)
+//LCD MPU保护参数
+#define LCD_REGION_NUMBER		MPU_REGION_NUMBER7		//LCD使用region0
+#define LCD_ADDRESS_START		(0X68000000)			//LCD区的首地址
+#define LCD_REGION_SIZE			MPU_REGION_SIZE_16MB//MPU_REGION_SIZE_256MB   //LCD区大小
+
+//配置MPU的region(SRAM区域为透写模式)
+static void lcd43m_mpu_config(void)
+{	
+	MPU_Region_InitTypeDef MPU_Initure;
+
+	HAL_MPU_Disable();							//配置MPU之前先关闭MPU,配置完成以后在使能MPU	
+	//外部SRAM为region0，大小为2MB，此区域可读写
+	MPU_Initure.Enable=MPU_REGION_ENABLE;	    //使能region
+	MPU_Initure.Number=LCD_REGION_NUMBER;		//设置region，外部SRAM使用的region0
+	MPU_Initure.BaseAddress=LCD_ADDRESS_START;	//region基地址
+	MPU_Initure.Size=LCD_REGION_SIZE;			//region大小
+	MPU_Initure.SubRegionDisable=0X00;
+	MPU_Initure.TypeExtField=MPU_TEX_LEVEL0;
+	MPU_Initure.AccessPermission=MPU_REGION_FULL_ACCESS;	//此region可读写
+	MPU_Initure.DisableExec=MPU_INSTRUCTION_ACCESS_ENABLE;	//允许读取此区域中的指令
+	MPU_Initure.IsShareable=MPU_ACCESS_NOT_SHAREABLE;
+	MPU_Initure.IsCacheable=MPU_ACCESS_NOT_CACHEABLE;
+	MPU_Initure.IsBufferable=MPU_ACCESS_BUFFERABLE;
+	HAL_MPU_ConfigRegion(&MPU_Initure);
+	HAL_MPU_Enable(MPU_PRIVILEGED_DEFAULT);     //开启MPU
+}
+#endif
+
+#endif
 
 void lcd43m_init()
 {
 STATIC bool init_flag = false;
 	if(init_flag) return;
+
+	mp_hal_pin_config(MICROPY_HW_LCD43M_BL, MP_HAL_PIN_MODE_OUTPUT, MP_HAL_PIN_PULL_UP, 0);
 	
+	#if MICROPY_HW_BOARD_COLUMBUS
 	__HAL_RCC_FSMC_CLK_ENABLE(); 
-	
-	mp_hal_pin_config(MICROPY_HW_LCD_BL, MP_HAL_PIN_MODE_OUTPUT, MP_HAL_PIN_PULL_UP, 0);
+
+	mp_hal_pin_config_alt_static_speed(MICROPY_HW_LCD_NE4, MP_HAL_PIN_MODE_ALT, MP_HAL_PIN_PULL_NONE, MP_HAL_PIN_SPEED_VERY_HIGH, STATIC_AF_FSMC_NE4);
+	mp_hal_pin_config_alt_static_speed(MICROPY_HW_LCD_A0, MP_HAL_PIN_MODE_ALT, MP_HAL_PIN_PULL_NONE, MP_HAL_PIN_SPEED_VERY_HIGH, STATIC_AF_FSMC_A0);
 
 	mp_hal_pin_config_alt_static_speed(MICROPY_HW_LCD_NOE, MP_HAL_PIN_MODE_ALT, MP_HAL_PIN_PULL_NONE, MP_HAL_PIN_SPEED_VERY_HIGH, STATIC_AF_FSMC_NOE);
 	mp_hal_pin_config_alt_static_speed(MICROPY_HW_LCD_NWE, MP_HAL_PIN_MODE_ALT, MP_HAL_PIN_PULL_NONE, MP_HAL_PIN_SPEED_VERY_HIGH, STATIC_AF_FSMC_NWE);
-	mp_hal_pin_config_alt_static_speed(MICROPY_HW_LCD_NE4, MP_HAL_PIN_MODE_ALT, MP_HAL_PIN_PULL_NONE, MP_HAL_PIN_SPEED_VERY_HIGH, STATIC_AF_FSMC_NE4);
-
-	mp_hal_pin_config_alt_static_speed(MICROPY_HW_LCD_A0, MP_HAL_PIN_MODE_ALT, MP_HAL_PIN_PULL_NONE, MP_HAL_PIN_SPEED_VERY_HIGH, STATIC_AF_FSMC_A0);
-
 	mp_hal_pin_config_alt_static_speed(MICROPY_HW_LCD_D0, MP_HAL_PIN_MODE_ALT, MP_HAL_PIN_PULL_NONE, MP_HAL_PIN_SPEED_VERY_HIGH, STATIC_AF_FSMC_D0);
 	mp_hal_pin_config_alt_static_speed(MICROPY_HW_LCD_D1, MP_HAL_PIN_MODE_ALT, MP_HAL_PIN_PULL_NONE, MP_HAL_PIN_SPEED_VERY_HIGH, STATIC_AF_FSMC_D1);
 	mp_hal_pin_config_alt_static_speed(MICROPY_HW_LCD_D2, MP_HAL_PIN_MODE_ALT, MP_HAL_PIN_PULL_NONE, MP_HAL_PIN_SPEED_VERY_HIGH, STATIC_AF_FSMC_D2);
@@ -361,7 +360,7 @@ STATIC bool init_flag = false;
 	mp_hal_pin_config_alt_static_speed(MICROPY_HW_LCD_D13, MP_HAL_PIN_MODE_ALT, MP_HAL_PIN_PULL_NONE, MP_HAL_PIN_SPEED_VERY_HIGH, STATIC_AF_FSMC_D13);
 	mp_hal_pin_config_alt_static_speed(MICROPY_HW_LCD_D14, MP_HAL_PIN_MODE_ALT, MP_HAL_PIN_PULL_NONE, MP_HAL_PIN_SPEED_VERY_HIGH, STATIC_AF_FSMC_D14);
 	mp_hal_pin_config_alt_static_speed(MICROPY_HW_LCD_D15, MP_HAL_PIN_MODE_ALT, MP_HAL_PIN_PULL_NONE, MP_HAL_PIN_SPEED_VERY_HIGH, STATIC_AF_FSMC_D15);
- 					
+
 	FSMC_Bank1->BTCR[6]=0X00000000;
 	FSMC_Bank1->BTCR[7]=0X00000000;
 	FSMC_Bank1E->BWTR[6]=0X00000000;
@@ -369,9 +368,9 @@ STATIC bool init_flag = false;
 	FSMC_Bank1->BTCR[6]|=1<<14; 	//读写使用不同的时序
 	FSMC_Bank1->BTCR[6]|=1<<4;		//存储器数据宽度为16bit 			
 								
-	FSMC_Bank1->BTCR[7]|=0<<28; 	//模式A 									 
+	FSMC_Bank1->BTCR[7]|=0<<28; 	//模式A 
+	
 	FSMC_Bank1->BTCR[7]|=0XF<<0;	//地址建立时间(ADDSET)为15个HCLK 1/168M=6ns*15=90ns 
-
 	FSMC_Bank1->BTCR[7]|=60<<8; 	//数据保存时间(DATAST)为60个HCLK	=6*60=360ns
 
 	FSMC_Bank1E->BWTR[6]|=0<<28;	//模式A 										
@@ -379,25 +378,99 @@ STATIC bool init_flag = false;
 		 
 	FSMC_Bank1E->BWTR[6]|=8<<8; 	//数据保存时间(DATAST)为6ns*9个HCLK=54ns
 	FSMC_Bank1->BTCR[6]|=1<<0;		//使能BANK1，区域1 	 
+	#endif
+
+	#if MICROPY_HW_BOARD_MAGELLAM
+	#if defined(STM32H7)
+	lcd43m_mpu_config();
+	#endif
+  __HAL_RCC_FMC_CLK_ENABLE();
+
+	mp_hal_pin_config_alt_static_speed(MICROPY_HW_LCD_NE3, MP_HAL_PIN_MODE_ALT, MP_HAL_PIN_PULL_NONE, MP_HAL_PIN_SPEED_VERY_HIGH, STATIC_AF_FMC_NE3);
+	
+	mp_hal_pin_config_alt_static_speed(MICROPY_HW_LCD_NOE, MP_HAL_PIN_MODE_ALT, MP_HAL_PIN_PULL_NONE, MP_HAL_PIN_SPEED_VERY_HIGH, STATIC_AF_FMC_NOE);
+	mp_hal_pin_config_alt_static_speed(MICROPY_HW_LCD_NWE, MP_HAL_PIN_MODE_ALT, MP_HAL_PIN_PULL_NONE, MP_HAL_PIN_SPEED_VERY_HIGH, STATIC_AF_FMC_NWE);
+	mp_hal_pin_config_alt_static_speed(MICROPY_HW_LCD_A18, MP_HAL_PIN_MODE_ALT, MP_HAL_PIN_PULL_NONE, MP_HAL_PIN_SPEED_VERY_HIGH, STATIC_AF_FMC_A18);
+	mp_hal_pin_config_alt_static_speed(MICROPY_HW_LCD_D0, MP_HAL_PIN_MODE_ALT, MP_HAL_PIN_PULL_NONE, MP_HAL_PIN_SPEED_VERY_HIGH, STATIC_AF_FMC_D0);
+	mp_hal_pin_config_alt_static_speed(MICROPY_HW_LCD_D1, MP_HAL_PIN_MODE_ALT, MP_HAL_PIN_PULL_NONE, MP_HAL_PIN_SPEED_VERY_HIGH, STATIC_AF_FMC_D1);
+	mp_hal_pin_config_alt_static_speed(MICROPY_HW_LCD_D2, MP_HAL_PIN_MODE_ALT, MP_HAL_PIN_PULL_NONE, MP_HAL_PIN_SPEED_VERY_HIGH, STATIC_AF_FMC_D2);
+	mp_hal_pin_config_alt_static_speed(MICROPY_HW_LCD_D3, MP_HAL_PIN_MODE_ALT, MP_HAL_PIN_PULL_NONE, MP_HAL_PIN_SPEED_VERY_HIGH, STATIC_AF_FMC_D3);
+	mp_hal_pin_config_alt_static_speed(MICROPY_HW_LCD_D4, MP_HAL_PIN_MODE_ALT, MP_HAL_PIN_PULL_NONE, MP_HAL_PIN_SPEED_VERY_HIGH, STATIC_AF_FMC_D4);
+	mp_hal_pin_config_alt_static_speed(MICROPY_HW_LCD_D5, MP_HAL_PIN_MODE_ALT, MP_HAL_PIN_PULL_NONE, MP_HAL_PIN_SPEED_VERY_HIGH, STATIC_AF_FMC_D5);
+	mp_hal_pin_config_alt_static_speed(MICROPY_HW_LCD_D6, MP_HAL_PIN_MODE_ALT, MP_HAL_PIN_PULL_NONE, MP_HAL_PIN_SPEED_VERY_HIGH, STATIC_AF_FMC_D6);
+	mp_hal_pin_config_alt_static_speed(MICROPY_HW_LCD_D7, MP_HAL_PIN_MODE_ALT, MP_HAL_PIN_PULL_NONE, MP_HAL_PIN_SPEED_VERY_HIGH, STATIC_AF_FMC_D7);
+	mp_hal_pin_config_alt_static_speed(MICROPY_HW_LCD_D8, MP_HAL_PIN_MODE_ALT, MP_HAL_PIN_PULL_NONE, MP_HAL_PIN_SPEED_VERY_HIGH, STATIC_AF_FMC_D8);
+	mp_hal_pin_config_alt_static_speed(MICROPY_HW_LCD_D9, MP_HAL_PIN_MODE_ALT, MP_HAL_PIN_PULL_NONE, MP_HAL_PIN_SPEED_VERY_HIGH, STATIC_AF_FMC_D9);
+	mp_hal_pin_config_alt_static_speed(MICROPY_HW_LCD_D10, MP_HAL_PIN_MODE_ALT, MP_HAL_PIN_PULL_NONE, MP_HAL_PIN_SPEED_VERY_HIGH, STATIC_AF_FMC_D10);
+	mp_hal_pin_config_alt_static_speed(MICROPY_HW_LCD_D11, MP_HAL_PIN_MODE_ALT, MP_HAL_PIN_PULL_NONE, MP_HAL_PIN_SPEED_VERY_HIGH, STATIC_AF_FMC_D11);
+	mp_hal_pin_config_alt_static_speed(MICROPY_HW_LCD_D12, MP_HAL_PIN_MODE_ALT, MP_HAL_PIN_PULL_NONE, MP_HAL_PIN_SPEED_VERY_HIGH, STATIC_AF_FMC_D12);
+	mp_hal_pin_config_alt_static_speed(MICROPY_HW_LCD_D13, MP_HAL_PIN_MODE_ALT, MP_HAL_PIN_PULL_NONE, MP_HAL_PIN_SPEED_VERY_HIGH, STATIC_AF_FMC_D13);
+	mp_hal_pin_config_alt_static_speed(MICROPY_HW_LCD_D14, MP_HAL_PIN_MODE_ALT, MP_HAL_PIN_PULL_NONE, MP_HAL_PIN_SPEED_VERY_HIGH, STATIC_AF_FMC_D14);
+	mp_hal_pin_config_alt_static_speed(MICROPY_HW_LCD_D15, MP_HAL_PIN_MODE_ALT, MP_HAL_PIN_PULL_NONE, MP_HAL_PIN_SPEED_VERY_HIGH, STATIC_AF_FMC_D15);
+
+	#if defined(STM32H7)
+	FMC_Bank1_R->BTCR[4]=0X00000000;
+	
+	FMC_Bank1_R->BTCR[5]=0X00000000;
+	FMC_Bank1E_R->BWTR[4]=0X00000000;
+	
+	FMC_Bank1_R->BTCR[4]|=1<<12; 	//存储器写使能
+	FMC_Bank1_R->BTCR[4]|=1<<14; 	//读写使用不同的时序
+	FMC_Bank1_R->BTCR[4]|=1<<4;		//存储器数据宽度为16bit 			
+
+	FMC_Bank1_R->BTCR[5]|=0<<28; 	//模式A 
+	
+	FMC_Bank1_R->BTCR[5]|=0XF<<0;	//地址建立时间(ADDSET)为15个HCLK 1/168M=6ns*15=90ns 
+	FMC_Bank1_R->BTCR[5]|=82<<8; 	//数据保存时间(DATAST)为 82 个 fmc_ker_ck=4.3*82=352.6ns
+
+	FMC_Bank1E_R->BWTR[4]|=0<<28;	//模式A 										
+	FMC_Bank1E_R->BWTR[4]|=15<<0; 	//地址建立时间(ADDSET)为 15 个 fmc_ker_ck=64.5ns
+	 
+	FMC_Bank1E_R->BWTR[4]|=15<<8; 	//数据保存时间(DATAST)为 15 个 fmc_ker_ck=64.5ns
+	
+	FMC_Bank1_R->BTCR[4]|=1<<0; //使能 BANK1，区域 1
+	FMC_Bank1_R->BTCR[4]|=(uint32_t)1<<31; //使能 FMC
+	#elif defined(STM32F4)
+	FMC_Bank1->BTCR[4]=0X00000000;
+	FMC_Bank1->BTCR[5]=0X00000000;
+	FMC_Bank1E->BWTR[4]=0X00000000;
+	
+	FMC_Bank1->BTCR[4]|=1<<12; 	//存储器写使能
+	FMC_Bank1->BTCR[4]|=1<<14; 	//读写使用不同的时序
+	FMC_Bank1->BTCR[4]|=1<<4;		//存储器数据宽度为16bit 			
+
+	FMC_Bank1->BTCR[5]|=0<<28; 	//模式A 
+	
+	FMC_Bank1->BTCR[5]|=0XF<<0;	//地址建立时间(ADDSET)为15个HCLK 1/168M=6ns*15=90ns 
+	FMC_Bank1->BTCR[5]|=60<<8; 	//数据保存时间(DATAST)为 82 个 fmc_ker_ck=4.3*82=352.6ns
+
+	FMC_Bank1E->BWTR[4]|=0<<28;	//模式A 										
+	FMC_Bank1E->BWTR[4]|=9<<0; 	//地址建立时间(ADDSET)为 15 个 fmc_ker_ck=64.5ns
+	 
+	FMC_Bank1E->BWTR[4]|=8<<8; 	//数据保存时间(DATAST)为 15 个 fmc_ker_ck=64.5ns
+	FMC_Bank1->BTCR[4]|=1<<0; //使能 BANK1，区域 1
+	#endif
+	
+	#endif
 
 	mp_hal_delay_ms(50);
 		LCD43M_REG = 0XD4;  
-		lcddev.id = LCD43M_RAM;//dummy read  
-		lcddev.id = LCD43M_RAM;//读回0X01	 
-		lcddev.id = LCD43M_RAM;//读回0X53	
+		lcddev.id = LCD43M_RAM;
+		lcddev.id = LCD43M_RAM; 
+		lcddev.id = LCD43M_RAM;
 		lcddev.id<<=8;	 
-		lcddev.id |= LCD43M_RAM;	//这里读回0X10	 
+		lcddev.id |= LCD43M_RAM; 
 
-		if(lcddev.id!=0X5310)		//也不是NT35310,尝试看看是不是NT35510
+		if(lcddev.id!=0X5310)	
 		{
 			LCD43M_REG = (0XDA00); 
-			lcddev.id = LCD43M_RAM;		//读回0X00	 
+			lcddev.id = LCD43M_RAM;	 
 			LCD43M_REG = (0XDB00); 
-			lcddev.id = LCD43M_RAM;		//读回0X80
+			lcddev.id = LCD43M_RAM;	
 			lcddev.id<<=8;	
 			LCD43M_REG = (0XDC00); 
-			lcddev.id |= LCD43M_RAM;		//读回0X00		
-			if(lcddev.id==0x8000)lcddev.id=0x5510;//NT35510读回的ID是8000H,为方便区分,我们强制设置为5510
+			lcddev.id |= LCD43M_RAM;	
+			if(lcddev.id==0x8000)lcddev.id=0x5510;
 		}	
 
 if(lcddev.id==0x5510)
@@ -831,17 +904,30 @@ if(lcddev.id==0x5510)
 		mp_hal_delay_us(50);
 		LCD43M_REG = (0x2C00); //01 studio
 	}
-#if 1						    
+
+#if MICROPY_HW_BOARD_COLUMBUS
 	FSMC_Bank1E->BWTR[6]&=~(0XF<<0);
 	FSMC_Bank1E->BWTR[6]&=~(0XF<<8);
 	FSMC_Bank1E->BWTR[6]|=3<<0;			 
 	FSMC_Bank1E->BWTR[6]|=2<<8; 
-
+#endif
+#if MICROPY_HW_BOARD_MAGELLAM
+	#if defined(STM32F4)
+	FMC_Bank1E->BWTR[4]&=~(0XF<<0);
+	FMC_Bank1E->BWTR[4]&=~(0XF<<8);
+	FMC_Bank1E->BWTR[4]|=3<<0;			 
+	FMC_Bank1E->BWTR[4]|=2<<8;
+	#elif defined(STM32H7)
+	FMC_Bank1E_R->BWTR[4]&=~(0XF<<0);
+	FMC_Bank1E_R->BWTR[4]&=~(0XF<<8);
+	FMC_Bank1E_R->BWTR[4]|=4<<0;			 
+	FMC_Bank1E_R->BWTR[4]|=4<<8; 
+	#endif
 #endif
 	LCD_Display_Dir(lcddev.dir);		//默认为竖屏0
 	LCD_Clear(lcddev.backcolor);
 	lcddev.clercolor = lcddev.backcolor;
-	mp_hal_pin_high(MICROPY_HW_LCD_BL);
+	mp_hal_pin_high(MICROPY_HW_LCD43M_BL);
 	init_flag = true;
 
 }
@@ -880,6 +966,7 @@ STATIC mp_obj_t tftlcd_lcd43m_make_new(const mp_obj_type_t *type, size_t n_args,
 	
 	lcd43m_init();
 	LCD_Display_Dir(lcddev.dir);
+	LCD_Clear(lcddev.backcolor);
 
 	tftlcd_lcd43m_obj.base.type = &tftlcd_lcd43m_type;
 
@@ -901,7 +988,7 @@ STATIC mp_obj_t tftlcd_lcd43m_clear(size_t n_args, const mp_obj_t *pos_args, mp_
 		mp_obj_t *params;
 		mp_obj_get_array(args[0].u_obj, &len, &params);
 		if(len == 3){
-			lcddev.backcolor = rgb888to565(mp_obj_get_int(params[0]), mp_obj_get_int(params[1]), mp_obj_get_int(params[2]));
+			lcddev.backcolor = get_rgb565(mp_obj_get_int(params[0]), mp_obj_get_int(params[1]), mp_obj_get_int(params[2]));
 			LCD_Clear(lcddev.backcolor);
 			lcddev.clercolor = lcddev.backcolor;
 		}else{
@@ -930,7 +1017,7 @@ STATIC mp_obj_t tftlcd_lcd43m_drawp(size_t n_args, const mp_obj_t *pos_args, mp_
           mp_obj_get_array(args[2].u_obj, &len, &params);
           if(len == 3){
             LCD43M_DrawPoint(args[0].u_int,args[1].u_int ,
-            rgb888to565(mp_obj_get_int(params[0]), mp_obj_get_int(params[1]), mp_obj_get_int(params[2])));
+            get_rgb565(mp_obj_get_int(params[0]), mp_obj_get_int(params[1]), mp_obj_get_int(params[2])));
           }else{
             mp_raise_ValueError(MP_ERROR_TEXT("lcd drawPixel parameter error \nCorrect call:drawPixel(x,y,(r,g,b)"));
           }
@@ -959,7 +1046,7 @@ STATIC mp_obj_t tftlcd_lcd43m_drawL(size_t n_args, const mp_obj_t *pos_args, mp_
 			mp_obj_get_array(args[4].u_obj, &len, &params);
 			if(len == 3){
 				grap_drawLine(&lcd43_glcd,args[0].u_int ,args[1].u_int,args[2].u_int,args[3].u_int ,
-				 rgb888to565(mp_obj_get_int(params[0]), mp_obj_get_int(params[1]), mp_obj_get_int(params[2])));
+				 get_rgb565(mp_obj_get_int(params[0]), mp_obj_get_int(params[1]), mp_obj_get_int(params[2])));
 				 
 			}else{
 				mp_raise_ValueError(MP_ERROR_TEXT("lcd drawL parameter error \nCorrect call:drawPixel(x,y,(r,g,b)"));
@@ -992,7 +1079,7 @@ STATIC mp_obj_t tftlcd_lcd43m_drawRect(size_t n_args, const mp_obj_t *pos_args, 
     mp_obj_get_array(args[4].u_obj, &len, &params);
     if(len == 3){
 			 grap_drawRect(&lcd43_glcd,args[0].u_int,args[1].u_int,args[2].u_int,args[3].u_int,args[5].u_int,
-          rgb888to565(mp_obj_get_int(params[0]), mp_obj_get_int(params[1]), mp_obj_get_int(params[2])));
+          get_rgb565(mp_obj_get_int(params[0]), mp_obj_get_int(params[1]), mp_obj_get_int(params[2])));
     }else{
       mp_raise_ValueError(MP_ERROR_TEXT("lcd drawRect parameter error \n"));
     }
@@ -1008,7 +1095,7 @@ STATIC mp_obj_t tftlcd_lcd43m_drawRect(size_t n_args, const mp_obj_t *pos_args, 
     if (len != 3) { // Check params len
        mp_raise_ValueError(MP_ERROR_TEXT("lcd fillcolor parameter error"));
     }
-    uint16_t color=rgb888to565(mp_obj_get_int(params[0]), mp_obj_get_int(params[1]), mp_obj_get_int(params[2]));
+    uint16_t color=get_rgb565(mp_obj_get_int(params[0]), mp_obj_get_int(params[1]), mp_obj_get_int(params[2]));
     for(uint16_t i=0 ; i <= (args[3].u_int-(args[5].u_int*2)); i++ ) 
      grap_drawLine(&lcd43_glcd,args[0].u_int+args[5].u_int,args[1].u_int+args[5].u_int+i,
 					args[0].u_int+args[2].u_int-args[5].u_int,args[1].u_int+args[5].u_int+i,color);
@@ -1041,7 +1128,7 @@ STATIC mp_obj_t tftlcd_lcd43m_drawCircle(size_t n_args, const mp_obj_t *pos_args
     mp_obj_t *params;
     mp_obj_get_array(args[3].u_obj, &len, &params);
     if(len == 3){
-      color = rgb888to565(mp_obj_get_int(params[0]), mp_obj_get_int(params[1]), mp_obj_get_int(params[2]));
+      color = get_rgb565(mp_obj_get_int(params[0]), mp_obj_get_int(params[1]), mp_obj_get_int(params[2]));
         for(uint16_t i=0; i < args[4].u_int ;i++) {
           grap_drawColorCircle(&lcd43_glcd,
 														args[0].u_int,args[1].u_int,args[2].u_int-i,color);
@@ -1060,7 +1147,7 @@ STATIC mp_obj_t tftlcd_lcd43m_drawCircle(size_t n_args, const mp_obj_t *pos_args
     if (len != 3) { // Check params len
        mp_raise_ValueError(MP_ERROR_TEXT("lcd fillcolor parameter error"));
     }
-    color = rgb888to565(mp_obj_get_int(params[0]), mp_obj_get_int(params[1]), mp_obj_get_int(params[2]));
+    color = get_rgb565(mp_obj_get_int(params[0]), mp_obj_get_int(params[1]), mp_obj_get_int(params[2]));
 
     for(uint16_t i=0 ; i <= (args[2].u_int-args[4].u_int); i++ ) {
 			grap_drawColorCircle(&lcd43_glcd,
@@ -1095,7 +1182,7 @@ STATIC mp_obj_t tftlcd_lcd43m_printStr(size_t n_args, const mp_obj_t *pos_args, 
     mp_obj_t *params;
     mp_obj_get_array(args[3].u_obj, &len, &params);
     if(len == 3){
-      color = rgb888to565(mp_obj_get_int(params[0]), mp_obj_get_int(params[1]), mp_obj_get_int(params[2]));
+      color = get_rgb565(mp_obj_get_int(params[0]), mp_obj_get_int(params[1]), mp_obj_get_int(params[2]));
     }else{
       mp_raise_ValueError(MP_ERROR_TEXT("printStr color parameter error \n"));
     }
@@ -1110,7 +1197,7 @@ STATIC mp_obj_t tftlcd_lcd43m_printStr(size_t n_args, const mp_obj_t *pos_args, 
     if (len != 3) { 
        mp_raise_ValueError(MP_ERROR_TEXT("lcd backolor parameter error"));
     }
-    lcddev.backcolor = rgb888to565(mp_obj_get_int(params[0]), mp_obj_get_int(params[1]), mp_obj_get_int(params[2])); 
+    lcddev.backcolor = get_rgb565(mp_obj_get_int(params[0]), mp_obj_get_int(params[1]), mp_obj_get_int(params[2])); 
   }
 //
   if(args[0].u_obj !=MP_OBJ_NULL) 
@@ -1140,7 +1227,6 @@ STATIC mp_obj_t tftlcd_lcd43m_printStr(size_t n_args, const mp_obj_t *pos_args, 
 STATIC MP_DEFINE_CONST_FUN_OBJ_KW(tftlcd_lcd43m_printStr_obj, 1, tftlcd_lcd43m_printStr);
 //------------------------------------------------------------------------------------------------------
 #if MICROPY_PY_PICLIB
-uint8_t is_sdcard = 0;
 
 STATIC mp_obj_t tftlcd_lcd43m_Picture(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
 
@@ -1197,7 +1283,14 @@ STATIC mp_obj_t tftlcd_lcd43m_Picture(size_t n_args, const mp_obj_t *pos_args, m
 				 
 				if(strncmp(ftype,"jpg",3) == 0 || strncmp(ftype,"jpeg",4) == 0)
 					{
-						jpg_decode(&vfs_fat->fatfs,file_path, args[0].u_int,args[1].u_int ,1);
+						
+						#if MICROPY_PY_HJPEG_DECODE
+						if(hjpgd_decode(&vfs_fat->fatfs,file_path, args[0].u_int,args[1].u_int)){
+							printf("hjpgd_decode error\r\n");
+						}
+						#else
+							jpg_decode(&vfs_fat->fatfs,file_path, args[0].u_int,args[1].u_int ,1);
+						#endif
 					}
 				else if(strncmp(ftype , "bmp" , 3) == 0)
 					{
@@ -1221,8 +1314,9 @@ STATIC mp_obj_t tftlcd_lcd43m_Picture(size_t n_args, const mp_obj_t *pos_args, m
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_KW(tftlcd_lcd43m_Picture_obj, 1, tftlcd_lcd43m_Picture);
 
+#if defined(STM32F4)
 extern volatile uint8_t Is_FileReadOk;
-
+#endif
 // cached file
 STATIC mp_obj_t tftlcd_lcd43g_CachePicture(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
 
@@ -1237,10 +1331,14 @@ STATIC mp_obj_t tftlcd_lcd43g_CachePicture(size_t n_args, const mp_obj_t *pos_ar
   mp_arg_parse_all(n_args-1, pos_args+1, kw_args, arg_num, tft_allowed_args, args);
 	
 	uint8_t res=0;
+	#if defined(STM32F4)
 	while(Is_FileReadOk){
 		Is_FileReadOk = 0;
 		mp_hal_delay_ms(1000);
 	}
+	#else
+		mp_hal_delay_ms(1000);
+	#endif
 	
 	char *path_buf = (char *)m_malloc(50);  //最大支持50字符
 	memset(path_buf, '\0', 50);

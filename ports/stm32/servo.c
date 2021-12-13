@@ -45,6 +45,8 @@
 // counters with 16-bit prescaler.  TIM5 is used by this driver.
 #if MICROPY_HW_BOARD_COLUMBUS
 #define PYB_SERVO_NUM (3)
+#elif MICROPY_HW_BOARD_MAGELLAM
+#define PYB_SERVO_NUM (3)
 #else
 #define PYB_SERVO_NUM (4)
 #endif
@@ -81,6 +83,11 @@ void servo_init(void) {
 		pyb_servo_obj[0].pin = pin_A0;
 		pyb_servo_obj[1].pin = pin_A2;
 		pyb_servo_obj[2].pin = pin_A3;
+#elif MICROPY_HW_BOARD_MAGELLAM
+		pyb_servo_obj[0].pin = pin_A0;
+		pyb_servo_obj[1].pin = pin_A2;
+		pyb_servo_obj[2].pin = pin_A3;
+
 #else
     // assign servo objects to specific pins (must be some permutation of PA0-PA3)
     #ifdef pyb_pin_X1

@@ -20,6 +20,7 @@
 
 #if MICROPY_ENABLE_TOUCH
 
+extern 	bool touch_is_init;
 
 #define TP_PRES_DOWN 			0x80  //触屏被按下	  
 #define TP_CATH_UP 				0x40  //按下弹起 
@@ -53,7 +54,7 @@ extern const mp_obj_type_t touch_xpt2046_type;
 
 extern void tp_touch_down(int8_t id, uint16_t x, uint16_t y, uint8_t w);
 extern void tp_touch_up(int8_t id);
-
+extern void gui_read_points(void);
 /**
   * @}
   */    

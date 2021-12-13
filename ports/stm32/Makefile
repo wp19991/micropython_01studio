@@ -1,7 +1,10 @@
 # Select the board to build for: if not given on the command line,
 # then default to PYBV10.
-#BOARD ?= PYBV10
-BOARD ?= PYBPLUS
+# BOARD ?= COLUMBUS
+# BOARD ?= MAGELLAN-H743
+# BOARD ?= MAGELLAN-F429
+BOARD ?= MAGELLAN-F767
+# BOARD ?= MAGELLAN-yh
 # If the build directory is not given, make it reflect the board name.
 BUILD ?= build-$(BOARD)
 
@@ -356,17 +359,24 @@ SRC_C += \
 	modsensor.c \
 	modgui.c \
 	lcd43m.c \
+	lcd43r.c \
+	lcd7r.c \
+	ltdc.c \
 	ILI9341.c \
 	ST7735.c \
 	ST7789.c \
+	tp_iic.c \
 	gt1151.c \
 	xpt2046.c \
+	ft54x6.c \
+	gt911.c \
 	lcd_spibus.c \
 	wm8978.c \
 	ov2640.c \
 	video.c \
 	gui_button.c \
 	machine_neopixel.c \
+	modmagellan.c \
 	$(wildcard $(BOARD_DIR)/*.c)
 
 ifeq ($(MICROPY_PY_PICLIB),1)
@@ -375,6 +385,7 @@ SRC_C += $(addprefix $(DECODE_DIR)/picture/,\
 	piclib.c \
 	tjpgd.c \
 	bmp.c \
+	hjpgd.c \
 	)
 INC += -I$(DECODE_DIR)/picture
 endif
@@ -504,10 +515,15 @@ endif
 
 ifeq ($(CMSIS_MCU),$(filter $(CMSIS_MCU),STM32H743xx))
     HAL_SRC_C += $(addprefix $(HAL_DIR)/Src/stm32$(MCU_SERIES)xx_, hal_fdcan.c)
+		HAL_SRC_C += $(addprefix $(HAL_DIR)/Src/stm32$(MCU_SERIES)xx_, hal_ltdc.c)
 else
 ifeq ($(MCU_SERIES),$(filter $(MCU_SERIES),f0 f4 f7 h7 l4))
     HAL_SRC_C += $(addprefix $(HAL_DIR)/Src/stm32$(MCU_SERIES)xx_, hal_can.c)
 endif
+endif
+
+ifeq ($(MCU_SERIES),$(filter $(MCU_SERIES),f4))
+    HAL_SRC_C += $(addprefix $(HAL_DIR)/Src/stm32$(MCU_SERIES)xx_, hal_ltdc.c)
 endif
 
 USBDEV_SRC_C += $(addprefix $(USBDEV_DIR)/,\

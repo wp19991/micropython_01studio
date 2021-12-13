@@ -11,17 +11,19 @@
 #define MICROPY_HW_ENABLE_ADC					(1)
 #define MICROPY_HW_ENABLE_USB       	(1)
 #define	MICROPY_HW_ENABLE_SERVO				(1) 
+
+#define MICROPY_ENABLE_SDCARD_NIRQ  (1)
 //===================================================================================
 //01studio
 //------------------------------------------------------------------------------------
 #define MICROPY_HW_BOARD_COLUMBUS 		(1) //哥伦布
 #define MICROPY_PY_PICLIB							(1) //图片解码
-#define MICROPY_ENABLE_VIDEO					(1)
-#define MICROPY_ENABLE_MP3						(1)
+#define MICROPY_ENABLE_NEOPIXEL				(1)
+
 //gui
 #define MICROPY_ENABLE_GUI						(1) 	//GUI支持
 #define MICROPY_GUI_BUTTON						(1) 	//按钮控件
-#define GUI_BTN_NUM_MAX 							(50) 	//最大支持按钮数量
+#define GUI_BTN_NUM_MAX 							(30) 	//最大支持按钮数量
 #define GUI_BTN_STR_LEN 							(20)
 
 //touch
@@ -37,7 +39,7 @@
 //audio
 #define MICROPY_ENABLE_AUDIO					(1)
 #define	MICROPY_HW_WM8978							(1)
-
+#define MICROPY_ENABLE_MP3						(1)
 //------------------------------------------------------------------------------------
 //video
 #define MICROPY_ENABLE_VIDEO					(1)
@@ -154,7 +156,7 @@ extern struct _spi_bdev_t spi_bdev;
 #define MICROPY_HW_ETH_RMII_CRS_DV  (pin_A7)
 #define MICROPY_HW_ETH_RMII_RXD0    (pin_C4)
 #define MICROPY_HW_ETH_RMII_RXD1    (pin_C5)
-#define MICROPY_HW_ETH_RMII_RXER    (pin_D3)//rest
+#define MICROPY_HW_ETH_RMII_RXER    (pin_D3)
 #define MICROPY_HW_ETH_RMII_TX_EN   (pin_G11)
 #define MICROPY_HW_ETH_RMII_TXD0    (pin_G13)
 #define MICROPY_HW_ETH_RMII_TXD1    (pin_G14)
@@ -232,10 +234,11 @@ extern struct _spi_bdev_t spi_bdev;
 
 #if MICROPY_HW_LCD43M
 //lcd
-#define MICROPY_HW_LCD_BL       (pin_B15)
+#define MICROPY_HW_LCD43M_BL    (pin_B15)
 #define MICROPY_HW_LCD_NE4    	(pin_G12)
 #define MICROPY_HW_LCD_NOE      (pin_D4)
 #define MICROPY_HW_LCD_NWE      (pin_D5)
+#define MICROPY_HW_MCULCD_CS		MICROPY_HW_LCD_NE4
 
 #define MICROPY_HW_LCD_A0       (pin_F0)
 

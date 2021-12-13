@@ -18,11 +18,11 @@
 #define BTN_PRES   			0X01 //按下
 #define BTN_INACTIVE   	0X02 //没有动作
 
-#if MICROPY_HW_LCD43G
-typedef uint32_t	color_t;
-#else
+//#if MICROPY_HW_LCD43R
+//typedef uint32_t	color_t;
+//#else
 typedef uint16_t	color_t;
-#endif
+//#endif
 
 //按钮结构体定义
 typedef struct 

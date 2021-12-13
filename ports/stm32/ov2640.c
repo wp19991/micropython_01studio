@@ -36,8 +36,14 @@
 #include "ov2640.h"
 #include "ov2640_regs.h"
 
-#if MICROPY_ENABLE_TFTLCD
+#if MICROPY_ENABLE_TFTLCD || MICROPY_HW_LTDC_LCD
+
+#if MICROPY_HW_LTDC_LCD
+#include "ltdc.h"
+#endif
+
 #include "modtftlcd.h"
+
 #if MICROPY_HW_LCD43M
 #include "lcd43m.h"
 #endif
@@ -54,23 +60,43 @@ uint8_t disp_dir = 0;
 #define ov_printf(...)
 #endif
 
-#define OV2640_ADDR (0x30)
-#define I2C_TIMEOUT_MS (100)
+#define OV2640_ADDR 					(0x30)
+#define I2C_TIMEOUT_MS 				(100)
 
-#define VGA_WIDTH      (640)
-#define VGA_HEIGHT     (480)
+#define VGA_WIDTH      				(640)
+#define VGA_HEIGHT     				(480)
 
-#define SVGA_WIDTH      (800)
-#define SVGA_HEIGHT     (600)
+#define SVGA_WIDTH      			(800)
+#define SVGA_HEIGHT     			(600)
 
-#define UXGA_WIDTH     	(1600)
-#define UXGA_HEIGHT     (1200)
+#define UXGA_WIDTH     				(1600)
+#define UXGA_HEIGHT     			(1200)
 
-#define ACK 0
-#define NACK 1
-#define STOP 1
-#define NSTOP 0
+#define ACK 										0
+#define NACK 										1
+#define STOP 										1
+#define NSTOP 									0
 
+#if MICROPY_HW_BOARD_COLUMBUS
+#define SCCB_I2C								I2C1
+#define SCCB_I2C_SDA						MICROPY_HW_I2C1_SDA
+#define SCCB_I2C_SCL						MICROPY_HW_I2C1_SCL
+#define DCMI_DMA_STREAM					DMA2_Stream1
+#define DCMI_DMA_STREAM_IRQ			DMA2_Stream1_IRQn
+#elif MICROPY_HW_BOARD_MAGELLAM
+#define SCCB_I2C								I2C2
+#define SCCB_I2C_SDA						MICROPY_HW_I2C2_SDA
+#define SCCB_I2C_SCL						MICROPY_HW_I2C2_SCL
+#if defined(STM32F4)
+#define DCMI_DMA_STREAM					DMA2_Stream1
+#define DCMI_DMA_STREAM_IRQ			DMA2_Stream1_IRQn
+#elif defined(STM32H7)
+#define DCMI_DMA_STREAM					DMA1_Stream1
+#define DCMI_DMA_STREAM_IRQ			DMA1_Stream1_IRQn
+#endif
+#else
+	#error "no define iic"
+#endif
 //===================================================================================================================
 typedef struct _sensor_ov2640_obj_t {
     mp_obj_base_t base;
@@ -86,15 +112,26 @@ FIL ov2640_fp;//文件读写对象
 #define 	jpeg_dma_bufsize	5*1024		//定义JPEG DMA接收时数据缓存jpeg_buf0/1的大小(*4字节)
 volatile 	uint32_t jpeg_data_len=0; 	//buf中的JPEG有效数据长度
 volatile 	uint8_t jpeg_data_ok=0;			//JPEG数据采集完成标志 
-										
+#if MICROPY_HW_LTDC_LCD
+uint16_t curline = 0;							//摄像头输出数据,当前行编号
+#endif
+#if defined(STM32H7)
+uint32_t jpeg_buf0[jpeg_dma_bufsize];						
+uint32_t jpeg_buf1[jpeg_dma_bufsize];
+#elif defined(STM32F4)
 uint32_t *jpeg_buf0;						
 uint32_t *jpeg_buf1;
+#endif
+
 uint32_t *jpeg_data_buf;
 
 uint8_t ov2640_mode=0; 		 //工作模式:0,RGB565模式;1,JPEG模式
 
 STATIC uint16_t display_w = 0;       // display width
 STATIC uint16_t display_h = 0;       // display height
+
+STATIC uint16_t display_sx = 0;       // display x
+STATIC uint16_t display_sy = 0;       // display y
 
 framesize_t framesize;
 
@@ -117,6 +154,7 @@ uint8_t ov2640_outsize_set(uint16_t width,uint16_t height);
 void dcmi_init(void);
 void dcmi_set_window(uint16_t sx,uint16_t sy,uint16_t width,uint16_t height);
 void DCMI_Start(void);
+void sw_sdcard_mode(void);
 //===================================================================================================================
 DCMI_HandleTypeDef  DCMI_Handler;           //DCMI句柄
 DMA_HandleTypeDef   DMADMCI_Handler;        //DMA句柄
@@ -137,12 +175,21 @@ void HAL_DCMI_FrameEventCallback(DCMI_HandleTypeDef *hdcmi)
 	jpeg_data_process();
 	__HAL_DCMI_CLEAR_FLAG(&DCMI_Handler,DCMI_FLAG_FRAMERI);
 	fps++;
+	#if MICROPY_HW_LTDC_LCD
+	curline = 0;							//摄像头输出数据,当前行编号
+	#endif
+	#if MICROPY_HW_LCD43M
 	if(is_display){
-		uint16_t sx = (lcddev.width - display_w)>>1;
-		uint16_t sy = (lcddev.height - display_h)>>1;
-		LCD_SetCursor(sx,sy);  
-		LCD43M_REG=WRAMCMD;	
+		if(lcddev.type == LCD43M){
+			uint16_t sx = (lcddev.width - display_w)>>1;
+			uint16_t sy = (lcddev.height - display_h)>>1;
+			if(lcddev.type == LCD43M){
+				LCD_SetCursor(sx,sy);  
+				LCD43M_REG=WRAMCMD;
+			}
+		}
 	}
+	#endif
 	
 	__HAL_DCMI_ENABLE_IT(&DCMI_Handler,DCMI_IT_FRAME);	
 }
@@ -153,7 +200,7 @@ void jpeg_dcmi_rx_callback(void)
 	uint16_t i;
 	uint32_t *pbuf;
 	pbuf=jpeg_data_buf+jpeg_data_len;
-	if(DMA2_Stream1->CR&(1<<19))
+	if(DCMI_DMA_STREAM->CR&(1<<19))
 	{ 
 		for(i=0;i<jpeg_dma_bufsize;i++)pbuf[i]=jpeg_buf0[i];
 		jpeg_data_len+=jpeg_dma_bufsize;
@@ -162,12 +209,45 @@ void jpeg_dcmi_rx_callback(void)
 		for(i=0;i<jpeg_dma_bufsize;i++)pbuf[i]=jpeg_buf1[i];
 		jpeg_data_len+=jpeg_dma_bufsize;
 	} 	
-
 }
+#if MICROPY_HW_LTDC_LCD
+//RGB屏数据接收回调函数
+void ltdc_dcmi_rx_callback(void)
+{  
+	uint16_t *pbuf;
+	if(DCMI_DMA_STREAM->CR&(1<<19)){ 
+		pbuf=(uint16_t*)jpeg_buf0; 
+	}else{
+		pbuf=(uint16_t*)jpeg_buf1; 
+	} 	
+	
+	//printf("ltdc_dcmi_rx_callback\r\n");
+	#if MICROPY_HW_LTDC_LCD
+	#if MICROPY_HW_LCD43R
+	if(lcddev.type == LCD43R){
+		lcd43g_full_cam(display_sx, display_sy+curline, display_w, 1,pbuf);
+	}
+	#endif
+	
+	#if MICROPY_HW_LCD7R
+	if(lcddev.type == LCD7R){
+		lcd7r_full_cam(display_sx, display_sy+curline, display_w, 1,pbuf);
+	}
+	#endif
+	
+	#endif
+	if(curline<display_h)curline +=1;
+}
+#endif
+
 //====================================================================================
 void DCMI_Start(void)
 {  
-	LCD43M_REG=WRAMCMD;	
+	#if MICROPY_HW_LCD43M
+	if(lcddev.type == LCD43M){
+		LCD43M_REG=WRAMCMD;	
+	}
+	#endif
 	__HAL_DMA_ENABLE(&DMADMCI_Handler); 
 	DCMI->CR|=DCMI_CR_CAPTURE;    			
 }
@@ -178,14 +258,13 @@ void DCMI_Stop(void)
 	while(DCMI->CR&0X01);					
 	__HAL_DMA_DISABLE(&DMADMCI_Handler);
 } 
-
 //==============================================================================================
 
 int sccb_write_reg(uint8_t reg, uint8_t dat)
 {
 	int ret = 0;
 	uint8_t data[2] = {reg, dat}; //
-	ret = i2c_writeto(I2C1, OV2640_ADDR, data, 2, true);
+	ret = i2c_writeto(SCCB_I2C, OV2640_ADDR, data, 2, true);
 	return ret;
 }
 
@@ -193,8 +272,8 @@ int sccb_read_reg(uint8_t reg, uint8_t *dat)
 {
 	int ret = 0;
 
-	ret = i2c_writeto(I2C1, OV2640_ADDR, &reg, 1, false);
-	ret |= i2c_readfrom(I2C1, OV2640_ADDR, dat, 1, true);
+	ret = i2c_writeto(SCCB_I2C, OV2640_ADDR, &reg, 1, false);
+	ret |= i2c_readfrom(SCCB_I2C, OV2640_ADDR, dat, 1, true);
 	return ret;
 }
 //=========================================================================================
@@ -204,33 +283,58 @@ void sccb_deinit()
 
 	__HAL_RCC_DCMI_CLK_DISABLE();
 	HAL_NVIC_DisableIRQ(DCMI_IRQn);
-	HAL_NVIC_DisableIRQ(DMA2_Stream1_IRQn);
 	HAL_DMA_DeInit(&DMADMCI_Handler);
 	HAL_DCMI_Init(&DCMI_Handler); 
 	__HAL_DCMI_DISABLE_IT(&DCMI_Handler,DCMI_IT_FRAME);	
 	__HAL_DCMI_DISABLE(&DCMI_Handler);
-
-
+	HAL_NVIC_DisableIRQ(DCMI_DMA_STREAM_IRQ);
 	mp_hal_pin_high(MICROPY_HW_DCMI_PWDN); //
 	mp_hal_pin_low(MICROPY_HW_DCMI_RESE); //
 
+#if MICROPY_HW_BOARD_COLUMBUS
+	
 	HAL_GPIO_DeInit(GPIOC, GPIO_PIN_6|GPIO_PIN_7|GPIO_PIN_8|GPIO_PIN_9|GPIO_PIN_11);
 	HAL_GPIO_DeInit(GPIOB, GPIO_PIN_6|GPIO_PIN_7);
 	HAL_GPIO_DeInit(GPIOE, GPIO_PIN_6|GPIO_PIN_5);
 	HAL_GPIO_DeInit(GPIOA, GPIO_PIN_6|GPIO_PIN_4);
-
+#elif MICROPY_HW_BOARD_MAGELLAM
+	HAL_GPIO_DeInit(GPIOC, GPIO_PIN_6|GPIO_PIN_7|GPIO_PIN_8|GPIO_PIN_9|GPIO_PIN_11);
+	HAL_GPIO_DeInit(GPIOB, GPIO_PIN_7|GPIO_PIN_8|GPIO_PIN_9);
+	HAL_GPIO_DeInit(GPIOE, GPIO_PIN_6|GPIO_PIN_5);
+	HAL_GPIO_DeInit(GPIOD, GPIO_PIN_3);
+	HAL_GPIO_DeInit(GPIOI, GPIO_PIN_8);
+	HAL_GPIO_DeInit(GPIOG, GPIO_PIN_9);
+	HAL_GPIO_DeInit(GPIOA, GPIO_PIN_6|GPIO_PIN_4|GPIO_PIN_8);
+#endif
+	sw_sdcard_mode();
 }
 //===================================================================================================================
 
 void ov2640_init(void)
 {
 	int ret;
-
-	//HAL_RCC_MCOConfig(RCC_MCO1, RCC_MCO1SOURCE_HSE, RCC_MCODIV_1); //12M
-	HAL_RCC_MCOConfig(RCC_MCO1, RCC_MCO1SOURCE_PLLCLK, RCC_MCODIV_4);//42M
-
-	mp_hal_pin_config_alt_static_speed(MICROPY_HW_DCMI_HSYNC, MP_HAL_PIN_MODE_ALT, MP_HAL_PIN_PULL_NONE, MP_HAL_PIN_SPEED_VERY_HIGH, STATIC_AF_DCMI_HSYNC);
+	#if defined(STM32F4)
+	//HAL_RCC_MCOConfig(RCC_MCO1, RCC_MCO1SOURCE_PLLCLK, RCC_MCODIV_4);//42M
+	HAL_RCC_MCOConfig(RCC_MCO1, RCC_MCO1SOURCE_PLLCLK, RCC_MCODIV_5);//33M
+	#if MICROPY_HW_BOARD_COLUMBUS
 	mp_hal_pin_config_alt_static_speed(MICROPY_HW_DCMI_PIXCK, MP_HAL_PIN_MODE_ALT, MP_HAL_PIN_PULL_NONE, MP_HAL_PIN_SPEED_VERY_HIGH, STATIC_AF_DCMI_PIXCK);
+	#endif
+	#if MICROPY_HW_BOARD_MAGELLAM
+	
+	#if MICROPY_HW_LTDC_LCD
+	if(lcddev.type == LCD43R || lcddev.type == LCD7R){
+		HAL_RCC_MCOConfig(RCC_MCO1, RCC_MCO1SOURCE_HSE, RCC_MCODIV_1);
+	}
+	#endif
+	
+	mp_hal_pin_config_alt_static_speed(MICROPY_HW_DCMI_PIXCK, MP_HAL_PIN_MODE_ALT, MP_HAL_PIN_PULL_NONE, MP_HAL_PIN_SPEED_VERY_HIGH, STATIC_AF_DCMI_PIXCLK);
+	#endif
+	
+	#elif defined(STM32H7)
+	HAL_RCC_MCOConfig(RCC_MCO1, RCC_MCO1SOURCE_PLL1QCLK, RCC_MCODIV_4);//100M/4
+	mp_hal_pin_config_alt_static_speed(MICROPY_HW_DCMI_PIXCK, MP_HAL_PIN_MODE_ALT, MP_HAL_PIN_PULL_NONE, MP_HAL_PIN_SPEED_VERY_HIGH, STATIC_AF_DCMI_PIXCLK);
+	#endif
+	mp_hal_pin_config_alt_static_speed(MICROPY_HW_DCMI_HSYNC, MP_HAL_PIN_MODE_ALT, MP_HAL_PIN_PULL_NONE, MP_HAL_PIN_SPEED_VERY_HIGH, STATIC_AF_DCMI_HSYNC);
 	mp_hal_pin_config_alt_static_speed(MICROPY_HW_DCMI_VSYNC, MP_HAL_PIN_MODE_ALT, MP_HAL_PIN_PULL_NONE, MP_HAL_PIN_SPEED_VERY_HIGH, STATIC_AF_DCMI_VSYNC);
 	mp_hal_pin_config_alt_static_speed(MICROPY_HW_DCMI_D0, MP_HAL_PIN_MODE_ALT, MP_HAL_PIN_PULL_NONE, MP_HAL_PIN_SPEED_VERY_HIGH, STATIC_AF_DCMI_D0);
 	mp_hal_pin_config_alt_static_speed(MICROPY_HW_DCMI_D1, MP_HAL_PIN_MODE_ALT, MP_HAL_PIN_PULL_NONE, MP_HAL_PIN_SPEED_VERY_HIGH, STATIC_AF_DCMI_D1);
@@ -254,40 +358,40 @@ void ov2640_init(void)
 	mp_hal_delay_ms(10);
 
   // start the I2C bus in master mode
- i2c_init(I2C1, MICROPY_HW_I2C1_SCL, MICROPY_HW_I2C1_SDA, 400000, I2C_TIMEOUT_MS);
+ i2c_init(SCCB_I2C, SCCB_I2C_SCL, SCCB_I2C_SDA, 400000, I2C_TIMEOUT_MS);
 
 	uint8_t data[2] = {BANK_SEL, BANK_SEL_SENSOR}; //
 	uint16_t radta = 0;
-	i2c_writeto(I2C1, OV2640_ADDR, data, 2, true);
+	i2c_writeto(SCCB_I2C, OV2640_ADDR, data, 2, true);
 	
 	data[0] = COM7; data[1] = COM7_SRST;
-	i2c_writeto(I2C1, OV2640_ADDR, data, 2, true);
+	i2c_writeto(SCCB_I2C, OV2640_ADDR, data, 2, true);
 	mp_hal_delay_ms(50);
 	
 	data[0] = MIDH; data[1] = MIDL;
-	i2c_writeto(I2C1, OV2640_ADDR, data, 1, false);
-	i2c_readfrom(I2C1, OV2640_ADDR, data, 1, true);
+	i2c_writeto(SCCB_I2C, OV2640_ADDR, data, 1, false);
+	i2c_readfrom(SCCB_I2C, OV2640_ADDR, data, 1, true);
 	radta = (uint16_t)(data[0]<<8);
 	data[0] = MIDL;
-	i2c_writeto(I2C1, OV2640_ADDR, data, 1, false);
-	i2c_readfrom(I2C1, OV2640_ADDR, data, 1, true);
+	i2c_writeto(SCCB_I2C, OV2640_ADDR, data, 1, false);
+	i2c_readfrom(SCCB_I2C, OV2640_ADDR, data, 1, true);
 	radta |= data[0];
 	ov_printf("MID:%x\n",radta);
 
 	data[0] = REG_PID; 
-	i2c_writeto(I2C1, OV2640_ADDR, data, 1, false);
-	i2c_readfrom(I2C1, OV2640_ADDR, data, 1, true);
+	i2c_writeto(SCCB_I2C, OV2640_ADDR, data, 1, false);
+	i2c_readfrom(SCCB_I2C, OV2640_ADDR, data, 1, true);
 	radta = (uint16_t)(data[0]<<8);
 	data[0] = REG_VER;
-	i2c_writeto(I2C1, OV2640_ADDR, data, 1, false);
-	i2c_readfrom(I2C1, OV2640_ADDR, data, 1, true);
+	i2c_writeto(SCCB_I2C, OV2640_ADDR, data, 1, false);
+	i2c_readfrom(SCCB_I2C, OV2640_ADDR, data, 1, true);
 	radta |= data[0];
 	
 	ov_printf("PID:%x\n",radta);
 	ov2640_id = radta;
 
 	for (int i = 0; i < 4; i++) {
-			ret = i2c_writeto(I2C1, OV2640_ADDR, NULL, 0, true);
+			ret = i2c_writeto(SCCB_I2C, OV2640_ADDR, NULL, 0, true);
 			if (ret == 0) {
 					break;
 			}
@@ -296,12 +400,11 @@ void ov2640_init(void)
 			mp_raise_msg(&mp_type_OSError, MP_ERROR_TEXT("ov2640 not found"));
 	}
 
-
 		for(uint16_t i=0;i<sizeof(default_regs)/2;i++)
 		{
 				data[0] = default_regs[i][0]; //
 				data[1] = default_regs[i][1]; //
-				i2c_writeto(I2C1, OV2640_ADDR, data, 2, true);
+				i2c_writeto(SCCB_I2C, OV2640_ADDR, data, 2, true);
 		} 
 		
     __HAL_RCC_DCMI_CLK_ENABLE();                
@@ -332,14 +435,20 @@ void dcmi_init(void)
 //DCMI DMA配置
 void dcmi_dma_init(uint32_t mem0addr,uint32_t mem1addr,uint16_t memsize,uint32_t memblen,uint32_t meminc)
 {
-	
-    __HAL_RCC_DMA2_CLK_ENABLE();  
-   
-    DMADMCI_Handler.Instance=DMA2_Stream1;                                    
-    DMADMCI_Handler.Init.Channel=DMA_CHANNEL_1;               
+	#if defined(STM32F4)
+    __HAL_RCC_DMA2_CLK_ENABLE(); 
+		DMADMCI_Handler.Init.Channel=DMA_CHANNEL_1;
+   #elif defined(STM32H7)
+	 __HAL_RCC_DMA1_CLK_ENABLE();
+	 __HAL_DMA_DISABLE_IT(&DMADMCI_Handler,DMA_IT_TC);
+	 DMADMCI_Handler.Init.Request=DMA_REQUEST_DCMI;					//DCMI的DMA请求
+	 #endif
+	 
+    DMADMCI_Handler.Instance=DCMI_DMA_STREAM;
     DMADMCI_Handler.Init.Direction=DMA_PERIPH_TO_MEMORY;         
     DMADMCI_Handler.Init.PeriphInc=DMA_PINC_DISABLE;               
-    DMADMCI_Handler.Init.MemInc=meminc;                            
+    DMADMCI_Handler.Init.MemInc=meminc;    
+		
     DMADMCI_Handler.Init.PeriphDataAlignment=DMA_PDATAALIGN_WORD;  
     DMADMCI_Handler.Init.MemDataAlignment=memblen;               
     DMADMCI_Handler.Init.Mode=DMA_CIRCULAR;                    
@@ -348,7 +457,6 @@ void dcmi_dma_init(uint32_t mem0addr,uint32_t mem1addr,uint16_t memsize,uint32_t
     DMADMCI_Handler.Init.FIFOThreshold=DMA_FIFO_THRESHOLD_HALFFULL;
     DMADMCI_Handler.Init.MemBurst=DMA_MBURST_SINGLE;            
     DMADMCI_Handler.Init.PeriphBurst=DMA_PBURST_SINGLE;         
-
 		 __HAL_LINKDMA(&DCMI_Handler,DMA_Handle,DMADMCI_Handler);      
 		 
   	HAL_DMA_DeInit(&DMADMCI_Handler);                            
@@ -362,9 +470,9 @@ void dcmi_dma_init(uint32_t mem0addr,uint32_t mem1addr,uint16_t memsize,uint32_t
     else            
     {
 			HAL_DMAEx_MultiBufferStart(&DMADMCI_Handler,(uint32_t)&DCMI->DR,mem0addr,mem1addr,memsize);
-			__HAL_DMA_ENABLE_IT(&DMADMCI_Handler,DMA_IT_TC);   
-			HAL_NVIC_SetPriority(DMA2_Stream1_IRQn,1,2);       
-			HAL_NVIC_EnableIRQ(DMA2_Stream1_IRQn);
+			__HAL_DMA_ENABLE_IT(&DMADMCI_Handler,DMA_IT_TC); 
+			HAL_NVIC_SetPriority(DCMI_DMA_STREAM_IRQ,1,2);       
+			HAL_NVIC_EnableIRQ(DCMI_DMA_STREAM_IRQ);
     }
 }
 
@@ -373,10 +481,14 @@ void dcmi_dma_init(uint32_t mem0addr,uint32_t mem1addr,uint16_t memsize,uint32_t
 void dcmi_set_window(uint16_t sx,uint16_t sy,uint16_t width,uint16_t height)
 {
 	DCMI_Stop();
-	LCD_Clear(BLACK);
-	LCD_Set_Window(sx,sy,width,height);
+	#if MICROPY_HW_LCD43M
+	if(lcddev.type == LCD43M){
+		LCD_Clear(BLACK);
+		LCD_Set_Window(sx,sy,width,height);
+		LCD_SetCursor(sx,sy);
+	}
+	#endif
 	ov2640_outsize_set(width,height);	
-	LCD_SetCursor(sx,sy);  
 }
 
 void sw_ov2640_mode(void)
@@ -502,20 +614,24 @@ STATIC void setframesize(void)
 	uint8_t data[2] = {0};
 
 	if ((w <= VGA_WIDTH) && (h <= VGA_HEIGHT)) {
-		HAL_RCC_MCOConfig(RCC_MCO1, RCC_MCO1SOURCE_PLLCLK, RCC_MCODIV_4);//42M
+		#if defined(STM32F4)
+		//HAL_RCC_MCOConfig(RCC_MCO1, RCC_MCO1SOURCE_PLLCLK, RCC_MCODIV_4);//42M
+		#endif
 			for(uint16_t i=0;i<sizeof(svga_regs)/2;i++)
 			{
 				data[0] = svga_regs[i][0]; //
 				data[1] = svga_regs[i][1]; //
-				i2c_writeto(I2C1, OV2640_ADDR, data, 2, true);
+				i2c_writeto(SCCB_I2C, OV2640_ADDR, data, 2, true);
 			}
 	} else {
-	HAL_RCC_MCOConfig(RCC_MCO1, RCC_MCO1SOURCE_PLLCLK, RCC_MCODIV_5);//42M
+		#if defined(STM32F4)
+		//HAL_RCC_MCOConfig(RCC_MCO1, RCC_MCO1SOURCE_PLLCLK, RCC_MCODIV_5);//33M
+		#endif
 		for(uint16_t i=0;i<sizeof(default_regs)/2;i++)
 				{
 					data[0] = default_regs[i][0]; //
 					data[1] = default_regs[i][1]; //
-					i2c_writeto(I2C1, OV2640_ADDR, data, 2, true);
+					i2c_writeto(SCCB_I2C, OV2640_ADDR, data, 2, true);
 				}
 	}
 			
@@ -538,27 +654,26 @@ STATIC uint8_t ov2640_jpg_photo(const TCHAR *pname)
   uint16_t h = resolution[framesize][1];
 
 	if ((w <= VGA_WIDTH) && (h <= VGA_HEIGHT)) {
-					sensor_w = SVGA_WIDTH;
-					sensor_h = SVGA_HEIGHT;
-			} else {
-					sensor_w = UXGA_WIDTH;
-					sensor_h = UXGA_HEIGHT;
-			}
+			sensor_w = SVGA_WIDTH;
+			sensor_h = SVGA_HEIGHT;
+	} else {
+			sensor_w = UXGA_WIDTH;
+			sensor_h = UXGA_HEIGHT;
+	}
 
 	dcmi_rx_callback=jpeg_dcmi_rx_callback;
 	dcmi_init();	
 	dcmi_dma_init((uint32_t)jpeg_buf0,(uint32_t)jpeg_buf1,jpeg_dma_bufsize,DMA_MDATAALIGN_WORD,DMA_MINC_ENABLE);
 	ov2640_jpeg_mode();	
-	//ov2640_imagewin_set((sensor_w-w)/2,(sensor_h-h)/2,w,h);
 	ov2640_imagewin_set(0,0,sensor_w,sensor_h);
 	ov2640_outsize_set(w,h);
 
 	DCMI_Start(); 	
-	for(uint8_t j=0; j<10 ; j++ )
-	{
+	for(uint8_t j=0; j<10 ; j++ ){
 		while(jpeg_data_ok!=1);	
 		jpeg_data_ok=2;	
 	}
+	
 	while(jpeg_data_ok!=1);	
 	DCMI_Stop(); 		
 	
@@ -605,8 +720,22 @@ STATIC uint8_t ov2640_jpg_photo(const TCHAR *pname)
 		sw_ov2640_mode();
 		ov2640_rgb565_mode(); 
 		dcmi_init();			
-		dcmi_dma_init((uint32_t)&LCD43M_RAM,0,(display_w*display_h)>>1,DMA_MDATAALIGN_HALFWORD,DMA_MINC_DISABLE);
+
+		#if MICROPY_HW_LCD43M
+		if(lcddev.type == LCD43M){
+			dcmi_dma_init((uint32_t)&LCD43M_RAM,0,1,DMA_MDATAALIGN_HALFWORD,DMA_MINC_DISABLE);//DCMI DMA配置 
+		}
+		#endif
+		#if MICROPY_HW_LTDC_LCD
+		if(lcddev.type == LCD7R || lcddev.type == LCD43R){
+
+			dcmi_rx_callback=ltdc_dcmi_rx_callback;
+			dcmi_dma_init((uint32_t)jpeg_buf0,(uint32_t)jpeg_buf1,display_w>>1,DMA_MDATAALIGN_HALFWORD,DMA_MINC_ENABLE);//DCMI DMA配置  
+		}
+		#endif
+
 		ov2640_imagewin_set(0,0,sensor_w,sensor_h);//1:1真实尺寸
+		
 		dcmi_set_window(sx,sy,display_w,display_h); 
 	
 		DCMI_Start(); 		
@@ -626,10 +755,10 @@ void jpeg_data_process(void)
 		if(jpeg_data_ok==0)	
 		{
 			__HAL_DMA_DISABLE(&DMADMCI_Handler);		
-			while(DMA2_Stream1->CR&0X01);	   
+			while(DCMI_DMA_STREAM->CR&0X01);	   
 			rlen=jpeg_dma_bufsize-__HAL_DMA_GET_COUNTER(&DMADMCI_Handler);	
 			pbuf=jpeg_data_buf+jpeg_data_len;
-			if(DMA2_Stream1->CR&(1<<19))for(i=0;i<rlen;i++)pbuf[i]=jpeg_buf1[i];
+			if(DCMI_DMA_STREAM->CR&(1<<19))for(i=0;i<rlen;i++)pbuf[i]=jpeg_buf1[i];
 			else for(i=0;i<rlen;i++)pbuf[i]=jpeg_buf0[i];
 			jpeg_data_len+=rlen;		
 			jpeg_data_ok=1; 			
@@ -643,17 +772,18 @@ void jpeg_data_process(void)
 		}
 	}
 }
+
 //=======================================================================================================
 STATIC mp_obj_t sensor_ov2640_reset(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
 	uint8_t data[2] = {BANK_SEL, BANK_SEL_SENSOR}; //
-	int res = i2c_writeto(I2C1, OV2640_ADDR, data, 2, true);
+	int res = i2c_writeto(SCCB_I2C, OV2640_ADDR, data, 2, true);
 	data[0] = COM7; data[1] = COM7_SRST;
-	res |= i2c_writeto(I2C1, OV2640_ADDR, data, 2, true);
+	res |= i2c_writeto(SCCB_I2C, OV2640_ADDR, data, 2, true);
 	for(uint16_t i=0;i<sizeof(default_regs)/2;i++)
 		{
 			data[0] = default_regs[i][0]; //
 			data[1] = default_regs[i][1]; //
-			i2c_writeto(I2C1, OV2640_ADDR, data, 2, true);
+			i2c_writeto(SCCB_I2C, OV2640_ADDR, data, 2, true);
 		}
 			
 	mp_hal_delay_ms(300);
@@ -717,45 +847,83 @@ STATIC mp_obj_t sensor_ov2640_setframesize(size_t n_args, const mp_obj_t *pos_ar
 STATIC MP_DEFINE_CONST_FUN_OBJ_KW(sensor_ov2640_setframesize_obj, 1, sensor_ov2640_setframesize);
 
 //----------------------------------------------------------------------------------
-#if MICROPY_HW_LCD43M
+#if (MICROPY_ENABLE_TFTLCD || MICROPY_HW_LTDC_LCD)
 STATIC mp_obj_t sensor_ov2640_display(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
 
-	lcd43m_init();
-	disp_dir = lcddev.dir;
-	LCD_Display_Dir(2);
-	LCD_Clear(BLACK);
+	static const mp_arg_t ov_args[] = {
+			{ MP_QSTR_lcd, MP_ARG_INT, {.u_int = LCD43M} },
+	};
+	
+	mp_arg_val_t args[MP_ARRAY_SIZE(ov_args)];
+  mp_arg_parse_all(n_args - 1, pos_args + 1, kw_args, MP_ARRAY_SIZE(ov_args), ov_args, args);
 
+	disp_dir = lcddev.dir;
+	
+	switch(lcddev.type)
+	{
+		case LCD43M:
+		#if MICROPY_HW_LCD43M
+		#if defined(STM32H7)
+		HAL_RCC_MCOConfig(RCC_MCO1, RCC_MCO1SOURCE_PLL1QCLK, RCC_MCODIV_2);//100M/2
+		#endif
+		LCD_Display_Dir(2);
+		LCD_Clear(BLACK);
+		#endif
+		break;
+		case LCD43R:
+		#if MICROPY_HW_LCD43R
+		set_lcd_dir(3);
+		ltdc_clear(BLACK);
+		#endif
+		break;
+		case LCD7R:
+		#if MICROPY_HW_LCD7R
+		set_lcd_dir(1);
+		ltdc_clear(BLACK);
+		#endif
+		break;
+		default :
+		break;
+	}
+	
   display_w = resolution[framesize][0];
   display_h = resolution[framesize][1];
 	
 	uint16_t sensor_w = 0;
 	uint16_t sensor_h = 0;
-	uint16_t sx,sy;
 
-	if ((display_w <= VGA_WIDTH) && (display_h <= VGA_HEIGHT)) 
-		{
-			sensor_w = SVGA_WIDTH;
-			sensor_h = SVGA_HEIGHT;
-		} 
-		else 
-		{
-			sensor_w = UXGA_WIDTH;
-			sensor_h = UXGA_HEIGHT;
-			
-		}
-		//printf("set->sensor_w:%d,sensor_h:%d\n",sensor_w,sensor_h);
+	if ((display_w <= VGA_WIDTH) && (display_h <= VGA_HEIGHT)) {
+		sensor_w = SVGA_WIDTH;
+		sensor_h = SVGA_HEIGHT;
+	}else {
+		sensor_w = UXGA_WIDTH;
+		sensor_h = UXGA_HEIGHT;
+	}
 
 	DCMI_Stop();
 	if(display_w > lcddev.width) 	display_w = lcddev.width;
 	if(display_h > lcddev.height) display_h = lcddev.height;
-	sx = (lcddev.width - display_w)>>1;
-	sy = (lcddev.height - display_h)>>1;
+	display_sx = (lcddev.width - display_w)>>1;
+	display_sy = (lcddev.height - display_h)>>1;
 
 	ov2640_rgb565_mode();
-	dcmi_init();		
-	dcmi_dma_init((uint32_t)&LCD43M_RAM,0,(display_w*display_h)>>1,DMA_MDATAALIGN_HALFWORD,DMA_MINC_DISABLE);//DCMI DMA配置 
+	dcmi_init();	//无关项	
+	
+	#if MICROPY_HW_LCD43M
+	if(lcddev.type == LCD43M){
+		dcmi_dma_init((uint32_t)&LCD43M_RAM,0,1,DMA_MDATAALIGN_HALFWORD,DMA_MINC_DISABLE);//DCMI DMA配置 h7
+	}
+	#endif
+	
+	#if MICROPY_HW_LTDC_LCD
+	if(lcddev.type == LCD7R || lcddev.type == LCD43R){
+		dcmi_rx_callback=ltdc_dcmi_rx_callback;
+		dcmi_dma_init((uint32_t)jpeg_buf0,(uint32_t)jpeg_buf1,display_w>>1,DMA_MDATAALIGN_HALFWORD,DMA_MINC_ENABLE);//DCMI DMA配置  
+	}
+	#endif
+
 	ov2640_imagewin_set(0,0,sensor_w,sensor_h);
-	dcmi_set_window(sx,sy,display_w,display_h); 
+	dcmi_set_window(display_sx,display_sy,display_w,display_h); 
 	DCMI_Start(); 		//启动传输
 	is_display = true;
 
@@ -764,16 +932,36 @@ STATIC mp_obj_t sensor_ov2640_display(size_t n_args, const mp_obj_t *pos_args, m
 STATIC MP_DEFINE_CONST_FUN_OBJ_KW(sensor_ov2640_display_obj,0, sensor_ov2640_display);
 //----------------------------------------------------------------------------------
 STATIC mp_obj_t sensor_ov2640_display_stop(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
+	
 	DCMI_Stop(); 		
+	
 	ov2640_mode = 0;
+
+	is_display = false;
 	lcddev.dir = disp_dir;
-	LCD_Display_Dir(lcddev.dir);
-	LCD_Clear(BLACK);
-	sw_sdcard_mode();		//切换为SD卡模式
+	#if MICROPY_HW_LCD43M
+	if(lcddev.type == LCD43M){
+		LCD_Display_Dir(lcddev.dir);
+		LCD_Clear(BLACK);
+		#if defined(STM32H7)
+		HAL_RCC_MCOConfig(RCC_MCO1, RCC_MCO1SOURCE_PLL1QCLK, RCC_MCODIV_4);//100M/4
+		#endif
+	}
+	#endif
+	
+	#if MICROPY_HW_LTDC_LCD
+	if(lcddev.type == LCD43R || lcddev.type == LCD7R){
+		set_lcd_dir(lcddev.dir);
+		ltdc_clear(BLACK);
+	}
+	#endif
+	
+	//sw_sdcard_mode();		//切换为SD卡模式
 
 	return mp_const_none;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_KW(sensor_ov2640_display_stop_obj,0, sensor_ov2640_display_stop);
+#endif
 //----------------------------------------------------------------------------------
 STATIC mp_obj_t sensor_ov2640_hmirror(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
 	static const mp_arg_t hmirror_args[] = {
@@ -825,7 +1013,7 @@ STATIC mp_obj_t sensor_ov2640_vflip(size_t n_args, const mp_obj_t *pos_args, mp_
 	return mp_obj_new_int(get_set);
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_KW(sensor_ov2640_vflip_obj,0, sensor_ov2640_vflip);
-#endif
+
 //---------------------------------------------------------------------------------
 STATIC mp_obj_t sensor_ov2640_fps(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
 	uint8_t getfps = fps;
@@ -839,9 +1027,10 @@ STATIC mp_obj_t sensor_ov2640_deinit(size_t n_args, const mp_obj_t *pos_args, mp
 
 	sccb_deinit();
 	sw_sdcard_mode();
-
+	#if defined(STM32F4)
 	m_free(jpeg_buf0);
 	m_free(jpeg_buf1);
+	#endif
 	m_free(jpeg_data_buf);
 	return mp_const_none;
 }
@@ -860,12 +1049,16 @@ STATIC mp_obj_t sensor_ov2640_make_new(const mp_obj_type_t *type, size_t n_args,
 
 	ov2640_init();
 	framesize = FRAMESIZE_QQQVGA;
+	#if defined(STM32F4)
 	jpeg_buf0 = m_malloc(jpeg_dma_bufsize*4);
 	jpeg_buf1 = m_malloc(jpeg_dma_bufsize*4);
+	#endif
 	jpeg_data_buf = m_malloc(300*1024);
+	#if defined(STM32F4)
 	if(jpeg_buf0 == NULL || jpeg_buf1 == NULL || jpeg_data_buf == NULL){
 		mp_raise_ValueError(MP_ERROR_TEXT("jpeg malloc error"));
 	}
+	#endif
 
   ov2640_obj_t *ov2640_obj;
   ov2640_obj = m_new_obj(ov2640_obj_t);
@@ -886,8 +1079,7 @@ STATIC const mp_rom_map_elem_t sensor_ov2640_locals_dict_table[] = {
 		{ MP_ROM_QSTR(MP_QSTR_set_hmirror), MP_ROM_PTR(&sensor_ov2640_hmirror_obj) },
 		{ MP_ROM_QSTR(MP_QSTR_set_vfilp), MP_ROM_PTR(&sensor_ov2640_vflip_obj) },
 
-
-		#if MICROPY_HW_LCD43M
+		#if (MICROPY_ENABLE_TFTLCD || MICROPY_HW_LTDC_LCD)
 		{ MP_ROM_QSTR(MP_QSTR_display), MP_ROM_PTR(&sensor_ov2640_display_obj) },
 		{ MP_ROM_QSTR(MP_QSTR_display_stop), MP_ROM_PTR(&sensor_ov2640_display_stop_obj) },
 		#endif

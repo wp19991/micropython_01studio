@@ -284,7 +284,7 @@ extern const struct _mp_obj_module_t audio_module;
 extern const struct _mp_obj_module_t video_module;
 extern const struct _mp_obj_module_t sensor_module;
 extern const struct _mp_obj_module_t gui_module;
-
+extern const struct _mp_obj_module_t magellan_module;
 
 #if MICROPY_PY_PYB
 #define PYB_BUILTIN_MODULE                  { MP_ROM_QSTR(MP_QSTR_pyb), MP_ROM_PTR(&pyb_module) },
@@ -372,7 +372,11 @@ extern const struct _mp_obj_module_t gui_module;
 #define GUI_MODULE
 #endif
 
-
+#if MICROPY_ENABLE_MAGELLAN_MODULE
+#define MAGELLAN_MODULE                  { MP_ROM_QSTR(MP_QSTR_magellan), MP_ROM_PTR(&magellan_module) },
+#else
+#define MAGELLAN_MODULE
+#endif
 
 #define MICROPY_PORT_BUILTIN_MODULES \
     MACHINE_BUILTIN_MODULE \
@@ -390,6 +394,7 @@ extern const struct _mp_obj_module_t gui_module;
 		VIDEO_MODULE \
 		SENSOR_MODULE \
 		GUI_MODULE \
+		MAGELLAN_MODULE \
   
 
 
@@ -405,6 +410,7 @@ extern const struct _mp_obj_module_t gui_module;
     VIDEO_MODULE \
     SENSOR_MODULE \
     GUI_MODULE \
+		MAGELLAN_MODULE \
     
 #define MP_STATE_PORT MP_STATE_VM
 

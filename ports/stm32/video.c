@@ -24,7 +24,6 @@
 #include "py/nlr.h"
 #include "py/gc.h"
 
-
 #if MICROPY_ENABLE_VIDEO
 #include "video.h"
 #include "wm8978.h"
@@ -36,36 +35,42 @@
 #include "lcd43m.h"
 #endif
 
-#if MICROPY_GUI_BUTTON
+#if MICROPY_ENABLE_TOUCH
 #include "gui_button.h"
+#include "modtouch.h"
 #endif
 
 #if MICROPY_ENABLE_TFTLCD
 #include "modtftlcd.h"
 #endif
 
+#if MICROPY_PY_HJPEG_DECODE
+#include "hjpgd.h"
+#endif
+
+#ifdef MICROPY_PY_PICLIB
+#include "piclib.h"
+#endif
+
 #include "mjpeg.h" 
 #include "avi.h"
 #include "video.h"
 //===================================================================================================================
-__videodev videodev;		//视频播放控制器
 
+__videodev videodev;		//视频播放控制器
 
 //===================================================================================================================
 //音频数据I2S DMA传输回调函数
 void audio_i2s_dma_callback(void) 
-{      
+{
 	videodev.i2splaybuf++;
 	if(videodev.i2splaybuf>3)videodev.i2splaybuf=0;
-	if(DMA1_Stream4->CR&(1<<19))
-	{	 
+
+	if(DMA1_Stream4->CR&(1<<19)){
 		DMA1_Stream4->M0AR=(uint32_t)videodev.i2sbuf[videodev.i2splaybuf];//指向下一个buf
-	}
-	else 
-	{   		
+	}else {
 		DMA1_Stream4->M1AR=(uint32_t)videodev.i2sbuf[videodev.i2splaybuf];//指向下一个buf
-	} 
-	
+	}
 }
 //==============================================================================================================
 typedef struct _video_video_obj_t {
@@ -76,32 +81,33 @@ typedef struct _video_video_obj_t {
 STATIC void video_callback(video_obj_t *self) ;
 
 //-------------------------------------------------------------------------------------------------------------------
-uint8_t video_play_mjpeg(const 	    char *pname)
+uint8_t video_play_mjpeg(const char *pname)
 {   
-	uint8_t* framebuf=0;		//视频解码buf	 
+
+	uint8_t* framebuf=NULL;		//视频解码buf	 
+
 	uint8_t* pbuf=0;			//buf指针   
 	uint8_t play_flag = 0;
 	uint8_t  res=0;
 	uint16_t offset=0; 
 	UINT	nr;  
 	uint8_t i2ssavebuf; 
-	uint16_t videoheight = 550;	//视频显示区域高度
-	//uint16_t yoff=90;
+	uint16_t videoheight = 800;	//视频显示区域高度
 	int yoff=0;
 
+	videodev.file=(FIL*)m_malloc(sizeof(FIL)); 			//申请videodev.file内存 
+	
 	framebuf=m_malloc(AVI_VIDEO_BUF_SIZE);				//申请视频buf
 	videodev.i2sbuf[0]=m_malloc(AVI_AUDIO_BUF_SIZE);	//申请音频内存
 	videodev.i2sbuf[1]=m_malloc(AVI_AUDIO_BUF_SIZE);	//申请音频内存
 	videodev.i2sbuf[2]=m_malloc(AVI_AUDIO_BUF_SIZE);	//申请音频内存
 	videodev.i2sbuf[3]=m_malloc(AVI_AUDIO_BUF_SIZE);	//申请音频内存
-	videodev.file=(FIL*)m_malloc(sizeof(FIL)); 			//申请videodev.file内存 
-	if(!videodev.i2sbuf[3]||!framebuf)
-	{ 
+	if(!videodev.i2sbuf[3]||!framebuf){ 
 		mp_raise_ValueError(MP_ERROR_TEXT("video play memory error!"));
 		res=0X21;
 	}
-	if(res == 0)
-	{
+
+	if(res == 0){
 		memset(videodev.i2sbuf[0],0,AVI_AUDIO_BUF_SIZE);
 		memset(videodev.i2sbuf[1],0,AVI_AUDIO_BUF_SIZE); 
 		memset(videodev.i2sbuf[2],0,AVI_AUDIO_BUF_SIZE);
@@ -121,10 +127,12 @@ uint8_t video_play_mjpeg(const 	    char *pname)
 		res=f_read(videodev.file,pbuf,AVI_VIDEO_BUF_SIZE,&nr);
 		if(res){
 			mp_raise_ValueError(MP_ERROR_TEXT("read video file error!"));
-		} 	 
+		} 
+
 		//开始avi解析
 		res=avi_init(pbuf,AVI_VIDEO_BUF_SIZE);
 		if(res){
+			printf("res:%d\r\n",res);
 			mp_raise_ValueError(MP_ERROR_TEXT("avi init error!"));
 		} 	
 		if(avix.Height>videoheight||avix.Width>lcddev.width){
@@ -136,24 +144,34 @@ uint8_t video_play_mjpeg(const 	    char *pname)
 		f_lseek(videodev.file,offset+12);
 
 		res=mjpegdec_init((lcddev.width-avix.Width)>>1,((lcddev.height-avix.Height)>>1)+yoff);
+
 		if(avix.SampleRate){
 			WM8978_I2S_CFG(2,0);	//飞利浦标准,16位数据长度
+			wm8978_adda_cfg(1,0);			//开启DAC
+			#if defined(STM32F4)
 			audio_init(I2S_STANDARD_PHILIPS,I2S_MODE_MASTER_TX,I2S_CPOL_LOW,I2S_DATAFORMAT_16B_EXTENDED);
 			I2S2_SampleRate_Set(avix.SampleRate);	//设置采样率
+			#elif defined(STM32H7)
+			audio_init(I2S_STANDARD_PHILIPS,I2S_MODE_MASTER_TX,I2S_CPOL_LOW,I2S_DATAFORMAT_16B_EXTENDED,avix.SampleRate); 
+			#endif
+
 			I2S2_TX_DMA_Init(videodev.i2sbuf[1],videodev.i2sbuf[2],avix.AudioBufSize/2);
 			i2s_tx_callback=audio_i2s_dma_callback;
 			videodev.i2splaybuf=0;
 			i2ssavebuf=0; 
 			__HAL_DMA_ENABLE(&I2S2_TXDMA_Handler);
+			#if defined(STM32H7)
+			SPI2->CR1 |= SPI_CR1_SPE;
+			SPI2->CR1 |= SPI_CR1_CSTART; //启动i2s
+			#endif
 		}
 
-		//videodev.status=0;//非暂停,非快进快退
-		//DMA1_Stream4->CR&=~(1<<0);
 		videodev.status = 3;
     DMA1_Stream4->CR|=1<<0;	
 		videodev.play_while = 1;
 		video_obj_t *self;
 		self = MP_STATE_PORT(video_obj_rom);
+
 		while(videodev.play_while){
 			if(videodev.status&(1<<0)&&videodev.status&(1<<1)){
 				play_flag = 1;
@@ -161,17 +179,21 @@ uint8_t video_play_mjpeg(const 	    char *pname)
 					pbuf=framebuf;
 					f_read(videodev.file,pbuf,avix.StreamSize+8,&nr);
 					res=mjpegdec_decode(pbuf,avix.StreamSize);
+
 					if(res){
 						mp_raise_ValueError(MP_ERROR_TEXT("avi decode error!"));
 					} 
-					//mp_hal_delay_us(100);
-					if(gt1151_is_init){
-							#if MICROPY_GUI_BUTTON
-									gtxx_read_point();
-									button_task();
-							#endif
+					if(0){
+					#if MICROPY_ENABLE_TOUCH 
+					}
+					else if(touch_is_init){
+						#if MICROPY_GUI_BUTTON
+						gui_read_points();
+						button_task();
+						#endif
+					#endif
 					}else{
-								mp_hal_delay_us(100);
+						mp_hal_delay_us(100);
 					}
 
 					video_callback(self);
@@ -188,14 +210,16 @@ uint8_t video_play_mjpeg(const 	    char *pname)
 					pbuf=videodev.i2sbuf[i2ssavebuf];  
 				} 
 			}else{
-				//mp_hal_delay_ms(500);
-				
-				if(gt1151_is_init){
-						#if MICROPY_GUI_BUTTON
+				if(0){
+					#if MICROPY_ENABLE_TOUCH 
+					}
+				else if(touch_is_init){
+					#if MICROPY_GUI_BUTTON
 								mp_hal_delay_ms(10);
-								gtxx_read_point();
+								gui_read_points();
 								button_task();
-						#endif
+					#endif
+					#endif
 				}else{
 							mp_hal_delay_ms(500);
 				}
@@ -203,7 +227,6 @@ uint8_t video_play_mjpeg(const 	    char *pname)
 			}
 			if(play_flag && videodev.status&(1<<0)&&videodev.status&(1<<1)){
 				if(avi_get_streaminfo(pbuf+avix.StreamSize)){
-					printf("frame error \r\n"); 
 					break; 
 				}
 			}
@@ -218,6 +241,7 @@ uint8_t video_play_mjpeg(const 	    char *pname)
 	m_free(videodev.i2sbuf[2]);
 	m_free(videodev.i2sbuf[3]);
 	m_free(framebuf);
+
 	m_free(videodev.file);
 
 	return res;
@@ -262,6 +286,7 @@ STATIC mp_obj_t video_video_play(size_t n_args, const mp_obj_t *pos_args, mp_map
 		//printf("play name:%s\n",FileName);
 		const char *type = mp_obj_str_get_str(file_type((const char *)FileName));
 		if(strncmp(type , "avi" , 3) == 0 ||strncmp(type , "AVI" , 3) == 0) {
+			wm8978_adda_cfg(1,0);
 			video_play_mjpeg(FileName);
 		}else{
 			mp_raise_ValueError(MP_ERROR_TEXT("play video type error"));
@@ -273,24 +298,24 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_KW(video_video_play_obj, 0, video_video_play);
 
 //-----------------------------------------------------------------------------------
 STATIC mp_obj_t video_video_continue_play(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
-
-    videodev.status = 3;
-    DMA1_Stream4->CR|=1<<0;	
+		wm8978_adda_cfg(1,0);
+		videodev.status = 3;
 		return mp_const_true;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_KW(video_video_continue_play_obj, 0, video_video_continue_play);
 //-----------------------------------------------------------------------------------
 
 STATIC mp_obj_t video_video_pause(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
-
     videodev.status&=~(1<<0);
-    DMA1_Stream4->CR&=~(1<<0);
+		wm8978_adda_cfg(0,0);
 		return mp_const_true;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_KW(video_video_pause_obj, 0, video_video_pause);
 //-----------------------------------------------------------------------------------
 STATIC mp_obj_t video_video_stop(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
     videodev.play_while = 0;
+		__HAL_DMA_DISABLE(&I2S2_TXDMA_Handler);
+		wm8978_adda_cfg(0,0);
 		return mp_const_true;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_KW(video_video_stop_obj, 0, video_video_stop);
@@ -355,12 +380,11 @@ STATIC mp_obj_t video_video_make_new(const mp_obj_type_t *type, size_t n_args, s
 
 	// check arguments
 	mp_arg_check_num(n_args, n_kw, 0, MP_OBJ_FUN_ARGS_MAX, false);
-	
-	lcd43m_init();
-	LCD_Display_Dir(lcddev.dir);
+
 	wm8978_init();
 	wm8978_spk_vol(50);
 	wm8978_hspk_vol(50,50);
+	wm8978_adda_cfg(0,0);
   video_obj_t *video_obj;
   video_obj = m_new_obj(video_obj_t);
   video_obj->base.type = &video_video_type;

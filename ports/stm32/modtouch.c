@@ -55,8 +55,15 @@
 #if MICROPY_HW_GT1151
 #include "gt1151.h"
 #endif
-
+#if MICROPY_HW_FT54X6
+#include "ft54x6.h"
+#endif
+#if MICROPY_HW_GT911
+#include "gt911.h"
+#endif
 TP_DEV tp_dev;
+
+bool touch_is_init = 0;
 
 static uint16_t pre_x[TOUCH_MAX_TOUCH] = {0, 0, 0, 0, 0};
 static uint16_t pre_y[TOUCH_MAX_TOUCH] = {0, 0, 0, 0, 0};
@@ -103,6 +110,34 @@ void tp_touch_down(int8_t id, uint16_t x, uint16_t y, uint8_t w)
     pre_w[id] = w;
 }
 
+void gui_read_points(void)
+{
+	//1:FT5416,2:GT911	,3 XPT2046, 4:gt1151
+		switch (tp_dev.type)
+	{
+		case 1:
+		#if MICROPY_HW_FT54X6
+		ft54x6_read_point();
+		#endif
+		break;
+		case 2:
+		#if MICROPY_HW_GT911
+		gt911_read_point();
+		#endif
+		break;
+		case 3:
+		#if MICROPY_HW_XPT2046
+		xpt_read_point();
+		#endif
+		break;
+		case 4:
+		#if MICROPY_HW_GT1151
+		gtxx_read_point();
+		#endif
+		break;
+	}
+	
+}
 STATIC const mp_rom_map_elem_t touch_module_globals_table[] = {
     { MP_ROM_QSTR(MP_QSTR___name__), MP_ROM_QSTR(MP_QSTR_touch) },
     #if MICROPY_HW_GT1151
@@ -110,6 +145,12 @@ STATIC const mp_rom_map_elem_t touch_module_globals_table[] = {
 		#endif
 		#if MICROPY_HW_XPT2046
 		{ MP_ROM_QSTR(MP_QSTR_XPT2046), MP_ROM_PTR(&touch_xpt2046_type) },
+		#endif
+		#if MICROPY_HW_FT54X6
+		{ MP_ROM_QSTR(MP_QSTR_FT5436), MP_ROM_PTR(&touch_ft_type) },
+		#endif
+		#if MICROPY_HW_GT911
+		{ MP_ROM_QSTR(MP_QSTR_GT911), MP_ROM_PTR(&touch_gt911_type) },
 		#endif
 };
 STATIC MP_DEFINE_CONST_DICT(touch_module_globals, touch_module_globals_table);

@@ -33,6 +33,10 @@
 #include "lcd43m.h"
 #endif
 
+#if MICROPY_HW_LTDC_LCD
+#include "ltdc.h"
+#endif
+
 #if MICROPY_HW_LCD32
 #include "ILI9341.h"
 #endif
@@ -291,7 +295,6 @@ void button_task(void)
 					}
 				}
 				tp_dev.sta=TP_INACTIVE;
-
 			} 
 }
 
@@ -366,12 +369,12 @@ STATIC mp_obj_t gui_button_make_new(const mp_obj_type_t *type, size_t n_args, si
 		{
 			mp_obj_get_array(args[4].u_obj, &len, &params);
 			if(len == 3){
-				//bt_color = rgb888to565(mp_obj_get_int(params[0]), mp_obj_get_int(params[1]), mp_obj_get_int(params[2]));
-				#if MICROPY_HW_LCD43G
-					bt_color = (mp_obj_get_int(params[0])<<16) | (mp_obj_get_int(params[1])<<8) | mp_obj_get_int(params[2]);
-				#else
-					bt_color = rgb888to565(mp_obj_get_int(params[0]), mp_obj_get_int(params[1]), mp_obj_get_int(params[2]));
-				#endif
+
+				//#if MICROPY_HW_LCD43R
+					//bt_color = (mp_obj_get_int(params[0])<<16) | (mp_obj_get_int(params[1])<<8) | mp_obj_get_int(params[2]);
+				//#else
+					bt_color = get_rgb565(mp_obj_get_int(params[0]), mp_obj_get_int(params[1]), mp_obj_get_int(params[2]));
+				//#endif
 			}else{
 				mp_raise_ValueError(MP_ERROR_TEXT("Button color parameter error \n"));
 			}
@@ -380,12 +383,12 @@ STATIC mp_obj_t gui_button_make_new(const mp_obj_type_t *type, size_t n_args, si
 		{
 			mp_obj_get_array(args[6].u_obj, &len, &params);
 			if(len == 3){
-				//label_color = rgb888to565(mp_obj_get_int(params[0]), mp_obj_get_int(params[1]), mp_obj_get_int(params[2]));
-				#if MICROPY_HW_LCD43G
-				label_color = (mp_obj_get_int(params[0])<<16) | (mp_obj_get_int(params[1])<<8) | mp_obj_get_int(params[2]);
-				#else
-				label_color = rgb888to565(mp_obj_get_int(params[0]), mp_obj_get_int(params[1]), mp_obj_get_int(params[2]));
-				#endif
+				//label_color = get_rgb565(mp_obj_get_int(params[0]), mp_obj_get_int(params[1]), mp_obj_get_int(params[2]));
+				//#if MICROPY_HW_LCD43R
+				//label_color = (mp_obj_get_int(params[0])<<16) | (mp_obj_get_int(params[1])<<8) | mp_obj_get_int(params[2]);
+				//#else
+				label_color = get_rgb565(mp_obj_get_int(params[0]), mp_obj_get_int(params[1]), mp_obj_get_int(params[2]));
+				//#endif
 			}else{
 				mp_raise_ValueError(MP_ERROR_TEXT("Button label color parameter error \n"));
 			}
@@ -412,10 +415,14 @@ STATIC mp_obj_t gui_button_make_new(const mp_obj_type_t *type, size_t n_args, si
 			#endif
 			break;
 			case 2:
-
+			#if MICROPY_HW_LCD43R
+			btn_fun = &ltdc_glcd;
+			#endif
 			break;
 			case 3:
-
+			#if MICROPY_HW_LCD7R
+			btn_fun = &ltdc_glcd;
+			#endif
 			break;
 			case 4:
 			#if MICROPY_HW_LCD32

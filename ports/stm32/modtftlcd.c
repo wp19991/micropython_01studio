@@ -31,6 +31,10 @@
 #include "lcd43m.h"
 #endif
 
+#if MICROPY_HW_LTDC_LCD
+#include "ltdc.h"
+#endif
+
 #if MICROPY_HW_LCD32
 #include "ILI9341.h"
 #endif
@@ -44,8 +48,10 @@
 #endif
 
 _lcd_dev lcddev;
-
-uint16_t rgb888to565(uint8_t r_color, uint8_t g_color , uint8_t b_color)
+#if MICROPY_PY_PICLIB
+uint8_t is_sdcard = 0;
+#endif
+uint16_t get_rgb565(uint8_t r_color, uint8_t g_color , uint8_t b_color)
 {
     r_color = ((r_color & 0xF8));
     g_color = ((g_color & 0xFC));
@@ -53,6 +59,58 @@ uint16_t rgb888to565(uint8_t r_color, uint8_t g_color , uint8_t b_color)
     return (((uint16_t)r_color << 8) + ((uint16_t)g_color << 3) + b_color );
 }
 
+uint16_t get_bgr565(uint8_t r_color, uint8_t g_color , uint8_t b_color)
+{
+    r_color = (r_color & 0xF8);
+    g_color = (g_color & 0xFC);
+    b_color = (b_color & 0xF8);
+    return (((uint16_t)r_color >> 3) + ((uint16_t)g_color << 3) + ((uint16_t)b_color<<8) );
+}
+
+uint32_t get_rgb888(uint8_t r_color, uint8_t g_color , uint8_t b_color)
+{
+	uint32_t color = (((uint32_t)r_color << 16) | ((uint32_t)g_color << 8) | b_color ) ;
+	
+	return (uint32_t)(color & 0xFFFFFF);
+}
+
+uint32_t rgb888tobgr888(uint32_t color)
+{
+	uint32_t color_r=0,color_b = 0;
+	color_r = ((color & 0xFF0000U) >> 16);
+	color_b = ((color & 0xFFU) << 16);
+	color &= 0xFF00U;
+	color = (color | color_r | color_b);
+	return color;
+}
+uint32_t rgb565torgb888(uint16_t color)
+{
+	uint32_t color_r=0,color_g=0,color_b = 0;
+	color_r = ((uint32_t)(color & RED) << 8);
+	color_g = ((uint32_t)(color & GREEN) << 5);
+	color_b = ((uint32_t)(color & BLUE) << 3);
+
+	return (uint32_t)(color_r | color_g | color_b);
+}
+uint32_t bgr2rgb(uint32_t color)
+{
+	uint32_t color_r=0,color_b = 0;
+	color_b = ((color & 0xFF0000U) >> 16);
+	color_r = ((color & 0xFFU) << 16);
+	color &= 0xFF00U;
+	color = (color | color_r | color_b);
+	return color;
+}
+
+uint16_t rgb565tobgr565(uint16_t color)
+{
+	uint16_t color_r=0,color_b = 0;
+	color_r = ((color & 0xF800) >> 11);
+	color_b = ((color & 0x001F) << 11);
+	color &= 0x07E0;
+	color = (color | color_r | color_b);
+	return color;
+}
 void grap_drawLine(const Graphics_Display *display, uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t color)
 {
 	uint16_t t; 
@@ -159,8 +217,18 @@ void grap_drawColorCircle(const Graphics_Display *display,
 }
 
 //------------------------------------------------------------------------------------------------------
-#define BUF_LEN 1160
+
+
+#if MICROPY_HW_BOARD_MAGELLAM
+extern char _grapbuf;
+static char *str_buf_t = &_grapbuf;
+uint16_t *str_buf = NULL;
+#else
+
+#define BUF_LEN 1160	
 static uint16_t str_buf[BUF_LEN]={0};//申请最大字体内存
+#endif
+
 void grap_drawChar(const Graphics_Display *display, uint16_t x,uint16_t y,uint8_t num,
 											uint8_t size,uint16_t color,uint16_t backcolor)
 {
@@ -173,7 +241,9 @@ void grap_drawChar(const Graphics_Display *display, uint16_t x,uint16_t y,uint8_
 
 	str_h = size; 
 	str_w = size>>1;
-
+	#if MICROPY_HW_BOARD_MAGELLAM
+	str_buf = (uint16_t*)str_buf_t;
+	#endif
 	for(t=0;t<csize;t++)
 	{
 		if(size==24)
@@ -184,7 +254,7 @@ void grap_drawChar(const Graphics_Display *display, uint16_t x,uint16_t y,uint8_
 			temp=asc2_4824[num][t];
 		else 
 			temp=asc2_1608[num][t];
-		
+
 		for(t1=0;t1<8;t1++)
 		{
 			if(temp&0x80){
@@ -200,8 +270,7 @@ void grap_drawChar(const Graphics_Display *display, uint16_t x,uint16_t y,uint8_
 			temp<<=1;
 		}  	 
 	}
-
-	display->callDrawFlush(x,y,str_w,str_h,str_buf);
+	display->callDrawFlush(x,y,str_w,str_h,&str_buf[0]);
 }
 static uint32_t grap_lcd_Pow(uint8_t m,uint8_t n)
 {
@@ -306,7 +375,10 @@ error:
 	
 	return res;
 }
-
+#if defined(STM32H7)
+// extern char _cachedbuf;
+// static char *cache_buf = &_cachedbuf;
+#endif
 // new cached file
 uint8_t grap_newCached(const Graphics_Display *display, uint8_t is_sdcard,
 								FATFS *fs, const char *filename, uint16_t width, uint16_t height)
@@ -314,7 +386,7 @@ uint8_t grap_newCached(const Graphics_Display *display, uint8_t is_sdcard,
 
 //------------------------------------------------
 	uint16_t display_w,display_h;
-	uint16_t *r_buf;    		//数据读取存 
+	// uint16_t *r_buf;    		//数据读取存 
 	uint16_t i=0,j = 0;
 	uint8_t bar = 0;
 	uint8_t last_bar = 0;
@@ -328,33 +400,42 @@ UINT bw;
 		hard_buf[5] = (uint8_t)(height >> 8);
 
 		printf("start loading:0%%\r\n");
-		
+
 		display_w = width;
 		display_h = height;
+		#if defined(STM32H7)
+		uint16_t r_buf[800];
+		// r_buf = (uint16_t*)cache_buf;
+		// r_buf = m_malloc(display_w*2);
+		#else
+		uint16_t *r_buf;	
+		r_buf = m_malloc(display_w*2);
+		#endif
 
-		r_buf = (uint16_t *)m_malloc(display_w);
 		if(r_buf == NULL){
 			mp_raise_ValueError(MP_ERROR_TEXT("malloc r_buf error"));
 		}
-		
+
 		FIL* f_file;
 		f_file=(FIL *)m_malloc(sizeof(FIL));
-		
+
 		res = f_open(fs,f_file,filename,FA_WRITE|FA_CREATE_ALWAYS);
 		if(res != FR_OK){
 			mp_raise_ValueError(MP_ERROR_TEXT("path_buf open file error"));
 		}
+
 		res=f_write(f_file,hard_buf,8,&bw);
 		if(res != FR_OK){
 			mp_raise_ValueError(MP_ERROR_TEXT("file write hard error"));
 		}
-		
+
 		for(i =0; i < display_h; i++)
 		{
 			for(j =0; j<display_w; j++){
-				r_buf[j] = display->callReadPoint(j , i);
+				r_buf[j] = (uint16_t)display->callReadPoint(j , i);
 			}
 			res=f_write(f_file,(uint8_t *)r_buf,display_w*2,&bw);
+			mp_hal_delay_ms(2);
 			if(res != FR_OK){
 				grap_drawStr(display, 0,0,12*17,25,24,"Cache Error!     ",RED, WHITE);
 				mp_raise_ValueError(MP_ERROR_TEXT("file write hard error"));
@@ -379,7 +460,9 @@ UINT bw;
 
 		f_close(f_file);
 		m_free(f_file);
+		#if defined(STM32F4)
 		m_free(r_buf);
+		#endif
 	}
 
   return 0;
@@ -392,6 +475,14 @@ STATIC const mp_rom_map_elem_t tftlcd_module_globals_table[] = {
 	
 	#if MICROPY_HW_LCD43M
 	{ MP_ROM_QSTR(MP_QSTR_LCD43M), MP_ROM_PTR(&tftlcd_lcd43m_type) },
+	#endif
+	
+	#if MICROPY_HW_LCD43R
+	{ MP_ROM_QSTR(MP_QSTR_LCD43R), MP_ROM_PTR(&tftlcd_lcd43r_type) },
+	#endif
+	
+	#if MICROPY_HW_LCD7R
+	{ MP_ROM_QSTR(MP_QSTR_LCD7R), MP_ROM_PTR(&tftlcd_lcd7r_type) },
 	#endif
 	
 	#if (MICROPY_HW_LCD32)

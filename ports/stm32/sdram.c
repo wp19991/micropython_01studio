@@ -44,7 +44,6 @@
 // "m" must be a power of 2 between 32 and 4G (2**5 and 2**32) and this formula
 // computes the log2 of "m", minus 1
 #define MPU_REGION_SIZE(m) (((m) - 1) / (((m) - 1) % 255 + 1) / 255 % 255 * 8 + 7 - 86 / (((m) - 1) % 255 + 12) - 1)
-
 #define SDRAM_MPU_REGION_SIZE (MPU_REGION_SIZE(MICROPY_HW_SDRAM_SIZE))
 
 #ifdef FMC_SDRAM_BANK
@@ -52,12 +51,19 @@
 static void sdram_init_seq(SDRAM_HandleTypeDef *hsdram, FMC_SDRAM_CommandTypeDef *command);
 extern void __fatal_error(const char *msg);
 
+static SDRAM_HandleTypeDef hsdram;
 bool sdram_init(void) {
-    SDRAM_HandleTypeDef hsdram;
+
     FMC_SDRAM_TimingTypeDef SDRAM_Timing;
     FMC_SDRAM_CommandTypeDef command;
-
+		
+		__HAL_RCC_SYSCFG_CLK_ENABLE();
     __HAL_RCC_FMC_CLK_ENABLE();
+
+		#if MICROPY_HW_LCD43M
+		mp_hal_pin_config(MICROPY_HW_MCULCD_CS, MP_HAL_PIN_MODE_OUTPUT, MP_HAL_PIN_PULL_UP, 0);
+		mp_hal_pin_high(MICROPY_HW_MCULCD_CS); 
+		#endif
 
     #if defined(MICROPY_HW_FMC_SDCKE0)
     mp_hal_pin_config_alt_static_speed(MICROPY_HW_FMC_SDCKE0, MP_HAL_PIN_MODE_ALT, MP_HAL_PIN_PULL_NONE, MP_HAL_PIN_SPEED_VERY_HIGH, STATIC_AF_FMC_SDCKE0);
@@ -138,19 +144,19 @@ bool sdram_init(void) {
     hsdram.Instance = FMC_SDRAM_DEVICE;
     /* Timing configuration for 90 Mhz of SD clock frequency (180Mhz/2) */
     /* TMRD: 2 Clock cycles */
-    SDRAM_Timing.LoadToActiveDelay = MICROPY_HW_SDRAM_TIMING_TMRD;
+    SDRAM_Timing.LoadToActiveDelay = MICROPY_HW_SDRAM_TIMING_TMRD;  //2
     /* TXSR: min=70ns (6x11.90ns) */
-    SDRAM_Timing.ExitSelfRefreshDelay = MICROPY_HW_SDRAM_TIMING_TXSR;
+    SDRAM_Timing.ExitSelfRefreshDelay = MICROPY_HW_SDRAM_TIMING_TXSR; //8
     /* TRAS */
-    SDRAM_Timing.SelfRefreshTime = MICROPY_HW_SDRAM_TIMING_TRAS;
+    SDRAM_Timing.SelfRefreshTime = MICROPY_HW_SDRAM_TIMING_TRAS; //6
     /* TRC */
-    SDRAM_Timing.RowCycleDelay = MICROPY_HW_SDRAM_TIMING_TRC;
+    SDRAM_Timing.RowCycleDelay = MICROPY_HW_SDRAM_TIMING_TRC; //6
     /* TWR */
-    SDRAM_Timing.WriteRecoveryTime = MICROPY_HW_SDRAM_TIMING_TWR;
+    SDRAM_Timing.WriteRecoveryTime = MICROPY_HW_SDRAM_TIMING_TWR; //2
     /* TRP */
-    SDRAM_Timing.RPDelay = MICROPY_HW_SDRAM_TIMING_TRP;
+    SDRAM_Timing.RPDelay = MICROPY_HW_SDRAM_TIMING_TRP; //2
     /* TRCD */
-    SDRAM_Timing.RCDDelay = MICROPY_HW_SDRAM_TIMING_TRCD;
+    SDRAM_Timing.RCDDelay = MICROPY_HW_SDRAM_TIMING_TRCD; //2
 
     #define _FMC_INIT(x, n) x##_##n
     #define FMC_INIT(x, n) _FMC_INIT(x,  n)
@@ -172,6 +178,7 @@ bool sdram_init(void) {
     }
 
     sdram_init_seq(&hsdram, &command);
+		
     return true;
 }
 
@@ -195,7 +202,7 @@ static void sdram_init_seq(SDRAM_HandleTypeDef
     command->ModeRegisterDefinition = 0;
 
     /* Send the command */
-    HAL_SDRAM_SendCommand(hsdram, command, 0x1000);
+    HAL_SDRAM_SendCommand(hsdram, command, SDRAM_TIMEOUT);
 
     /* Step 4: Insert 100 ms delay */
     HAL_Delay(100);
@@ -207,7 +214,7 @@ static void sdram_init_seq(SDRAM_HandleTypeDef
     command->ModeRegisterDefinition = 0;
 
     /* Send the command */
-    HAL_SDRAM_SendCommand(hsdram, command, 0x1000);
+    HAL_SDRAM_SendCommand(hsdram, command, SDRAM_TIMEOUT);
 
     /* Step 6 : Configure a Auto-Refresh command */
     command->CommandMode = FMC_SDRAM_CMD_AUTOREFRESH_MODE;
@@ -216,7 +223,7 @@ static void sdram_init_seq(SDRAM_HandleTypeDef
     command->ModeRegisterDefinition = 0;
 
     /* Send the command */
-    HAL_SDRAM_SendCommand(hsdram, command, 0x1000);
+    HAL_SDRAM_SendCommand(hsdram, command, SDRAM_TIMEOUT);
 
     /* Step 7: Program the external memory mode register */
     tmpmrd = (uint32_t)FMC_INIT(SDRAM_MODEREG_BURST_LENGTH, MICROPY_HW_SDRAM_BURST_LENGTH) |
@@ -231,7 +238,7 @@ static void sdram_init_seq(SDRAM_HandleTypeDef
     command->ModeRegisterDefinition = tmpmrd;
 
     /* Send the command */
-    HAL_SDRAM_SendCommand(hsdram, command, 0x1000);
+    HAL_SDRAM_SendCommand(hsdram, command, SDRAM_TIMEOUT);
 
     /* Step 8: Set the refresh rate counter
        RefreshRate = 64 ms / 8192 cyc = 7.8125 us/cyc
@@ -241,22 +248,35 @@ static void sdram_init_seq(SDRAM_HandleTypeDef
        we also need to subtract 20 from the value, so the target
        refresh rate is 703 - 20 = 683.
      */
-    #define REFRESH_COUNT (MICROPY_HW_SDRAM_REFRESH_RATE * 90000 / 8192 - 20)
-    HAL_SDRAM_ProgramRefreshRate(hsdram, REFRESH_COUNT);
+    //#define REFRESH_COUNT (MICROPY_HW_SDRAM_REFRESH_RATE * 90000 / 8192 - 20)
+		#define REFRESH_COUNT (MICROPY_HW_SDRAM_REFRESH_RATE * MICROPY_HW_SDRAM_FREQUENCY / MICROPY_HW_SDRAM_REFRESH_CYCLES - 20)
 
-    #if defined(STM32F7)
+		#if defined(MICROPY_HW_BOARD_MAGELLAM) && defined(STM32H7)
+		HAL_SDRAM_ProgramRefreshRate(hsdram, 677);
+		#else
+		HAL_SDRAM_ProgramRefreshRate(hsdram, REFRESH_COUNT);
+		#endif
+    //#if defined(STM32F7)
+		#if defined(STM32F7) || defined(STM32H7)
     /* Enable MPU for the SDRAM Memory Region to allow non-aligned
        accesses (hard-fault otherwise)
        Initially disable all access for the entire SDRAM memory space,
        then enable access/caching for the size used
     */
     uint32_t irq_state = mpu_config_start();
-    mpu_config_region(MPU_REGION_SDRAM1, SDRAM_START_ADDRESS, MPU_CONFIG_DISABLE(0x00, MPU_REGION_SIZE_512MB));
-    mpu_config_region(MPU_REGION_SDRAM2, SDRAM_START_ADDRESS, MPU_CONFIG_SDRAM(SDRAM_MPU_REGION_SIZE));
+		#if MICROPY_HW_BOARD_MAGELLAM
+			mpu_config_region(MPU_REGION_SDRAM2, SDRAM_START_ADDRESS, MPU_CONFIG_SDRAM(MPU_REGION_SIZE_16MB));
+		#else
+			mpu_config_region(MPU_REGION_SDRAM1, SDRAM_START_ADDRESS, MPU_CONFIG_DISABLE(0x00, MPU_REGION_SIZE_512MB));
+			mpu_config_region(MPU_REGION_SDRAM2, SDRAM_START_ADDRESS, MPU_CONFIG_SDRAM(SDRAM_MPU_REGION_SIZE));
+		#endif
+
     mpu_config_end(irq_state);
     #endif
+
 }
 
+#if 0
 void sdram_enter_low_power(void) {
     // Enter self-refresh mode.
     // In self-refresh mode the SDRAM retains data with external clocking.
@@ -274,6 +294,26 @@ void sdram_leave_low_power(void) {
         FMC_SDRAM_CMD_TARGET_BANK |                                  // Command Target
         (0 << 5U) |                                                  // Auto Refresh Number - 1
         (0 << 9U));                                                  // Mode Register Definition
+}
+#endif
+void sdram_enter_low_power()
+{
+    FMC_SDRAM_CommandTypeDef command;
+    command.CommandMode = FMC_SDRAM_CMD_SELFREFRESH_MODE;
+    command.CommandTarget = FMC_SDRAM_CMD_TARGET_BANK;
+    command.AutoRefreshNumber = 1;
+    command.ModeRegisterDefinition = 0;
+    HAL_SDRAM_SendCommand(&hsdram, &command, 0xFFFF);
+}
+
+void sdram_leave_low_power()
+{
+    FMC_SDRAM_CommandTypeDef command;
+    command.CommandMode = FMC_SDRAM_CMD_NORMAL_MODE;
+    command.CommandTarget = FMC_SDRAM_CMD_TARGET_BANK;
+    command.AutoRefreshNumber = 1;
+    command.ModeRegisterDefinition = 0;
+    HAL_SDRAM_SendCommand(&hsdram, &command, 0xFFFF);
 }
 
 bool sdram_test(bool fast) {

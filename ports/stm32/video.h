@@ -24,8 +24,8 @@ typedef struct
 	volatile uint8_t i2splaybuf;
 	uint8_t* i2sbuf[4]; 
 }__attribute__((packed))  __videodev; 
-extern __videodev videodev;//视频播放控制器
 
+extern __videodev videodev;//视频播放控制器
 
 extern void video_play(void);
 extern uint8_t video_play_mjpeg(const 	    char *pname); 

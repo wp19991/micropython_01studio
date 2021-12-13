@@ -76,6 +76,7 @@
 #include "storage.h"
 #include "sdcard.h"
 #include "sram.h"
+#include "sdram.h"
 #include "rng.h"
 #include "accel.h"
 #include "servo.h"
@@ -87,6 +88,14 @@
 
 #if MICROPY_HW_LCD43M
 #include "lcd43m.h"
+#endif
+
+#if MICROPY_ENABLE_TFTLCD
+#include "modtftlcd.h"
+#endif
+
+#if MICROPY_HW_LTDC_LCD
+#include "ltdc.h"
 #endif
 
 #if MICROPY_ENABLE_SPILCD
@@ -421,7 +430,7 @@ void stm32_main(uint32_t reset_mode) {
     __HAL_RCC_D2SRAM2_CLK_ENABLE();
     __HAL_RCC_D2SRAM3_CLK_ENABLE();
     #endif
-	
+
     #if defined(MICROPY_BOARD_EARLY_INIT)
     MICROPY_BOARD_EARLY_INIT();
     #endif
@@ -436,10 +445,7 @@ void stm32_main(uint32_t reset_mode) {
 		sram_valid = sram_test(false);
 		#endif
 		#endif
-		#if MICROPY_HW_LCD43M
-		lcd43m_init();
-		#endif
-		
+
     #if MICROPY_HW_SDRAM_SIZE
     sdram_init();
     bool sdram_valid = true;
@@ -448,6 +454,11 @@ void stm32_main(uint32_t reset_mode) {
     sdram_valid = sdram_test(true);
     #endif
     #endif
+		#if MICROPY_HW_LCD43M
+		#if MICROPY_HW_BOARD_COLUMBUS
+		lcd43m_init();
+		#endif
+		#endif
     #if MICROPY_PY_THREAD
     pyb_thread_init(&pyb_thread_main);
     #endif

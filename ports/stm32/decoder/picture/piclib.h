@@ -42,10 +42,15 @@
 #include "ILI9341.h"
 #endif
 
+#if MICROPY_HW_LTDC_LCD
+#include "ltdc.h"
+#endif
+
 #endif
 
 #include "bmp.h"
 #include "tjpgd.h"
+#include "hjpgd.h"
 
 #ifndef TRUE
 #define TRUE    1

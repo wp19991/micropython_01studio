@@ -18,10 +18,14 @@ void piclib_init(void)
 			#endif
 			break;
 			case 2:
-
-			break;
 			case 3:
-
+			#if MICROPY_HW_LTDC_LCD
+				pic_phy.read_point=NULL;
+				pic_phy.draw_point=ltdc_DrawPoint;
+				pic_phy.fill=ltdc_fill_rgb565;
+				pic_phy.draw_hline=ltdc_draw_hline;
+				pic_phy.fillcolor=ltdc_full_rgb565;
+			#endif
 			break;
 			case 4:
 			#if MICROPY_HW_LCD32

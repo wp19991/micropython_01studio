@@ -26,6 +26,13 @@ typedef enum {
     FRAMESIZE_END,
 } framesize_t;
 
+typedef enum {
+	LCD43M = 1,
+	LCD43R,
+	LCD7R,
+	LCD_END,
+}display_lcd_t;
+
 static const uint8_t default_regs[][2] = {
 	{0xff, 0x00},
 	{0x2c, 0xff},

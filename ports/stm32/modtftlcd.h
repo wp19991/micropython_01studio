@@ -96,9 +96,19 @@ extern void grap_drawStr(const Graphics_Display *display, uint16_t x,uint16_t y,
 extern void grap_drawNum(const Graphics_Display *display,
 										uint16_t x,uint16_t y,uint32_t num,uint8_t len,uint8_t size,uint16_t color,uint16_t backcolor);
 										
-extern uint16_t rgb888to565(uint8_t r_color, uint8_t g_color , uint8_t b_color);
+uint16_t get_rgb565(uint8_t r_color, uint8_t g_color , uint8_t b_color);
+uint16_t get_bgr565(uint8_t r_color, uint8_t g_color , uint8_t b_color);
+uint32_t get_rgb888(uint8_t r_color, uint8_t g_color , uint8_t b_color);
+uint32_t rgb888tobgr888(uint32_t color);
+uint32_t rgb565torgb888(uint16_t color);
+uint32_t bgr2rgb(uint32_t color);
+uint16_t rgb565tobgr565(uint16_t color);
 
+void lcd7r_init(void);
+void test_lcd();
 #if MICROPY_PY_PICLIB
+
+extern uint8_t is_sdcard;
 
 #include "extmod/vfs.h"
 #include "extmod/vfs_fat.h"

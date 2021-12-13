@@ -1,8 +1,6 @@
 #include "mp3play.h"
 #include "mp3dec.h"
 
-
-
 #include <stdio.h>
 #include <string.h>
 #include "py/mphal.h"
@@ -25,7 +23,6 @@
 #include "py/objlist.h"
 #include "bufhelper.h"
 
-
 #include "global.h"
 #if MICROPY_HW_WM8978
 #include "wm8978.h"
@@ -35,8 +32,9 @@
 #include "gt1151.h"
 #include "lcd43m.h"
 #endif
-#if MICROPY_GUI_BUTTON
+#if MICROPY_ENABLE_TOUCH
 #include "gui_button.h"
+#include "modtouch.h"
 #endif
 
 __mp3ctrl * mp3ctrl; 
@@ -44,7 +42,7 @@ volatile uint8_t mp3transferend=0;
 volatile uint8_t mp3witchbuf=0;	
 
 void mp3_tx_callback(void) 
-{    
+{
 	uint16_t i;
 	if(DMA1_Stream4->CR&(1<<19)){
 		mp3witchbuf=0;
@@ -57,6 +55,7 @@ void mp3_tx_callback(void)
 			for(i=0;i<2304*2;i++)audiodev.i2sbuf2[i]=0;
 		}
 	} 
+
 	mp3transferend=1;
 } 
 
@@ -197,6 +196,7 @@ uint8_t mp3_get_info	(FATFS *fs, const char *pname , __mp3ctrl* pctrl)
 					printf("samplerate:%ld\r\n", mp3ctrl->samplerate);	
 					printf("outsamples:%d\r\n",mp3ctrl->outsamples); 
 					printf("datastart:%ld\r\n", mp3ctrl->datastart);
+					mp_hal_delay_ms(10);
 				#endif 
 			}else res=0XFE;
 			MP3FreeDecoder(decoder);//释放内存		
@@ -224,7 +224,8 @@ uint8_t mp3_play_song(const char* fname)
 	HMP3Decoder mp3decoder=NULL;
 	MP3FrameInfo mp3frameinfo;
 	FRESULT res;
-	uint8_t* buffer;	
+	uint8_t* buffer;
+
 	uint8_t* readptr;	
 	int offset=0;
 	int outofdata=0;
@@ -241,34 +242,56 @@ uint8_t mp3_play_song(const char* fname)
 	fs_user_mount_t *vfs_fat = MP_OBJ_TO_PTR(vfs->obj);
 
  	mp3ctrl=m_malloc(sizeof(__mp3ctrl)); 
-	buffer=m_malloc(MP3_FILE_BUF_SZ);
+	
 	audiodev.file=(FIL*)m_malloc(sizeof(FIL));
+	audiodev.tbuf=m_malloc(2304*2);
+	buffer=m_malloc(MP3_FILE_BUF_SZ);
+	#if defined(STM32F4)
 	audiodev.i2sbuf1=m_malloc(2304*2);
 	audiodev.i2sbuf2=m_malloc(2304*2);
-	audiodev.tbuf=m_malloc(2304*2);
+	if(!mp3ctrl||!audiodev.i2sbuf1||!audiodev.i2sbuf2||!audiodev.tbuf){
+	#elif defined(STM32H7)
 
-	if(!mp3ctrl||!buffer||!audiodev.i2sbuf1||!audiodev.i2sbuf2||!audiodev.tbuf){
+	if(!mp3ctrl){
+	#endif
 		m_free(mp3ctrl);
 		m_free(buffer);
 		m_free(audiodev.file);
+		m_free(audiodev.tbuf);
+		
+		#if defined(STM32F4)
 		m_free(audiodev.i2sbuf1);
 		m_free(audiodev.i2sbuf2);
-		m_free(audiodev.tbuf); 
+		#endif
+		
 		mp_raise_ValueError(MP_ERROR_TEXT("mp3 malloc error"));
 		return 0;	
 	} 
+
 	memset(audiodev.i2sbuf1,0,2304*2);
 	memset(audiodev.i2sbuf2,0,2304*2);
+
 	memset(mp3ctrl,0,sizeof(__mp3ctrl)); 
+
 	res=mp3_get_info(&vfs_fat->fatfs,file_path,mp3ctrl);  
 	if(res==0){ 
 		WM8978_I2S_CFG(2,0);
+ 
+		#if defined(STM32F4)
 		audio_init(I2S_STANDARD_PHILIPS,I2S_MODE_MASTER_TX,I2S_CPOL_LOW,I2S_DATAFORMAT_16B_EXTENDED); 
-		I2S2_SampleRate_Set(mp3ctrl->samplerate);	 
+		I2S2_SampleRate_Set(mp3ctrl->samplerate);	
+		#elif defined(STM32H7)
+		audio_init(I2S_STANDARD_PHILIPS,I2S_MODE_MASTER_TX,I2S_CPOL_LOW,I2S_DATAFORMAT_16B_EXTENDED,mp3ctrl->samplerate); 
+		#endif
+	
 		I2S2_TX_DMA_Init(audiodev.i2sbuf1,audiodev.i2sbuf2,mp3ctrl->outsamples);
 		i2s_tx_callback=mp3_tx_callback;	
 		audiodev.status=0;
 		__HAL_DMA_DISABLE(&I2S2_TXDMA_Handler);
+		#if defined(STM32H7)
+		SPI2->CR1 &= ~SPI_CR1_CSTART; //启动i2s
+		SPI2->CR1 &= ~SPI_CR1_SPE;
+		#endif
 		mp3decoder=MP3InitDecoder();
 		res=f_open(&vfs_fat->fatfs,audiodev.file,file_path,FA_READ);
 	}
@@ -276,8 +299,13 @@ uint8_t mp3_play_song(const char* fname)
 	if(res==0&&mp3decoder!=0){ 
 		f_lseek(audiodev.file,mp3ctrl->datastart);	
 		audiodev.status=3;
+
 		DMA1_Stream4->CR|=1<<0;
 		__HAL_DMA_ENABLE(&I2S2_TXDMA_Handler);
+		#if defined(STM32H7)
+		SPI2->CR1 |= SPI_CR1_SPE;
+		SPI2->CR1 |= SPI_CR1_CSTART; //启动i2s
+		#endif
 		while(res==0){
 			readptr=buffer;	
 			offset=0;	
@@ -322,25 +350,29 @@ uint8_t mp3_play_song(const char* fname)
 						}
 						bytesleft=MP3_FILE_BUF_SZ;  
 						readptr=buffer; 
-					} 	
-					if(gt1151_is_init){
-					#if MICROPY_GUI_BUTTON
-						gtxx_read_point();
+					} 
+					#if MICROPY_ENABLE_TOUCH 
+					#if MICROPY_GUI_BUTTON	
+					if(touch_is_init){
+						gui_read_points();
 						button_task();
-					#endif
 					}
+					#endif
+					#endif
 					if(audiodev.status == 0){
 						res = 1;
 						break;
 					}
 					while((audiodev.status&0X01)==0){
 						mp_hal_delay_ms(100);
-						if(gt1151_is_init){
-							#if MICROPY_GUI_BUTTON
-							gtxx_read_point();
+						#if MICROPY_ENABLE_TOUCH
+						#if MICROPY_GUI_BUTTON
+						if(touch_is_init){
+							gui_read_points();
 							button_task();
-							#endif
 						}
+						#endif
+						#endif
 						if(audiodev.status == 0){
 							res=1;
 							outofdata=1;
@@ -353,13 +385,21 @@ uint8_t mp3_play_song(const char* fname)
 	}
 	audiodev.status=0;
 	__HAL_DMA_DISABLE(&I2S2_TXDMA_Handler);
+	#if defined(STM32H7)
+	SPI2->CR1 &= ~SPI_CR1_CSTART; //启动i2s
+	SPI2->CR1 &= ~SPI_CR1_SPE;
+	#endif
 	f_close(audiodev.file);
 	MP3FreeDecoder(mp3decoder);
 	m_free(mp3ctrl);
-	m_free(buffer);
+	
 	m_free(audiodev.file);
+	#if defined(STM32F4)
 	m_free(audiodev.i2sbuf1);
 	m_free(audiodev.i2sbuf2);
+	#endif
+	m_free(audiodev.tbuf);
+	m_free(buffer);
 	m_free(audiodev.tbuf);
 	return res;
 }

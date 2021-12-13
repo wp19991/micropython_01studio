@@ -67,15 +67,23 @@
 		mp_hal_pin_config_alt_static_speed(MICROPY_HW_FSMC_D14, MP_HAL_PIN_MODE_ALT, MP_HAL_PIN_PULL_NONE, MP_HAL_PIN_SPEED_VERY_HIGH, STATIC_AF_FSMC_D14);
 		mp_hal_pin_config_alt_static_speed(MICROPY_HW_FSMC_D15, MP_HAL_PIN_MODE_ALT, MP_HAL_PIN_PULL_NONE, MP_HAL_PIN_SPEED_VERY_HIGH, STATIC_AF_FSMC_D15);	
 
-
 		FSMC_Bank1->BTCR[4]=0X00000000;
 		FSMC_Bank1->BTCR[5]=0X00000000;
 		FSMC_Bank1E->BWTR[4]=0X00000000;
+		
 		FSMC_Bank1->BTCR[4]|=1<<12;//en
-		FSMC_Bank1->BTCR[4]|=1<<4; //16bit 	    
-		FSMC_Bank1->BTCR[5]|=8<<8; //HCLK 6*3=18ns
+		FSMC_Bank1->BTCR[4]|=1<<4; //16bit 	
+		
+		//1个HCLK=6ns
+		//数据保持时间
+		 // FSMC_Bank1->BTCR[5]|=8<<8; //HCLK 6*3=18ns
+		FSMC_Bank1->BTCR[5]|=10<<8; //HCLK 6*3=18ns
+		
 		FSMC_Bank1->BTCR[5]|=0<<4; //
-		FSMC_Bank1->BTCR[5]|=1<<0; //HCLK 12ns
+		//地址建立时间
+		 // FSMC_Bank1->BTCR[5]|=1<<0; //HCLK 12ns
+		FSMC_Bank1->BTCR[5]|=16<<0; //HCLK 12ns
+		
 		FSMC_Bank1E->BWTR[4]=0x0FFFFFFF;
 		FSMC_Bank1->BTCR[4]|=1<<0; 
 
@@ -103,7 +111,7 @@ bool sram_test(bool fast) {
     for (j = 1; j; j <<= 1) {
         *mem_base = j;
         if (*mem_base != j) {
-            //printf("data bus lines test failed! data (%d)\n", j);
+            // printf("data bus lines test failed! data (%d)\n", j);
             return false;
         }
     }
@@ -114,7 +122,7 @@ bool sram_test(bool fast) {
     for ( i = 1; i < MICROPY_HW_SRAM_SIZE; i <<= 1) {
         mem_base[i] = pattern;
         if (mem_base[i] != pattern) {
-           // printf("address bus lines test failed! address (%p)\n", &mem_base[i]);
+            // printf("address bus lines test failed! address (%p)\n", &mem_base[i]);
             return false;
         }
     }	
@@ -127,7 +135,7 @@ bool sram_test(bool fast) {
     if (!fast) {
         for (i = 0; i < MICROPY_HW_SRAM_SIZE; ++i) {
             if (mem_base[i] != pattern) {
-                //printf("address bus test failed! address (%p)\n", &mem_base[i]);
+                // printf("address bus test failed! address (%p)\n", &mem_base[i]);
                 return false;
             }
         }

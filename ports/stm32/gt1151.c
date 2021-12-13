@@ -25,15 +25,17 @@
 #include "gt1151.h"
 #include "modtouch.h"
 #include "lcd43m.h"
+#include "tp_iic.h"
 
-#define MICROPY_HW_TP_SDA (pin_F11)
-#define MICROPY_HW_TP_SCL (pin_B0)
-
-#define MICROPY_HW_TP_RST (pin_C13)
-#define MICROPY_HW_TP_INT (pin_F7)
-
-#define MICROPY_TP_INT_PULL       (GPIO_PULLUP)
-#define MICROPY_TP_INT_EXTI_MODE  (GPIO_MODE_IT_FALLING)
+#ifndef MICROPY_HW_TP_RST
+#if MICROPY_HW_BOARD_COLUMBUS
+	#define MICROPY_HW_TP_RST 					(pin_C13)
+	#define MICROPY_HW_TP_INT 					(pin_F7)
+#elif MICROPY_HW_BOARD_MAGELLAM
+	#define MICROPY_HW_TP_RST 					(pin_C13)
+	#define MICROPY_HW_TP_INT 					(pin_I11)
+#endif
+#endif
 
 //I2C读写命令	
 #define GT_CMD_WR 		0X28     	//写命令
@@ -54,10 +56,7 @@
 
 #define GTXX_MAX_TOUCH 5
 
-//TP_DEV tp_dev;
-
-bool gt1151_is_init = 0;
-
+static uint16_t touch_w,touch_h;
 
 //GT9147配置参数表
 const uint8_t GT9147_CFG_TBL[]=
@@ -82,148 +81,6 @@ const uint8_t GT9147_CFG_TBL[]=
 	0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xF6,
 	0xFF,0xFF,0xFF,0xFF
 }; 
-/**************************************************************************
-	T_MOSI -- PF11
-	T_CS ---- PC13 RESET PORT
-	T_SCK --- PB0
-	T_PEN --- PB1  interrupt
-	T_MISO -- PB2
-***************************************************************************/
-void tp_delay(void)
-{
-	mp_hal_delay_us(1);
-	
-}
-STATIC void TP_IIC_Init(void)
-{	
-		mp_hal_pin_config(MICROPY_HW_TP_SDA, MP_HAL_PIN_MODE_OUTPUT, MP_HAL_PIN_PULL_UP, 0);
-		mp_hal_pin_config(MICROPY_HW_TP_SCL, MP_HAL_PIN_MODE_OUTPUT, MP_HAL_PIN_PULL_UP, 0);
-		
-		TP_IIC_SDA(1);
-    TP_IIC_SCL(1);	  	
-
-}
-//----------------------------------------------------------------------------------
-STATIC void TP_IIC_START(void)
-{
-	TP_SDA_OUT();     //sda线输出
-	TP_IIC_SDA(1);
-	TP_IIC_SCL(1);
-	tp_delay();
- 	TP_IIC_SDA(0);//START:when CLK is high,DATA change form high to low 
-	tp_delay();
-	TP_IIC_SCL(0);//钳住I2C总线，准备发送或接收数据 
-}
-//----------------------------------------------------------------------------------
-//IIC发送一个字节
-//返回从机有无应答
-//1，有应答
-//0，无应答			  
-STATIC void TP_IIC_Send_Byte(uint8_t txd)
-{                        
-    uint8_t t;   
-
-	TP_SDA_OUT(); 	    
-    TP_IIC_SCL(0);//拉低时钟开始数据传输
-	//tp_delay();
-	for(t=0;t<8;t++)
-    {           
-   		if(((txd&0x80)>>7) == 0x01)
-			TP_IIC_SDA(1);
-		else
-			TP_IIC_SDA(0);
-
-		txd<<=1; 
-		tp_delay();
-		TP_IIC_SCL(1); 
-		tp_delay();
-		TP_IIC_SCL(0);	
-		tp_delay();
-    }	 
-}
-//----------------------------------------------------------------------------------
-//不产生ACK应答		    
-STATIC void TP_IIC_NAck(void)
-{
-	TP_IIC_SCL(0); 
-	TP_SDA_OUT(); 
-	tp_delay();
-	TP_IIC_SDA(1);
-	tp_delay();
-	TP_IIC_SCL(1);
-	tp_delay();
-	TP_IIC_SCL(0); 
-}
-//产生ACK应答
-STATIC void TP_IIC_Ack(void)
-{
-	TP_IIC_SCL(0); 
-	TP_SDA_OUT(); 
-	tp_delay();
-	TP_IIC_SDA(0);
-	tp_delay();
-	TP_IIC_SCL(1);
-	tp_delay();
-	TP_IIC_SCL(0); 
-}
-//----------------------------------------------------------------------------------
-//读1个字节，ack=1时，发送ACK，ack=0，发送nACK   
-STATIC uint8_t TP_IIC_Read_Byte(unsigned char ack)
-{
-	uint8_t i,receive=0;
- 	TP_SDA_IN();//SDA设置为输入
-	mp_hal_delay_us(5);
-	for(i=0;i<8;i++ )
-	{ 
-		TP_IIC_SCL(0); 	    	   
-		tp_delay();
-		TP_IIC_SCL(1);		
-		receive<<=1;
-		if(TP_SDA_READ)receive++;   
-		tp_delay();
-	}	  				 
-	if (!ack)TP_IIC_NAck();//发送nACK
-	else TP_IIC_Ack(); //发送ACK   
- 	return receive;
-}
-		
-//----------------------------------------------------------------------------------
-//产生IIC停止信号
-STATIC void TP_IIC_Stop(void)
-{
-	TP_SDA_OUT(); //sda线输出
-	TP_IIC_SCL(1);
-	tp_delay();
-	TP_IIC_SDA(0);//STOP:when CLK is high DATA change form low to high
-	tp_delay();
-	TP_IIC_SDA(1);//发送I2C总线结束信号  
-}
-//----------------------------------------------------------------------------------
-//等待应答信号到来
-//返回值：1，接收应答失败
-//        0，接收应答成功
-STATIC uint8_t TP_IIC_Wait_Ack(void)
-{
-	uint32_t ucErrTime=0;
-	TP_SDA_IN();      //SDA设置为输入  
-	TP_IIC_SDA(1);	   mp_hal_delay_us(1);
-	TP_IIC_SCL(1);	   mp_hal_delay_us(1);
-	
-	while(TP_SDA_READ)
-	{
-	#if 1
-		ucErrTime++;
-		if(ucErrTime>2500)
-		{
-			TP_IIC_Stop();
-			return 1;
-		} 
-		
-	#endif
-	}
-	TP_IIC_SCL(0);//时钟输出0 	   
-	return 0;  
-}
 
 //==========================================================================================
 //向GT9147写入一次数据
@@ -312,7 +169,7 @@ STATIC void tp_addr_init(void)
 //----------------------------------------------------------------------
 STATIC void TP_Init(void)
 {
-	//uint8_t temp[2] ={0};
+
 	tp_addr_init();
 
 	TP_IIC_Init();      	//初始化电容屏的I2C总线
@@ -379,7 +236,7 @@ void gtxx_read_point(void)
     }
     if (touch_num)                                                 /* point down */
     {	
-      switch (lcddev.dir)
+      switch (tp_dev.dir)
         {
           case 2:
             input_x=800-(((uint16_t)read_buf[3]<<8)+read_buf[2]);
@@ -398,6 +255,9 @@ void gtxx_read_point(void)
             input_y=((uint16_t)read_buf[3]<<8)+read_buf[2];
           break;
         }
+				if(input_x >= touch_w || input_y >= touch_h){
+					return;
+				}
        	tp_touch_down(read_id, input_x, input_y, input_w);
 
     }
@@ -419,7 +279,6 @@ exit_:
 //----------------------------------------------------------------------------------------------------------
 typedef struct _touch_gt1151_obj_t {
     mp_obj_base_t base;
-    uint8_t buf[10];
 } touch_gt1151_obj_t;
 
 STATIC touch_gt1151_obj_t gt1151_obj;
@@ -449,9 +308,7 @@ STATIC mp_obj_t touch_gt1151_scan(void)
 
 //-----------------------------------------------------------------------------------------------
 STATIC void touch_gt1151_print(const mp_print_t *print, mp_obj_t self_in, mp_print_kind_t kind) {
-	mp_printf(print,"LCD ID:%X\n",lcddev.id);
 	mp_printf(print,"TP ID:%s\r\n",tp_dev.id);
-	mp_printf(print, "LCD(portrait=%d)\n",lcddev.dir);
 }
 //------------------------------------------------------------------------------------------------------
 
@@ -459,18 +316,35 @@ STATIC void touch_gt1151_print(const mp_print_t *print, mp_obj_t self_in, mp_pri
 
 STATIC mp_obj_t touch_gt1151_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_kw, const mp_obj_t *all_args) {
 	static const mp_arg_t allowed_args[] = {
-			{ MP_QSTR_portrait, MP_ARG_INT, {.u_int = 0} },
+			{ MP_QSTR_portrait, MP_ARG_INT, {.u_int = 1} },
 	};
 	
 		mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
 		mp_arg_parse_all_kw_array(n_args, n_kw, all_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
 		
-		if(args[0].u_int != 0)
+		//if(args[0].u_int != 0)
 		{
-			lcddev.dir = args[0].u_int;
+			tp_dev.dir = args[0].u_int;
 		}
+		
+		switch (tp_dev.dir)
+		{
+			case 1:
+			case 3:
+			touch_w=480;
+			touch_h=800;
+			break;
+			case 2:
+			case 4:
+			touch_w=800;
+			touch_h=480;
+			break;
+		}
+
 		TP_Init();
-		gt1151_is_init = 1;
+		touch_is_init = 1;
+		tp_dev.type = 4;
+		
 		gt1151_obj.base.type = &touch_gt1151_type;
 
 		return MP_OBJ_FROM_PTR(&touch_gt1151_type);

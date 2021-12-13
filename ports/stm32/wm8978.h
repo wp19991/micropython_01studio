@@ -32,14 +32,26 @@
 #include "extmod/vfs_fat.h"
 
 //======================================================================
+#if defined(STM32F4)
 #define WAV_I2S_TX_DMA_BUFSIZE    8192
-#define I2S_RX_DMA_BUF_SIZE    	8192*10		
+#define I2S_RX_DMA_BUF_SIZE    		8192*10
+#elif defined(STM32H7)
+#define WAV_I2S_TX_DMA_BUFSIZE    1024*100
+#define I2S_RX_DMA_BUF_SIZE    		1024*32
+#endif
+	
 //======================================================================
 //音乐播放控制器
 typedef  struct
 {  
+#if defined(STM32F4)
 	uint8_t *i2sbuf1;
 	uint8_t *i2sbuf2; 
+
+#elif defined(STM32H7)
+	 uint8_t i2sbuf1[WAV_I2S_TX_DMA_BUFSIZE];
+	 uint8_t i2sbuf2[WAV_I2S_TX_DMA_BUFSIZE];
+#endif
 	uint8_t *tbuf; 
 	FIL *file;
 	char *audioName;
@@ -129,8 +141,16 @@ extern DMA_HandleTypeDef I2S2_RXDMA_Handler;
  extern void wm8978_output_cfg(uint8_t dacen,uint8_t bpsen);
  extern void wm8978_hspk_vol(uint8_t voll,uint8_t volr);
  extern void WM8978_I2S_CFG(uint8_t fmt,uint8_t len);
- extern void audio_init(uint32_t I2S_Standard,uint32_t I2S_Mode,uint32_t I2S_Clock_Polarity,uint32_t I2S_DataFormat);
+
+#if defined(STM32F4)
+extern void audio_init(uint32_t I2S_Standard,uint32_t I2S_Mode,uint32_t I2S_Clock_Polarity,uint32_t I2S_DataFormat);
+#elif defined(STM32H7)
+extern void audio_init(uint32_t I2S_Standard,uint32_t I2S_Mode,uint32_t I2S_Clock_Polarity,uint32_t I2S_DataFormat,uint32_t samplerate);
+#endif
+ 
+// #if defined(STM32F4)
  extern uint8_t I2S2_SampleRate_Set(uint32_t samplerate);
+// #endif
  extern void I2S2_TX_DMA_Init(uint8_t* buf0,uint8_t *buf1,uint32_t num);
 
 #endif

@@ -27,7 +27,7 @@
 #include "py/mphal.h"
 #include "modmachine.h"
 
-#if MICROPY_HW_BOARD_COLUMBUS
+#if MICROPY_ENABLE_NEOPIXEL
 /*
 Example usage:
 import machine
@@ -57,14 +57,18 @@ np = NeoPixel(machine.Pin('X1', machine.Pin.OUT), 8)
 */
 
 
-#if 0
+#if defined(STM32F0)
 // STM32F091 @ 48MHz
 #define NS_PRESCALE (6)
 #define NS_OVERHEAD (1)
 #define NS_OVERHEAD_LOW (2)
-#else
+#elif defined(STM32F4)
 // Tested on PYBv1.0
 #define NS_PRESCALE (6)
+#define NS_OVERHEAD (0)
+#define NS_OVERHEAD_LOW (0)
+#elif defined(STM32H7)
+#define NS_PRESCALE (3)
 #define NS_OVERHEAD (0)
 #define NS_OVERHEAD_LOW (0)
 #endif

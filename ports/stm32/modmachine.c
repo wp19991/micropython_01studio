@@ -409,7 +409,7 @@ STATIC const mp_rom_map_elem_t machine_module_globals_table[] = {
     #if MICROPY_PY_MACHINE_PULSE
     { MP_ROM_QSTR(MP_QSTR_time_pulse_us),       MP_ROM_PTR(&machine_time_pulse_us_obj) },
 
-   	#if MICROPY_HW_BOARD_COLUMBUS
+   	#if MICROPY_ENABLE_NEOPIXEL
     { MP_ROM_QSTR(MP_QSTR_pixelbitstream),      MP_ROM_PTR(&machine_pixelbitstream_obj) },
 	#endif
 

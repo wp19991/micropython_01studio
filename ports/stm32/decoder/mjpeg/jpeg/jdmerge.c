@@ -36,9 +36,6 @@
 #include "jinclude.h"
 #include "jpeglib.h"
 
-#include "lcd43m.h"
-
-
 #ifdef UPSAMPLE_MERGING_SUPPORTED
 
 
@@ -224,7 +221,71 @@ merged_1v_upsample (j_decompress_ptr cinfo,
 /*
  * Upsample and color convert for the case of 2:1 horizontal and 1:1 vertical.
  */
-#include "lcd.h"
+#include "modtftlcd.h"
+
+#ifdef MICROPY_PY_PICLIB
+#include "piclib.h"
+#endif
+
+#if MICROPY_HW_LTDC_LCD
+#include "ltdc.h"
+extern uint16_t imgoffx,imgoffy;		//图像在x,y方向的偏移量
+extern uint16_t outlinecnt;			//输出行计数器
+extern uint16_t *outlinebuf;			//输出行缓存,≥图像宽度*2字节
+
+void ltdc_full_video(uint16_t x,uint16_t y,uint16_t width,uint16_t height,uint16_t *color)
+{
+	if(x >= lcddev.width || y >= lcddev.height) return;  
+
+	uint32_t offline =0 ;
+	uint32_t ltdc_addr = 0;
+	uint32_t ltdc_whlen = 0;
+
+	switch (lcddev.dir)
+	{
+		case 2:
+		offline = lcddev.x_pixel - height; 
+		ltdc_addr = ((uint32_t)ltdc_framebuf[ltdcdev.layer] + ltdcdev.pixsize*(lcddev.x_pixel*x+(lcddev.x_pixel-height-y)));
+		ltdc_whlen = (height<<16)|(width);
+		break;
+		case 3:
+		offline = lcddev.x_pixel - width;
+		ltdc_addr = ((uint32_t)ltdc_framebuf[ltdcdev.layer] + ltdcdev.pixsize*(lcddev.x_pixel*(lcddev.y_pixel-height-y)+(lcddev.x_pixel-width-x)));
+		ltdc_whlen = (width<<16)|(height);
+		break;
+		case 4:
+		offline = lcddev.x_pixel - height; 
+		ltdc_addr = ((uint32_t)ltdc_framebuf[ltdcdev.layer] + ltdcdev.pixsize*(lcddev.x_pixel*(lcddev.y_pixel-width-x)+y));
+		ltdc_whlen = (height<<16)|(width);
+		break;
+		default:
+		offline = lcddev.x_pixel - width;
+		ltdc_addr = ((uint32_t)ltdc_framebuf[ltdcdev.layer] + ltdcdev.pixsize*(lcddev.x_pixel*y+x));
+		ltdc_whlen = ((uint32_t)width<<16)|((uint32_t)height);
+		break;
+	}
+
+	DMA2D->CR=0<<16;				//存储器到存储器模式
+	DMA2D->FGPFCCR=ltdcdev.ltdc_format;//LTDC_PIXEL_FORMAT_RGB565;	//设置颜色格式
+	DMA2D->FGOR=0;					//前景层行偏移为0
+	DMA2D->OOR=offline;				//设置行偏移 
+	DMA2D->CR&=~(1<<0);				//先停止DMA2D
+	
+	DMA2D->FGMAR=(uint32_t)color;		//源地址
+
+
+DMA2D->FGPFCCR |= 1<<21;
+DMA2D->CR &=~(0x07<<16);
+DMA2D->CR |= 0x05<<16;
+
+	DMA2D->OMAR=ltdc_addr;				//输出存储器地址
+	DMA2D->NLR=ltdc_whlen;	//设定行数寄存器 
+	DMA2D->CR|=1<<0;				//启动DMA2D
+	while((DMA2D->ISR&(1<<1))==0);
+	DMA2D->IFCR|=1<<1;				//清除传输完成标志  	
+}
+#endif
+
 METHODDEF(void)
 h2v1_merged_upsample (j_decompress_ptr cinfo,
 		      JSAMPIMAGE input_buf, JDIMENSION in_row_group_ctr,
@@ -251,52 +312,75 @@ h2v1_merged_upsample (j_decompress_ptr cinfo,
 	inptr2 = input_buf[2][in_row_group_ctr];
 	// outptr = output_buf[0];
 	/* Loop for each pair of output pixels */
-	for (col = cinfo->output_width >> 1; col > 0; col--) 
-	{
-		/* Do the chroma part of the calculation */
-		cb = GETJSAMPLE(*inptr1++);
-		cr = GETJSAMPLE(*inptr2++);
-		cred = Crrtab[cr];
-		cgreen = (int) RIGHT_SHIFT(Cbgtab[cb] + Crgtab[cr], SCALEBITS);
-		cblue = Cbbtab[cb];
-		/* Fetch 2 Y values and emit 2 pixels */
-		y  = GETJSAMPLE(*inptr0++);
-		//    outptr[RGB_RED] =   range_limit[y + cred];
-		//   outptr[RGB_GREEN] = range_limit[y + cgreen];
-		//  outptr[RGB_BLUE] =  range_limit[y + cblue];
-		// outptr += RGB_PIXELSIZE;
-		LCD43M_RAM = (range_limit[y + cblue] >> 3)<<11 | (range_limit[y + cgreen] >> 2) << 5 | range_limit[y + cred] >> 3;
+	
+	if(lcddev.type == 2 || lcddev.type == 3){
+		#if MICROPY_HW_LTDC_LCD
+		for (col = cinfo->output_width >> 1; col > 0; col--) 
+		{
+			/* Do the chroma part of the calculation */
+			cb = GETJSAMPLE(*inptr1++);
+			cr = GETJSAMPLE(*inptr2++);
+			cred = Crrtab[cr];
+			cgreen = (int) RIGHT_SHIFT(Cbgtab[cb] + Crgtab[cr], SCALEBITS);
+			cblue = Cbbtab[cb];
+			/* Fetch 2 Y values and emit 2 pixels */
+			y  = GETJSAMPLE(*inptr0++); 
+			outlinebuf[(col<<1)-1]=(range_limit[y + cblue] >> 3)<<11 | (range_limit[y + cgreen] >> 2) << 5 | range_limit[y + cred] >> 3;
+			y  = GETJSAMPLE(*inptr0++);
+			outlinebuf[(col<<1)-2] = (range_limit[y + cblue] >> 3)<<11 | (range_limit[y + cgreen] >> 2) << 5 | range_limit[y + cred] >> 3;
 
-		y  = GETJSAMPLE(*inptr0++);
-		//    outptr[RGB_RED] =   range_limit[y + cred];
-		//   outptr[RGB_GREEN] = range_limit[y + cgreen];
-		//  outptr[RGB_BLUE] =  range_limit[y + cblue];
-		// outptr += RGB_PIXELSIZE;
-		LCD43M_RAM = (range_limit[y + cblue] >> 3)<<11 | (range_limit[y + cgreen] >> 2) << 5 | range_limit[y + cred] >> 3;
+		} 
+		ltdc_full_rgb565(imgoffx,outlinecnt,cinfo->output_width,1,outlinebuf);
+		
+		//ltdc_full_video(imgoffx,outlinecnt,cinfo->output_width,1,outlinebuf);
+		
+		outlinecnt++;
+		#endif
+	}else if(lcddev.type == 1){
+		for (col = cinfo->output_width >> 1; col > 0; col--) 
+		{
+			/* Do the chroma part of the calculation */
+			cb = GETJSAMPLE(*inptr1++);
+			cr = GETJSAMPLE(*inptr2++);
+			cred = Crrtab[cr];
+			cgreen = (int) RIGHT_SHIFT(Cbgtab[cb] + Crgtab[cr], SCALEBITS);
+			cblue = Cbbtab[cb];
+			/* Fetch 2 Y values and emit 2 pixels */
+			y  = GETJSAMPLE(*inptr0++);
+			//    outptr[RGB_RED] =   range_limit[y + cred];
+			//   outptr[RGB_GREEN] = range_limit[y + cgreen];
+			//  outptr[RGB_BLUE] =  range_limit[y + cblue];
+			// outptr += RGB_PIXELSIZE;
+			LCD43M_RAM = (range_limit[y + cblue] >> 3)<<11 | (range_limit[y + cgreen] >> 2) << 5 | range_limit[y + cred] >> 3;
 
-	}
-	/* If image width is odd, do the last output column separately */
-	if (cinfo->output_width & 1) 
-	{
-		cb = GETJSAMPLE(*inptr1);
-		cr = GETJSAMPLE(*inptr2);
-		cred = Crrtab[cr];
-		cgreen = (int) RIGHT_SHIFT(Cbgtab[cb] + Crgtab[cr], SCALEBITS);
-		cblue = Cbbtab[cb];
-		y  = GETJSAMPLE(*inptr0);
-		//    outptr[RGB_RED] =   range_limit[y + cred];
-		//   outptr[RGB_GREEN] = range_limit[y + cgreen];
-		//  outptr[RGB_BLUE] =  range_limit[y + cblue];
-		LCD43M_RAM = (range_limit[y + cblue] >> 3)<<11 | (range_limit[y + cgreen] >> 2) << 5 | range_limit[y + cred] >> 3;
+			y  = GETJSAMPLE(*inptr0++);
+			//    outptr[RGB_RED] =   range_limit[y + cred];
+			//   outptr[RGB_GREEN] = range_limit[y + cgreen];
+			//  outptr[RGB_BLUE] =  range_limit[y + cblue];
+			// outptr += RGB_PIXELSIZE;
+			LCD43M_RAM = (range_limit[y + cblue] >> 3)<<11 | (range_limit[y + cgreen] >> 2) << 5 | range_limit[y + cred] >> 3;
+
+		}
+		/* If image width is odd, do the last output column separately */
+		if (cinfo->output_width & 1) 
+		{
+			cb = GETJSAMPLE(*inptr1);
+			cr = GETJSAMPLE(*inptr2);
+			cred = Crrtab[cr];
+			cgreen = (int) RIGHT_SHIFT(Cbgtab[cb] + Crgtab[cr], SCALEBITS);
+			cblue = Cbbtab[cb];
+			y  = GETJSAMPLE(*inptr0);
+			//    outptr[RGB_RED] =   range_limit[y + cred];
+			//   outptr[RGB_GREEN] = range_limit[y + cgreen];
+			//  outptr[RGB_BLUE] =  range_limit[y + cblue];
+			LCD43M_RAM = (range_limit[y + cblue] >> 3)<<11 | (range_limit[y + cgreen] >> 2) << 5 | range_limit[y + cred] >> 3;
+		}
 	}
 }
-
 
 /*
  * Upsample and color convert for the case of 2:1 horizontal and 2:1 vertical.
  */
-
-
 
 METHODDEF(void)
 h2v2_merged_upsample (j_decompress_ptr cinfo,
@@ -328,89 +412,133 @@ h2v2_merged_upsample (j_decompress_ptr cinfo,
 	inptr2 = input_buf[2][in_row_group_ctr];
 
 	/* Loop for each group of output pixels */
-	for (col = cinfo->output_width >> 1; col > 0; col--) 
-	{
-		/* Do the chroma part of the calculation */
-		cb = GETJSAMPLE(*inptr1++);
-		cr = GETJSAMPLE(*inptr2++);
-		cred = Crrtab[cr];
-		cgreen = (int) RIGHT_SHIFT(Cbgtab[cb] + Crgtab[cr], SCALEBITS);
-		cblue = Cbbtab[cb];
-		/* Fetch 4 Y values and emit 4 pixels */
-		y  = GETJSAMPLE(*inptr00++);
-		LCD43M_RAM = range_limit[y + cblue] >> 3 | (range_limit[y + cgreen] >> 2) << 5 | (range_limit[y + cred] >> 3) << 11;
+	if(lcddev.type == 2 || lcddev.type == 3){
+		#if MICROPY_HW_LTDC_LCD
+		/* Loop for each group of output pixels */
+		for (col = cinfo->output_width >> 1; col > 0; col--) 
+		{
+			/* Do the chroma part of the calculation */
+			cb = GETJSAMPLE(*inptr1++);
+			cr = GETJSAMPLE(*inptr2++);
+			cred = Crrtab[cr];
+			cgreen = (int) RIGHT_SHIFT(Cbgtab[cb] + Crgtab[cr], SCALEBITS);
+			cblue = Cbbtab[cb];
+			/* Fetch 4 Y values and emit 4 pixels */
+			y  = GETJSAMPLE(*inptr00++);
+			outlinebuf[(col<<1)-1] = range_limit[y + cblue] >> 3 | (range_limit[y + cgreen] >> 2) << 5 | (range_limit[y + cred] >> 3) << 11;
+			y  = GETJSAMPLE(*inptr00++);
+			outlinebuf[(col<<1)-2] = range_limit[y + cblue] >> 3 | (range_limit[y + cgreen] >> 2) << 5 | (range_limit[y + cred] >> 3) << 11;
+		}
+		ltdc_full_rgb565(imgoffx,outlinecnt,cinfo->output_width,1,outlinebuf);
+		//ltdc_full_video(imgoffx,outlinecnt,cinfo->output_width,1,outlinebuf);
+		outlinecnt++; 
 
-		y  = GETJSAMPLE(*inptr00++);
-		//    pixel.color.B = range_limit[y + cblue] >> 3;
-		//    pixel.color.G = range_limit[y + cgreen] >> 2;
-		//    pixel.color.R = range_limit[y + cred] >> 3;
-		//    LCD43M_RAM = pixel.color.d16;
-		LCD43M_RAM = range_limit[y + cblue] >> 3 | (range_limit[y + cgreen] >> 2) << 5 | (range_limit[y + cred] >> 3) << 11;
-	}
-	//  inptr00 = input_buf[0][in_row_group_ctr*2];
-	inptr01 = input_buf[0][in_row_group_ctr*2 + 1];
-	inptr1 = input_buf[1][in_row_group_ctr];
-	inptr2 = input_buf[2][in_row_group_ctr];
+		inptr01 = input_buf[0][in_row_group_ctr*2 + 1];
+		inptr1 = input_buf[1][in_row_group_ctr];
+		inptr2 = input_buf[2][in_row_group_ctr];
+		/* Loop for each group of output pixels */
+		for (col = cinfo->output_width >> 1; col > 0; col--) 
+		{ 
+			/* Do the chroma part of the calculation */
+			cb = GETJSAMPLE(*inptr1++);
+			cr = GETJSAMPLE(*inptr2++);
+			cred = Crrtab[cr];
+			cgreen = (int) RIGHT_SHIFT(Cbgtab[cb] + Crgtab[cr], SCALEBITS);
+			cblue = Cbbtab[cb];
+			/* Fetch 4 Y values and emit 4 pixels */
+			y  = GETJSAMPLE(*inptr01++);
+			outlinebuf[(col<<1)-1] = range_limit[y + cblue] >> 3 | (range_limit[y + cgreen] >> 2) << 5 | (range_limit[y + cred] >> 3) << 11;
 
-	/* Loop for each group of output pixels */
-	//  for (col = cinfo->output_width >> 1; col > 0; col--) {
-	for (col = cinfo->output_width >> 1; col > 0; col--) 
-	{ 
-		/* Do the chroma part of the calculation */
-		cb = GETJSAMPLE(*inptr1++);
-		cr = GETJSAMPLE(*inptr2++);
-		cred = Crrtab[cr];
-		cgreen = (int) RIGHT_SHIFT(Cbgtab[cb] + Crgtab[cr], SCALEBITS);
-		cblue = Cbbtab[cb];
-		/* Fetch 4 Y values and emit 4 pixels */
-		y  = GETJSAMPLE(*inptr01++);
-		//    pixel.color.B = range_limit[y + cblue] >> 3;
-		//    pixel.color.G = range_limit[y + cgreen] >> 2;
-		//    pixel.color.R = range_limit[y + cred] >> 3;
-		//    LCD->RAM = pixel.color.d16;
+			y  = GETJSAMPLE(*inptr01++);
+			outlinebuf[(col<<1)-2] = range_limit[y + cblue] >> 3 | (range_limit[y + cgreen] >> 2) << 5 | (range_limit[y + cred] >> 3) << 11;
+		}
+		ltdc_full_rgb565(imgoffx,outlinecnt,cinfo->output_width,1,outlinebuf);
+		//ltdc_full_video(imgoffx,outlinecnt,cinfo->output_width,1,outlinebuf);
+		outlinecnt++; 
+		#endif
+	}else if(lcddev.type == 1){
+		for (col = cinfo->output_width >> 1; col > 0; col--) 
+		{
+			/* Do the chroma part of the calculation */
+			cb = GETJSAMPLE(*inptr1++);
+			cr = GETJSAMPLE(*inptr2++);
+			cred = Crrtab[cr];
+			cgreen = (int) RIGHT_SHIFT(Cbgtab[cb] + Crgtab[cr], SCALEBITS);
+			cblue = Cbbtab[cb];
+			/* Fetch 4 Y values and emit 4 pixels */
+			y  = GETJSAMPLE(*inptr00++);
+			LCD43M_RAM = range_limit[y + cblue] >> 3 | (range_limit[y + cgreen] >> 2) << 5 | (range_limit[y + cred] >> 3) << 11;
 
-		LCD43M_RAM = range_limit[y + cblue] >> 3 | (range_limit[y + cgreen] >> 2) << 5 | (range_limit[y + cred] >> 3) << 11;
+			y  = GETJSAMPLE(*inptr00++);
+			//    pixel.color.B = range_limit[y + cblue] >> 3;
+			//    pixel.color.G = range_limit[y + cgreen] >> 2;
+			//    pixel.color.R = range_limit[y + cred] >> 3;
+			//    LCD43M_RAM = pixel.color.d16;
+			LCD43M_RAM = range_limit[y + cblue] >> 3 | (range_limit[y + cgreen] >> 2) << 5 | (range_limit[y + cred] >> 3) << 11;
+		}
+		//  inptr00 = input_buf[0][in_row_group_ctr*2];
+		inptr01 = input_buf[0][in_row_group_ctr*2 + 1];
+		inptr1 = input_buf[1][in_row_group_ctr];
+		inptr2 = input_buf[2][in_row_group_ctr];
 
-		y  = GETJSAMPLE(*inptr01++);
-		//    pixel.color.B = range_limit[y + cblue] >> 3;
-		//    pixel.color.G = range_limit[y + cgreen] >> 2;
-		//    pixel.color.R = range_limit[y + cred] >> 3;
-		//    LCD43M_RAM = pixel.color.d16;
+		/* Loop for each group of output pixels */
+		//  for (col = cinfo->output_width >> 1; col > 0; col--) {
+		for (col = cinfo->output_width >> 1; col > 0; col--) 
+		{ 
+			/* Do the chroma part of the calculation */
+			cb = GETJSAMPLE(*inptr1++);
+			cr = GETJSAMPLE(*inptr2++);
+			cred = Crrtab[cr];
+			cgreen = (int) RIGHT_SHIFT(Cbgtab[cb] + Crgtab[cr], SCALEBITS);
+			cblue = Cbbtab[cb];
+			/* Fetch 4 Y values and emit 4 pixels */
+			y  = GETJSAMPLE(*inptr01++);
+			//    pixel.color.B = range_limit[y + cblue] >> 3;
+			//    pixel.color.G = range_limit[y + cgreen] >> 2;
+			//    pixel.color.R = range_limit[y + cred] >> 3;
+			//    LCD->RAM = pixel.color.d16;
 
-		LCD43M_RAM = range_limit[y + cblue] >> 3 | (range_limit[y + cgreen] >> 2) << 5 | (range_limit[y + cred] >> 3) << 11;
-	}
+			LCD43M_RAM = range_limit[y + cblue] >> 3 | (range_limit[y + cgreen] >> 2) << 5 | (range_limit[y + cred] >> 3) << 11;
 
-	/* If image width is odd, do the last output column separately */
-	if (cinfo->output_width & 1) 
-	{
-		cb = GETJSAMPLE(*inptr1);
-		cr = GETJSAMPLE(*inptr2);
-		cred = Crrtab[cr];
-		cgreen = (int) RIGHT_SHIFT(Cbgtab[cb] + Crgtab[cr], SCALEBITS);
-		cblue = Cbbtab[cb];
-		y  = GETJSAMPLE(*inptr00);
-		//    outptr0[RGB_RED] =   range_limit[y + cred];
-		//    outptr0[RGB_GREEN] = range_limit[y + cgreen];
-		//    outptr0[RGB_BLUE] =  range_limit[y + cblue];
+			y  = GETJSAMPLE(*inptr01++);
+			//    pixel.color.B = range_limit[y + cblue] >> 3;
+			//    pixel.color.G = range_limit[y + cgreen] >> 2;
+			//    pixel.color.R = range_limit[y + cred] >> 3;
+			//    LCD43M_RAM = pixel.color.d16;
 
-		//    pixel.color.B = range_limit[y + cblue] >> 3;
-		//    pixel.color.G = range_limit[y + cgreen] >> 2;
-		//    pixel.color.R = range_limit[y + cred] >> 3;
-		//    LCD43M_RAM = pixel.color.d16;
-		LCD43M_RAM = range_limit[y + cblue] >> 3 | (range_limit[y + cgreen] >> 2) << 5 | (range_limit[y + cred] >> 3) << 11;
+			LCD43M_RAM = range_limit[y + cblue] >> 3 | (range_limit[y + cgreen] >> 2) << 5 | (range_limit[y + cred] >> 3) << 11;
+		}
 
+		/* If image width is odd, do the last output column separately */
+		if (cinfo->output_width & 1) 
+		{
+			cb = GETJSAMPLE(*inptr1);
+			cr = GETJSAMPLE(*inptr2);
+			cred = Crrtab[cr];
+			cgreen = (int) RIGHT_SHIFT(Cbgtab[cb] + Crgtab[cr], SCALEBITS);
+			cblue = Cbbtab[cb];
+			y  = GETJSAMPLE(*inptr00);
+				 // outptr0[RGB_RED] =   range_limit[y + cred];
+				 // outptr0[RGB_GREEN] = range_limit[y + cgreen];
+				 // outptr0[RGB_BLUE] =  range_limit[y + cblue];
 
-		y  = GETJSAMPLE(*inptr01);
-		//    outptr1[RGB_RED] =   range_limit[y + cred];
-		//    outptr1[RGB_GREEN] = range_limit[y + cgreen];
-		//    outptr1[RGB_BLUE] =  range_limit[y + cblue];
+				 // pixel.color.B = range_limit[y + cblue] >> 3;
+				 // pixel.color.G = range_limit[y + cgreen] >> 2;
+				 // pixel.color.R = range_limit[y + cred] >> 3;
+			//    LCD43M_RAM = pixel.color.d16;
+			LCD43M_RAM = range_limit[y + cblue] >> 3 | (range_limit[y + cgreen] >> 2) << 5 | (range_limit[y + cred] >> 3) << 11;
 
+			y  = GETJSAMPLE(*inptr01);
+			//    outptr1[RGB_RED] =   range_limit[y + cred];
+			//    outptr1[RGB_GREEN] = range_limit[y + cgreen];
+			//    outptr1[RGB_BLUE] =  range_limit[y + cblue];
 
-		//    pixel.color.B = range_limit[y + cblue] >> 3;
-		//    pixel.color.G = range_limit[y + cgreen] >> 2;
-		//    pixel.color.R = range_limit[y + cred] >> 3;
-		//    LCD->RAM = pixel.color.d16;
-		LCD43M_RAM = range_limit[y + cblue] >> 3 | (range_limit[y + cgreen] >> 2) << 5 | (range_limit[y + cred] >> 3) << 11;
+			//    pixel.color.B = range_limit[y + cblue] >> 3;
+			//    pixel.color.G = range_limit[y + cgreen] >> 2;
+			//    pixel.color.R = range_limit[y + cred] >> 3;
+			//    LCD->RAM = pixel.color.d16;
+			LCD43M_RAM = range_limit[y + cblue] >> 3 | (range_limit[y + cgreen] >> 2) << 5 | (range_limit[y + cred] >> 3) << 11;
+		}
 	}
 }
 

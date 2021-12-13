@@ -122,6 +122,7 @@ AVISTATUS avi_init(uint8_t *buf,uint16_t size)
 		tbuf+=offset+4;
 		avix.AudioBufSize=*((uint16_t*)tbuf);						//得到音频流buf大小.
 	}		
+	#if 0
 	printf("avi init ok\n");
 	printf("avix.SecPerFrame:%ld\n",avix.SecPerFrame);
 	printf("avix.TotalFrame:%ld\n",avix.TotalFrame); //帧率/1000
@@ -133,6 +134,8 @@ AVISTATUS avi_init(uint8_t *buf,uint16_t size)
 	printf("avix.AudioBufSize:%d\n",avix.AudioBufSize);
 	printf("avix.VideoFLAG:%s\n",avix.VideoFLAG); 
 	printf("avix.AudioFLAG:%s\n",avix.AudioFLAG); 
+	#endif
+
 	return res;
 }
 

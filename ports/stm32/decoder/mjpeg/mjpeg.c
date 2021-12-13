@@ -27,11 +27,18 @@
 #include "lcd43m.h"
 #endif
 
+#if MICROPY_HW_LTDC_LCD
+#include "ltdc.h"
+#endif
+
 #include <stdio.h>
 #include <setjmp.h>
 
 struct jpeg_decompress_struct *cinfo;
 struct my_error_mgr *jerr;
+
+uint16_t *outlinebuf;		//输出行缓存,≥图像宽度*2字节
+uint16_t outlinecnt;			//输出行计数器
 uint8_t *jpegbuf;			//jpeg数据缓存指针
 uint32_t jbufsize;			//jpeg buf大小
 uint16_t imgoffx,imgoffy;	//图像在x,y方向的偏移量
@@ -162,10 +169,14 @@ uint8_t mjpegdec_init(uint16_t offx,uint16_t offy)
 		mjpegdec_free();
 		return 1;
 	}
+	#if MICROPY_HW_LTDC_LCD
+	outlinebuf = (uint16_t*)((uint32_t)ltdc_framebuf[0] + ltdcdev.pixsize*(lcddev.x_pixel*lcddev.y_pixel)*2);
+	#endif
+
 	//保存图像在x,y方向的偏移量
 	imgoffx=offx;
 	imgoffy=offy; 
-	printf("imgoffx:%d,imgoffy:%d\n",imgoffx,imgoffy);
+
 	return 0;
 }
 
@@ -208,14 +219,22 @@ uint8_t mjpegdec_decode(uint8_t* buf,uint32_t bsize)
 	cinfo->dct_method = JDCT_IFAST;
 	cinfo->do_fancy_upsampling = 0;  
 	jpeg_start_decompress(cinfo); 
-
-	LCD_Set_Window(imgoffx,imgoffy,cinfo->output_width,cinfo->output_height);
-	LCD43M_REG = WRAMCMD;
+	
+	if(lcddev.type == 2 || lcddev.type == 3){
+		outlinecnt=imgoffy;				//设置行位置 
+	}else if(lcddev.type == 1){
+		LCD_Set_Window(imgoffx,imgoffy,cinfo->output_width,cinfo->output_height);
+		LCD43M_REG = WRAMCMD;
+	}
+	
 	while (cinfo->output_scanline < cinfo->output_height) 
 	{ 
 		jpeg_read_scanlines(cinfo, buffer, 1);
 	} 
-	LCD_Set_Window(0,0,lcddev.width,lcddev.height);//恢复窗口
+	
+	if(lcddev.type == 1){
+		LCD_Set_Window(0,0,lcddev.width,lcddev.height);//恢复窗口
+	}
 	jpeg_finish_decompress(cinfo); 
 	jpeg_destroy_decompress(cinfo);  
 	return 0;

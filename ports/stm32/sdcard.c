@@ -177,9 +177,9 @@ void sdcard_init(void) {
 STATIC void sdmmc_msp_init(void) {
     // enable SDIO clock
     SDMMC_CLK_ENABLE();
-#if MICROPY_HW_BOARD_COLUMBUS
 
-#else
+#ifndef MICROPY_ENABLE_SDCARD_NIRQ
+
     #if defined(STM32H7)
     // Reset SDMMC
     #if defined(MICROPY_HW_SDMMC2_CK)
@@ -245,9 +245,8 @@ STATIC HAL_StatusTypeDef sdmmc_init_sd(void) {
     #ifndef STM32H7
     sdmmc_handle.sd.Init.ClockBypass = SDIO_CLOCK_BYPASS_DISABLE;
     #endif
-	#if MICROPY_HW_BOARD_COLUMBUS
+	#if MICROPY_ENABLE_SDCARD_NIRQ
 	sdmmc_handle.sd.Init.ClockPowerSave = SDIO_CLOCK_POWER_SAVE_DISABLE;
-	sdmmc_handle.sd.Init.ClockBypass = SDIO_CLOCK_BYPASS_DISABLE;
 	#else
     sdmmc_handle.sd.Init.ClockPowerSave = SDIO_CLOCK_POWER_SAVE_ENABLE;		
 	#endif
@@ -414,8 +413,8 @@ void SDMMC2_IRQHandler(void) {
     IRQ_EXIT(SDMMC2_IRQn);
 }
 #endif
-#if MICROPY_HW_BOARD_COLUMBUS
-#else
+
+#ifndef MICROPY_ENABLE_SDCARD_NIRQ
 STATIC void sdcard_reset_periph(void) {
     // Fully reset the SDMMC peripheral before calling HAL SD DMA functions.
     // (There could be an outstanding DTIMEOUT event from a previous call and the
@@ -430,9 +429,7 @@ STATIC void sdcard_reset_periph(void) {
 STATIC HAL_StatusTypeDef sdcard_wait_finished(uint32_t timeout) {
     // Wait for HAL driver to be ready (eg for DMA to finish)
     uint32_t start = HAL_GetTick();
-#if MICROPY_HW_BOARD_COLUMBUS
-
-#else
+#ifndef MICROPY_ENABLE_SDCARD_NIRQ
     for (;;) {
         // Do an atomic check of the state; WFI will exit even if IRQs are disabled
         uint32_t irq_state = disable_irq();
@@ -482,7 +479,7 @@ STATIC HAL_StatusTypeDef sdcard_wait_finished(uint32_t timeout) {
         if (HAL_GetTick() - start >= timeout) {
             return HAL_TIMEOUT;
         }
-		#if MICROPY_HW_BOARD_COLUMBUS
+		#if MICROPY_ENABLE_SDCARD_NIRQ
 			mp_hal_delay_us(1);
 		#else
 			__WFI();
@@ -517,7 +514,7 @@ mp_uint_t sdcard_read_blocks(uint8_t *dest, uint32_t block_num, uint32_t num_blo
         dest = (uint8_t *)((uint32_t)dest & ~3);
         saved_word = *(uint32_t *)dest;
     }
-#if MICROPY_HW_BOARD_COLUMBUS
+#if MICROPY_ENABLE_SDCARD_NIRQ
 #if 0
     uint32_t irq_state = disable_irq();
 		//uint32_t basepri = raise_irq_pri(IRQ_PRI_OTG_FS);
@@ -639,7 +636,7 @@ mp_uint_t sdcard_write_blocks(const uint8_t *src, uint32_t block_num, uint32_t n
         m_del(uint8_t, src_aligned, SDCARD_BLOCK_SIZE);
         return err;
     }
-#if MICROPY_HW_BOARD_COLUMBUS
+#if MICROPY_ENABLE_SDCARD_NIRQ
     err = HAL_SD_WriteBlocks(&sdmmc_handle.sd, (uint8_t *)src, block_num, num_blocks, 60000);
     if (err == HAL_OK) {
         err = sdcard_wait_finished(60000);
