@@ -84,7 +84,7 @@ SECTIONS
 			. = . + (16K);
 			. = ALIGN(4);
 			_sdram_end = .;
-		} >DRAM
+		} >SDRAM
 
 
 		/* Initialised data section, start-up code will copy it from flash to RAM */

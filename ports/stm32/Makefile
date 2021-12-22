@@ -401,6 +401,12 @@ INC += -I$(DECODE_DIR)/helix-v100/real
 INC += -I$(DECODE_DIR)/helix-v100/pub
 INC += -I$(DECODE_DIR)/helix-v100
 endif
+#utils-jpeg
+ifeq ($(MICROPY_PY_JPEG_UTILS),1)
+SRC_C += $(wildcard $(DECODE_DIR)/utils-jpeg/*.c)
+INC += -I$(DECODE_DIR)/utils-jpeg
+endif
+
 #
 ifeq ($(MICROPY_PY_VIDEO),1)
 SRC_C += $(addprefix $(DECODE_DIR)/mjpeg/jpeg/,\
@@ -509,13 +515,18 @@ HAL_SRC_C += $(addprefix $(HAL_DIR)/Src/stm32$(MCU_SERIES)xx_,\
 	hal_dma_ex.c \
 	hal_dcmi.c \
 	hal_i2s.c \
+	)
+endif
+
+ifeq ($(MCU_SERIES),$(filter $(MCU_SERIES),f4 h7))
+HAL_SRC_C += $(addprefix $(HAL_DIR)/Src/stm32$(MCU_SERIES)xx_,\
 	hal_i2s_ex.c \
 	)
 endif
 
 ifeq ($(CMSIS_MCU),$(filter $(CMSIS_MCU),STM32H743xx))
     HAL_SRC_C += $(addprefix $(HAL_DIR)/Src/stm32$(MCU_SERIES)xx_, hal_fdcan.c)
-		HAL_SRC_C += $(addprefix $(HAL_DIR)/Src/stm32$(MCU_SERIES)xx_, hal_ltdc.c)
+	HAL_SRC_C += $(addprefix $(HAL_DIR)/Src/stm32$(MCU_SERIES)xx_, hal_ltdc.c)
 else
 ifeq ($(MCU_SERIES),$(filter $(MCU_SERIES),f0 f4 f7 h7 l4))
     HAL_SRC_C += $(addprefix $(HAL_DIR)/Src/stm32$(MCU_SERIES)xx_, hal_can.c)
@@ -524,6 +535,11 @@ endif
 
 ifeq ($(MCU_SERIES),$(filter $(MCU_SERIES),f4))
     HAL_SRC_C += $(addprefix $(HAL_DIR)/Src/stm32$(MCU_SERIES)xx_, hal_ltdc.c)
+endif
+
+ifeq ($(MCU_SERIES),$(filter $(MCU_SERIES),f7))
+    HAL_SRC_C += $(addprefix $(HAL_DIR)/Src/stm32$(MCU_SERIES)xx_, hal_ltdc.c)
+	HAL_SRC_C += $(addprefix $(HAL_DIR)/Src/stm32$(MCU_SERIES)xx_, hal_jpeg.c)
 endif
 
 USBDEV_SRC_C += $(addprefix $(USBDEV_DIR)/,\

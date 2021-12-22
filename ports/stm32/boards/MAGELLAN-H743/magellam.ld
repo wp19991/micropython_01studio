@@ -12,7 +12,7 @@ MEMORY
     DTCM (xrw)      : ORIGIN = 0x20000000, LENGTH = 128K    /* Used for storage cache */
     RAM (xrw)       : ORIGIN = 0x24000000, LENGTH = 512K    /* AXI SRAM */    
     RAM_D2 (xrw)    : ORIGIN = 0x30000000, LENGTH = 288K
-		DRAM (xrw)			: ORIGIN = 0xD0000000, LENGTH = 32M
+	SDRAM (xrw)		: ORIGIN = 0xD0000000, LENGTH = 32M
 }
 
 /* produce a link error if there is not this amount of RAM for these sections */
@@ -35,23 +35,23 @@ _heap_end = _sstack;
 SECTIONS
 {		
 
-		.hjpgd_buffers (NOLOAD) : {
-		. = ABSOLUTE(0x20010000);
-		*hjpgd.o*(.bss.hdma_buf)
+	.hjpgd_buffers (NOLOAD) : {
+	. = ABSOLUTE(0x20010000);
+	*hjpgd.o*(.bss.hdma_buf)
     } >DTCM
 		
-		.video_buffers (NOLOAD) : {
-		. = ABSOLUTE(0x30028000); 	/*32k*/
-		*video.o*(.bss.video_buf)
+	.video_buffers (NOLOAD) : {
+	. = ABSOLUTE(0x30028000); 	/*32k*/
+	*video.o*(.bss.video_buf)
     } >RAM_D2
 		
-		.wm8978_buffers (NOLOAD) : {
-		. = ABSOLUTE(0x30030000);
-		*wm8978.o*(.bss.i2s_rbuf)
+	.wm8978_buffers (NOLOAD) : {
+	. = ABSOLUTE(0x30030000);
+	*wm8978.o*(.bss.i2s_rbuf)
     } >RAM_D2
 		
     .eth_buffers (NOLOAD) : {
-        . = ABSOLUTE(0x30040000); /*32K*/
-        *eth.o*(.bss.eth_dma)
+	. = ABSOLUTE(0x30040000); /*32K*/
+	*eth.o*(.bss.eth_dma)
     } >RAM_D2
 }

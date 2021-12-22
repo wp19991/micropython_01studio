@@ -1,7 +1,5 @@
 #include "mjpeg.h" 
 
-#include "lcd43m.h" 
-  
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -42,7 +40,6 @@ uint16_t outlinecnt;			//输出行计数器
 uint8_t *jpegbuf;			//jpeg数据缓存指针
 uint32_t jbufsize;			//jpeg buf大小
 uint16_t imgoffx,imgoffy;	//图像在x,y方向的偏移量
-
 
 //简单快速的内存分配,以提高速度
 #define MJPEG_MAX_MALLOC_SIZE 		38*1024			//最大可以分配35K字节

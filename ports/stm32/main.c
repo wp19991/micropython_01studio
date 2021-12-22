@@ -436,15 +436,15 @@ void stm32_main(uint32_t reset_mode) {
     #endif
 
 //--------------------------------------------------------------------	
-			//SRAM
-		#if defined(MICROPY_HW_SRAM_SIZE)
-		sram_init();
-		bool sram_valid = true;
-		UNUSED(sram_valid); 
-		#if MICROPY_HW_SRAM_STARTUP_TEST
-		sram_valid = sram_test(false);
-		#endif
-		#endif
+		//SRAM
+	#if defined(MICROPY_HW_SRAM_SIZE)
+	sram_init();
+	bool sram_valid = true;
+	UNUSED(sram_valid); 
+	#if MICROPY_HW_SRAM_STARTUP_TEST
+	sram_valid = sram_test(false);
+	#endif
+	#endif
 
     #if MICROPY_HW_SDRAM_SIZE
     sdram_init();
@@ -454,16 +454,16 @@ void stm32_main(uint32_t reset_mode) {
     sdram_valid = sdram_test(true);
     #endif
     #endif
-		#if MICROPY_HW_LCD43M
-		#if MICROPY_HW_BOARD_COLUMBUS
-		lcd43m_init();
-		#endif
-		#endif
+	#if MICROPY_HW_LCD43M
+	#if MICROPY_HW_BOARD_COLUMBUS
+	lcd43m_init();
+	#endif
+	#endif
     #if MICROPY_PY_THREAD
     pyb_thread_init(&pyb_thread_main);
     #endif
     pendsv_init();
-		led_init();
+	led_init();
     #if MICROPY_HW_HAS_SWITCH
     switch_init0();
     #endif
@@ -525,11 +525,11 @@ void stm32_main(uint32_t reset_mode) {
     state.reset_mode = reset_mode;
     state.log_soft_reset = false;
 
-		MICROPY_BOARD_BEFORE_SOFT_RESET_LOOP(&state);
+	MICROPY_BOARD_BEFORE_SOFT_RESET_LOOP(&state);
 
 soft_reset:
 
-		MICROPY_BOARD_TOP_SOFT_RESET_LOOP(&state);
+	MICROPY_BOARD_TOP_SOFT_RESET_LOOP(&state);
 
     // Python threading init
     #if MICROPY_PY_THREAD
@@ -579,9 +579,9 @@ soft_reset:
     #if MICROPY_HW_ENABLE_USB
     pyb_usb_init0();
     #endif
-		#if MICROPY_ENABLE_SPILCD
-		lcd_spibus_deinit();
-		#endif
+	#if MICROPY_ENABLE_SPILCD
+	lcd_spibus_deinit();
+	#endif
     // Initialise the local flash filesystem.
     // Create it if needed, mount in on /flash, and set it as current dir.
     bool mounted_flash = false;

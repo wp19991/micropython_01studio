@@ -6,6 +6,7 @@
 #include "extmod/vfs.h"
 #include "extmod/vfs_fat.h"
 
+#if MICROPY_ENABLE_MP3
 
 #define MP3_TITSIZE_MAX		50	
 #define MP3_ARTSIZE_MAX		50		
@@ -84,6 +85,7 @@ extern __mp3ctrl * mp3ctrl;
 uint8_t mp3_play_song(const char* fname);
 #endif
 
+#endif
 
 
 

@@ -30,19 +30,19 @@
 
 #ifndef MICROPY_HW_TP_SDA
 #if MICROPY_HW_BOARD_COLUMBUS
-	#define MICROPY_HW_TP_SDA 					(pin_F11)
-	#define TP_SDA_PIN									GPIO_PIN_11
+	#define MICROPY_HW_TP_SDA			(pin_F11)
+	#define TP_SDA_PIN					GPIO_PIN_11
 	#define TP_SDA_GPIO_PORT            GPIOF
-	#define MICROPY_TP_SDA_NUM					(11)
-	#define MICROPY_HW_TP_SCL 					(pin_B0)
+	#define MICROPY_TP_SDA_NUM			(11)
+	#define MICROPY_HW_TP_SCL			(pin_B0)
 	#define TP_SCL_PIN                  GPIO_PIN_0
 	#define TP_SCL_GPIO_PORT            GPIOB
 #elif MICROPY_HW_BOARD_MAGELLAM
-	#define MICROPY_HW_TP_SDA 					(pin_I3)
-	#define TP_SDA_PIN									GPIO_PIN_3
+	#define MICROPY_HW_TP_SDA			(pin_I3)
+	#define TP_SDA_PIN					GPIO_PIN_3
 	#define TP_SDA_GPIO_PORT            GPIOI
-	#define MICROPY_TP_SDA_NUM					(3)
-	#define MICROPY_HW_TP_SCL 					(pin_B0)
+	#define MICROPY_TP_SDA_NUM			(3)
+	#define MICROPY_HW_TP_SCL			(pin_B0)
 	#define TP_SCL_PIN                  GPIO_PIN_0
 	#define TP_SCL_GPIO_PORT            GPIOB
 #endif

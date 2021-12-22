@@ -7,6 +7,15 @@
 
 #include "boards/stm32f7xx_hal_conf_base.h"
 
+#include "stm32f7xx_hal_jpeg.h"
+#include "stm32f7xx_hal_dma2d.h"
+#include "stm32f7xx_hal_ltdc.h"
+
+#define HAL_JPEG_MODULE_ENABLED
+#define HAL_DMA2D_MODULE_ENABLED
+#define HAL_LTDC_MODULE_ENABLED
+#define HAL_I2S_MODULE_ENABLED
+
 // Oscillator values in Hz
 #define HSE_VALUE (12000000)
 #define LSE_VALUE (32768)

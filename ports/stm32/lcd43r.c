@@ -251,26 +251,26 @@ void lcd43g_init(void)
 
 	LCD_init_code();
 
-	ltdcdev.pwidth=480;			    //面板宽度,单位:像素
-	ltdcdev.pheight=800;		    //面板高度,单位:像素
+	ltdcdev.pwidth=480;	
+	ltdcdev.pheight=800;
 
-	ltdcdev.hsw=15;				    //水平同步宽度
-	ltdcdev.hbp=2;				    //水平后廊
-	ltdcdev.hfp=3;			    //水平前廊
+	ltdcdev.hsw=15;	
+	ltdcdev.hbp=2;
+	ltdcdev.hfp=3;
 	
-	ltdcdev.vsw=15;				    //垂直同步宽度
-	ltdcdev.vbp=2;				    //垂直后廊
-	ltdcdev.vfp=8;				    //垂直前廊
+	ltdcdev.vsw=15;	
+	ltdcdev.vbp=2;
+	ltdcdev.vfp=8;
 	ltdcdev.layer = 0;
 	
-	ltdcdev.pixsize=2;				//每个像素占2个字节
+	ltdcdev.pixsize=2;
 	ltdcdev.ltdc_format = LTDC_PIXEL_FORMAT_RGB565;//LTDC_PIXEL_FORMAT_ARGB8888;//
 	
 	lcddev.x_pixel = ltdcdev.pwidth;
 	lcddev.y_pixel = ltdcdev.pheight;
 	
 	ltdc_init();
-	#if defined(STM32F4)
+	#if defined(STM32F4) || defined(STM32F7)
 	ltdc_set_clk(7);
 	#elif defined(STM32H7)
 	ltdc_set_clk(6);
@@ -300,11 +300,6 @@ if(x >= lcddev.width || y >= lcddev.height) return;
 	uint32_t ltdc_addr = 0;
 	uint32_t ltdc_whlen = 0;
 
-	// uint16_t* u16color = (uint16_t*)ltdc_framebuf[1];
-	// for(uint32_t i=0;i<height*width;i++){
-		// u16color[i] = color[i];
-	// }
-	
 	switch (lcddev.dir)
 	{
 		case 2:

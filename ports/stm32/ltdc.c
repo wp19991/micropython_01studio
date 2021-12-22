@@ -50,20 +50,24 @@ Graphics_Display ltdc_glcd;
 
 uint8_t ltdc_set_clk(uint32_t pll3r)
 {
-		RCC_PeriphCLKInitTypeDef PeriphClkIniture;
-		PeriphClkIniture.PeriphClockSelection = RCC_PERIPHCLK_LTDC;
-		#if defined(STM32F4)
-		PeriphClkIniture.PLLSAI.PLLSAIN=400;    
-		PeriphClkIniture.PLLSAI.PLLSAIR=pll3r;  
-		PeriphClkIniture.PLLSAIDivR=RCC_PLLSAIDIVR_2;
-		#elif defined(STM32H7)
-		PeriphClkIniture.PLL3.PLL3M = MICROPY_HW_CLK_PLL3M;    
-		PeriphClkIniture.PLL3.PLL3N = MICROPY_HW_CLK_PLL3N;
-		PeriphClkIniture.PLL3.PLL3P = MICROPY_HW_CLK_PLL3P;
-		PeriphClkIniture.PLL3.PLL3Q = MICROPY_HW_CLK_PLL3Q;  
-		PeriphClkIniture.PLL3.PLL3R = pll3r;
-		#endif
-		if(HAL_RCCEx_PeriphCLKConfig(&PeriphClkIniture)==HAL_OK)
+	RCC_PeriphCLKInitTypeDef PeriphClkIniture;
+	PeriphClkIniture.PeriphClockSelection = RCC_PERIPHCLK_LTDC;
+	#if defined(STM32F4)
+	PeriphClkIniture.PLLSAI.PLLSAIN=400;   
+	PeriphClkIniture.PLLSAI.PLLSAIR=pll3r;  
+	PeriphClkIniture.PLLSAIDivR=RCC_PLLSAIDIVR_2;
+	#elif defined(STM32F7)
+	PeriphClkIniture.PLLSAI.PLLSAIN=200;  
+	PeriphClkIniture.PLLSAI.PLLSAIR=pll3r;  
+	PeriphClkIniture.PLLSAIDivR=RCC_PLLSAIDIVR_2;
+	#elif defined(STM32H7)
+	PeriphClkIniture.PLL3.PLL3M = MICROPY_HW_CLK_PLL3M;    
+	PeriphClkIniture.PLL3.PLL3N = MICROPY_HW_CLK_PLL3N;
+	PeriphClkIniture.PLL3.PLL3P = MICROPY_HW_CLK_PLL3P;
+	PeriphClkIniture.PLL3.PLL3Q = MICROPY_HW_CLK_PLL3Q;  
+	PeriphClkIniture.PLL3.PLL3R = pll3r;
+	#endif
+	if(HAL_RCCEx_PeriphCLKConfig(&PeriphClkIniture)==HAL_OK)
     {
         return 0;
     }
@@ -135,33 +139,33 @@ void LTDC_Layer_Window_Config(uint8_t layerx,uint16_t sx,uint16_t sy,uint16_t wi
     HAL_LTDC_SetWindowPosition(&LTDC_Handler,sx,sy,layerx);  //设置窗口的位置
     HAL_LTDC_SetWindowSize(&LTDC_Handler,width,height,layerx);//设置窗口大小    	
 }
-
+  
 void LTDC_Layer_Parameter_Config(uint8_t layerx,uint32_t bufaddr,uint8_t alpha,uint8_t alpha0,uint8_t bfac1,uint8_t bfac2,uint32_t bkcolor)
 {
 	LTDC_LayerCfgTypeDef pLayerCfg;
 	
-	pLayerCfg.WindowX0=0;                       //窗口起始X坐标
-	pLayerCfg.WindowY0=0;                       //窗口起始Y坐标
-	pLayerCfg.WindowX1=ltdcdev.pwidth;          //窗口终止X坐标
-	pLayerCfg.WindowY1=ltdcdev.pheight;         //窗口终止Y坐标
+	pLayerCfg.WindowX0=0;
+	pLayerCfg.WindowY0=0;
+	pLayerCfg.WindowX1=ltdcdev.pwidth;
+	pLayerCfg.WindowY1=ltdcdev.pheight; 
 	
-	pLayerCfg.PixelFormat=ltdcdev.ltdc_format;		    //像素格式
-	pLayerCfg.Alpha=alpha;				        //Alpha值设置，0~255,255为完全不透明
-	pLayerCfg.Alpha0=alpha0;			        //默认Alpha值
-	pLayerCfg.BlendingFactor1=(uint32_t)bfac1<<8;    //设置层混合系数
-	pLayerCfg.BlendingFactor2=(uint32_t)bfac2<<8;	//设置层混合系数
+	pLayerCfg.PixelFormat=ltdcdev.ltdc_format;
+	pLayerCfg.Alpha=alpha;
+	pLayerCfg.Alpha0=alpha0;
+	pLayerCfg.BlendingFactor1=(uint32_t)bfac1<<8;
+	pLayerCfg.BlendingFactor2=(uint32_t)bfac2<<8;
 	
 // pLayerCfg.BlendingFactor1=LTDC_BLENDING_FACTOR1_CA;    //设置层混合系数
 // pLayerCfg.BlendingFactor2=LTDC_BLENDING_FACTOR2_CA;	//设置层混合系数
 	
-	pLayerCfg.FBStartAdress=bufaddr;	        //设置层颜色帧缓存起始地址
-	pLayerCfg.ImageWidth=ltdcdev.pwidth;        //设置颜色帧缓冲区的宽度    
-	pLayerCfg.ImageHeight=ltdcdev.pheight;      //设置颜色帧缓冲区的高度
-	pLayerCfg.Backcolor.Red=(uint8_t)(bkcolor&0X00FF0000)>>16;   //背景颜色红色部分
-	pLayerCfg.Backcolor.Green=(uint8_t)(bkcolor&0X0000FF00)>>8;  //背景颜色绿色部分
-	pLayerCfg.Backcolor.Blue=(uint8_t)bkcolor&0X000000FF;        //背景颜色蓝色部分
+	pLayerCfg.FBStartAdress=bufaddr;
+	pLayerCfg.ImageWidth=ltdcdev.pwidth;  
+	pLayerCfg.ImageHeight=ltdcdev.pheight;
+	pLayerCfg.Backcolor.Red=(uint8_t)(bkcolor&0X00FF0000)>>16;
+	pLayerCfg.Backcolor.Green=(uint8_t)(bkcolor&0X0000FF00)>>8;
+	pLayerCfg.Backcolor.Blue=(uint8_t)bkcolor&0X000000FF;
 
-	HAL_LTDC_ConfigLayer(&LTDC_Handler,&pLayerCfg,layerx);   //设置所选中的层
+	HAL_LTDC_ConfigLayer(&LTDC_Handler,&pLayerCfg,layerx);
 	// HAL_NVIC_SetPriority(LTDC_IRQn, 0xE, 0);
 	// HAL_NVIC_EnableIRQ(LTDC_IRQn);
 	//HAL_LTDC_EnableDither(&LTDC_Handler); // 开启颜色抖动
@@ -171,31 +175,32 @@ void ltdc_conf(void)
 {
 	//LTDC配置
 	LTDC_Handler.Instance=LTDC;
-	LTDC_Handler.Init.HSPolarity=LTDC_HSPOLARITY_AL;         //水平同步极性
-	LTDC_Handler.Init.VSPolarity=LTDC_VSPOLARITY_AL;         //垂直同步极性
-	LTDC_Handler.Init.DEPolarity=LTDC_DEPOLARITY_AL;         //数据使能极性
-	LTDC_Handler.Init.PCPolarity=LTDC_PCPOLARITY_IPC;        //像素时钟极性
-	LTDC_Handler.Init.HorizontalSync=ltdcdev.hsw-1;          //水平同步宽度
-	LTDC_Handler.Init.VerticalSync=ltdcdev.vsw-1;            //垂直同步宽度
-	LTDC_Handler.Init.AccumulatedHBP=ltdcdev.hsw+ltdcdev.hbp-1; //水平同步后沿宽度
-	LTDC_Handler.Init.AccumulatedVBP=ltdcdev.vsw+ltdcdev.vbp-1; //垂直同步后沿高度
-	LTDC_Handler.Init.AccumulatedActiveW=ltdcdev.hsw+ltdcdev.hbp+ltdcdev.pwidth-1;//有效宽度
-	LTDC_Handler.Init.AccumulatedActiveH=ltdcdev.vsw+ltdcdev.vbp+ltdcdev.pheight-1;//有效高度
-	LTDC_Handler.Init.TotalWidth=ltdcdev.hsw+ltdcdev.hbp+ltdcdev.pwidth+ltdcdev.hfp-1;   //总宽度
-	LTDC_Handler.Init.TotalHeigh=ltdcdev.vsw+ltdcdev.vbp+ltdcdev.pheight+ltdcdev.vfp-1;  //总高度
-	LTDC_Handler.Init.Backcolor.Red=0;           //屏幕背景层红色部分
-	LTDC_Handler.Init.Backcolor.Green=0;         //屏幕背景层绿色部分
-	LTDC_Handler.Init.Backcolor.Blue=0;          //屏幕背景色蓝色部分
+	LTDC_Handler.Init.HSPolarity=LTDC_HSPOLARITY_AL;
+	LTDC_Handler.Init.VSPolarity=LTDC_VSPOLARITY_AL;
+	LTDC_Handler.Init.DEPolarity=LTDC_DEPOLARITY_AL;
+	LTDC_Handler.Init.PCPolarity=LTDC_PCPOLARITY_IPC;
+	LTDC_Handler.Init.HorizontalSync=ltdcdev.hsw-1;
+	LTDC_Handler.Init.VerticalSync=ltdcdev.vsw-1;
+	LTDC_Handler.Init.AccumulatedHBP=ltdcdev.hsw+ltdcdev.hbp-1;
+	LTDC_Handler.Init.AccumulatedVBP=ltdcdev.vsw+ltdcdev.vbp-1;
+	LTDC_Handler.Init.AccumulatedActiveW=ltdcdev.hsw+ltdcdev.hbp+ltdcdev.pwidth-1;
+	LTDC_Handler.Init.AccumulatedActiveH=ltdcdev.vsw+ltdcdev.vbp+ltdcdev.pheight-1;
+	LTDC_Handler.Init.TotalWidth=ltdcdev.hsw+ltdcdev.hbp+ltdcdev.pwidth+ltdcdev.hfp-1; 
+	LTDC_Handler.Init.TotalHeigh=ltdcdev.vsw+ltdcdev.vbp+ltdcdev.pheight+ltdcdev.vfp-1; 
+	LTDC_Handler.Init.Backcolor.Red=0;
+	LTDC_Handler.Init.Backcolor.Green=0; 
+	LTDC_Handler.Init.Backcolor.Blue=0;
 	HAL_LTDC_Init(&LTDC_Handler);
 	
 	ltdc_framebuf[0]=(uint32_t*)lcd_buf;
 	ltdc_framebuf[1] = (uint32_t*)((uint32_t)lcd_buf + ltdcdev.pixsize*(lcddev.x_pixel*lcddev.y_pixel));
 
-	//层配置
 
 	LTDC_Layer_Parameter_Config(0,(uint32_t)ltdc_framebuf[0],255,50,6,7,0X000000);
-	LTDC_Layer_Window_Config(0,0,0,ltdcdev.pwidth,ltdcdev.pheight);	//层窗口配置,以LCD面板坐标系为基准,不要随便修改!	
+	LTDC_Layer_Window_Config(0,0,0,ltdcdev.pwidth,ltdcdev.pheight);
 }
+
+
 //设置LCD显示方向
 void set_lcd_dir(uint8_t dir)
 {

@@ -53,68 +53,66 @@ void LCD_Scan_Dir(uint8_t dir)
 {
 	uint16_t regval=0;
 	uint16_t temp;  
-		switch(dir)
+	switch(dir)
+	{
+		case L2R_U2D:
+			regval|=(0<<7)|(0<<6)|(0<<5); 
+			break;
+		case L2R_D2U:
+			regval|=(1<<7)|(0<<6)|(0<<5); 
+			break;
+		case R2L_U2D:
+			regval|=(0<<7)|(1<<6)|(0<<5); 
+			break;
+		case R2L_D2U:
+			regval|=(1<<7)|(1<<6)|(0<<5); 
+			break;	 
+		case U2D_L2R:
+			regval|=(0<<7)|(0<<6)|(1<<5); 
+			break;
+		case U2D_R2L:
+			regval|=(0<<7)|(1<<6)|(1<<5); 
+			break;
+		case D2U_L2R:
+			regval|=(1<<7)|(0<<6)|(1<<5); 
+			break;
+		case D2U_R2L:
+			regval|=(1<<7)|(1<<6)|(1<<5); 
+			break;	 
+	}
+
+	LCD43M_REG = 0X3600;
+	LCD43M_RAM = regval;
+
+	if(regval&0X20)
+	{
+		if(lcddev.width<lcddev.height)//交换X,Y
 		{
-			case L2R_U2D:
-				regval|=(0<<7)|(0<<6)|(0<<5); 
-				break;
-			case L2R_D2U:
-				regval|=(1<<7)|(0<<6)|(0<<5); 
-				break;
-			case R2L_U2D:
-				regval|=(0<<7)|(1<<6)|(0<<5); 
-				break;
-			case R2L_D2U:
-				regval|=(1<<7)|(1<<6)|(0<<5); 
-				break;	 
-			case U2D_L2R:
-				regval|=(0<<7)|(0<<6)|(1<<5); 
-				break;
-			case U2D_R2L:
-				regval|=(0<<7)|(1<<6)|(1<<5); 
-				break;
-			case D2U_L2R:
-				regval|=(1<<7)|(0<<6)|(1<<5); 
-				break;
-			case D2U_R2L:
-				regval|=(1<<7)|(1<<6)|(1<<5); 
-				break;	 
+			temp=lcddev.width;
+			lcddev.width=lcddev.height;
+			lcddev.height=temp;
 		}
-
-		LCD43M_REG = 0X3600;		LCD43M_RAM = regval;
-
-		if(regval&0X20)
+	}else  
+	{
+		if(lcddev.width>lcddev.height)//交换X,Y
 		{
-			if(lcddev.width<lcddev.height)//交换X,Y
-			{
-				temp=lcddev.width;
-				lcddev.width=lcddev.height;
-				lcddev.height=temp;
-			}
-		}else  
-		{
-			if(lcddev.width>lcddev.height)//交换X,Y
-			{
-				temp=lcddev.width;
-				lcddev.width=lcddev.height;
-				lcddev.height=temp;
-			}
-		}  
-		
-		LCD43M_REG = (SETXCMD);		LCD43M_RAM = (0); 
-		LCD43M_REG = (SETXCMD+1);	LCD43M_RAM = (0); 
-		LCD43M_REG = (SETXCMD+2);	LCD43M_RAM = ((lcddev.width-1)>>8); 
-		LCD43M_REG = (SETXCMD+3);	LCD43M_RAM = ((lcddev.width-1)&0XFF); 
-		LCD43M_REG = (SETYCMD);		LCD43M_RAM = (0); 
-		LCD43M_REG = (SETYCMD+1);	LCD43M_RAM = (0); 
-		LCD43M_REG = (SETYCMD+2);	LCD43M_RAM = ((lcddev.height-1)>>8); 
-		LCD43M_REG = (SETYCMD+3);	LCD43M_RAM = ((lcddev.height-1)&0XFF); 
+			temp=lcddev.width;
+			lcddev.width=lcddev.height;
+			lcddev.height=temp;
+		}
+	}  
+	
+	LCD43M_REG = (SETXCMD);		LCD43M_RAM = (0); 
+	LCD43M_REG = (SETXCMD+1);	LCD43M_RAM = (0); 
+	LCD43M_REG = (SETXCMD+2);	LCD43M_RAM = ((lcddev.width-1)>>8); 
+	LCD43M_REG = (SETXCMD+3);	LCD43M_RAM = ((lcddev.width-1)&0XFF); 
+	LCD43M_REG = (SETYCMD);		LCD43M_RAM = (0); 
+	LCD43M_REG = (SETYCMD+1);	LCD43M_RAM = (0); 
+	LCD43M_REG = (SETYCMD+2);	LCD43M_RAM = ((lcddev.height-1)>>8); 
+	LCD43M_REG = (SETYCMD+3);	LCD43M_RAM = ((lcddev.height-1)&0XFF); 
 		
 }    
 
-//快速画点
-//x,y:坐标
-//color:颜色
 void LCD43M_DrawPoint(uint16_t x,uint16_t y,uint16_t color)
 {	   
 if(x >= lcddev.width || y >= lcddev.height) return;
@@ -159,9 +157,7 @@ void lcd43m_hline(uint16_t x0,uint16_t y0,uint16_t len,uint16_t color)
 	if((len==0)||(x0>lcddev.width)||(y0>lcddev.height))return;
 	LCD43M_Fill(x0,y0,x0+len-1,y0,color);	
 }
-//画线
-//x1,y1:起点坐标
-//x2,y2:终点坐标  
+
 void LCD43M_DrawLine(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t color)
 {
 	uint16_t t; 
@@ -197,10 +193,6 @@ void LCD43M_DrawLine(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_
 	}  
 } 
 
-
-
-//设置LCD显示方向
-//dir:1,竖屏；0,横屏
 void LCD_Display_Dir(uint8_t dir)
 {
 	lcddev.dir=dir;		//竖屏
@@ -251,8 +243,6 @@ void LCD43M_Full(uint16_t sx,uint16_t sy,uint16_t width,uint16_t height,uint16_t
 	} 
 } 
 
-//清屏函数
-//color:要清屏的填充色
 void LCD_Clear(uint16_t color)
 {
 	uint32_t index=0;      
@@ -298,7 +288,7 @@ Graphics_Display lcd43_glcd =
 
 #if MICROPY_HW_BOARD_MAGELLAM
 
-#if defined(STM32H7)
+#if defined(STM32H7) || defined(STM32F7)
 //LCD MPU保护参数
 #define LCD_REGION_NUMBER		MPU_REGION_NUMBER7		//LCD使用region0
 #define LCD_ADDRESS_START		(0X68000000)			//LCD区的首地址
@@ -331,7 +321,7 @@ static void lcd43m_mpu_config(void)
 
 void lcd43m_init()
 {
-STATIC bool init_flag = false;
+	STATIC bool init_flag = false;
 	if(init_flag) return;
 
 	mp_hal_pin_config(MICROPY_HW_LCD43M_BL, MP_HAL_PIN_MODE_OUTPUT, MP_HAL_PIN_PULL_UP, 0);
@@ -367,7 +357,7 @@ STATIC bool init_flag = false;
 	FSMC_Bank1->BTCR[6]|=1<<12; 	//存储器写使能
 	FSMC_Bank1->BTCR[6]|=1<<14; 	//读写使用不同的时序
 	FSMC_Bank1->BTCR[6]|=1<<4;		//存储器数据宽度为16bit 			
-								
+
 	FSMC_Bank1->BTCR[7]|=0<<28; 	//模式A 
 	
 	FSMC_Bank1->BTCR[7]|=0XF<<0;	//地址建立时间(ADDSET)为15个HCLK 1/168M=6ns*15=90ns 
@@ -381,7 +371,7 @@ STATIC bool init_flag = false;
 	#endif
 
 	#if MICROPY_HW_BOARD_MAGELLAM
-	#if defined(STM32H7)
+	#if defined(STM32H7)  || defined(STM32F7)
 	lcd43m_mpu_config();
 	#endif
   __HAL_RCC_FMC_CLK_ENABLE();
@@ -430,7 +420,7 @@ STATIC bool init_flag = false;
 	
 	FMC_Bank1_R->BTCR[4]|=1<<0; //使能 BANK1，区域 1
 	FMC_Bank1_R->BTCR[4]|=(uint32_t)1<<31; //使能 FMC
-	#elif defined(STM32F4)
+	#elif defined(STM32F4)	|| defined(STM32F7)
 	FMC_Bank1->BTCR[4]=0X00000000;
 	FMC_Bank1->BTCR[5]=0X00000000;
 	FMC_Bank1E->BWTR[4]=0X00000000;
@@ -449,29 +439,30 @@ STATIC bool init_flag = false;
 	 
 	FMC_Bank1E->BWTR[4]|=8<<8; 	//数据保存时间(DATAST)为 15 个 fmc_ker_ck=64.5ns
 	FMC_Bank1->BTCR[4]|=1<<0; //使能 BANK1，区域 1
+
 	#endif
 	
 	#endif
 
 	mp_hal_delay_ms(50);
-		LCD43M_REG = 0XD4;  
-		lcddev.id = LCD43M_RAM;
-		lcddev.id = LCD43M_RAM; 
-		lcddev.id = LCD43M_RAM;
-		lcddev.id<<=8;	 
-		lcddev.id |= LCD43M_RAM; 
+	LCD43M_REG = 0XD4;  
+	lcddev.id = LCD43M_RAM;
+	lcddev.id = LCD43M_RAM; 
+	lcddev.id = LCD43M_RAM;
+	lcddev.id<<=8;	 
+	lcddev.id |= LCD43M_RAM; 
 
-		if(lcddev.id!=0X5310)	
-		{
-			LCD43M_REG = (0XDA00); 
-			lcddev.id = LCD43M_RAM;	 
-			LCD43M_REG = (0XDB00); 
-			lcddev.id = LCD43M_RAM;	
-			lcddev.id<<=8;	
-			LCD43M_REG = (0XDC00); 
-			lcddev.id |= LCD43M_RAM;	
-			if(lcddev.id==0x8000)lcddev.id=0x5510;
-		}	
+	if(lcddev.id!=0X5310)	
+	{
+		LCD43M_REG = (0XDA00); 
+		lcddev.id = LCD43M_RAM;	 
+		LCD43M_REG = (0XDB00); 
+		lcddev.id = LCD43M_RAM;	
+		lcddev.id<<=8;	
+		LCD43M_REG = (0XDC00); 
+		lcddev.id |= LCD43M_RAM;	
+		if(lcddev.id==0x8000)lcddev.id=0x5510;
+	}	
 
 if(lcddev.id==0x5510)
 	{
@@ -912,7 +903,7 @@ if(lcddev.id==0x5510)
 	FSMC_Bank1E->BWTR[6]|=2<<8; 
 #endif
 #if MICROPY_HW_BOARD_MAGELLAM
-	#if defined(STM32F4)
+	#if defined(STM32F4) || defined(STM32F7)
 	FMC_Bank1E->BWTR[4]&=~(0XF<<0);
 	FMC_Bank1E->BWTR[4]&=~(0XF<<8);
 	FMC_Bank1E->BWTR[4]|=3<<0;			 

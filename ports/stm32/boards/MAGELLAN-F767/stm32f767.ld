@@ -11,7 +11,7 @@ MEMORY
     FLASH_TEXT (rx) : ORIGIN = 0x08020000, LENGTH = 896K    /* sectors 4-7 1*128Kib 3*256KiB = 896K */
     DTCM (xrw)      : ORIGIN = 0x20000000, LENGTH = 128K    /* Used for storage cache */
     RAM (xrw)       : ORIGIN = 0x20020000, LENGTH = 384K    /* SRAM1 = 368K, SRAM2 = 16K */
-		SDRAM(xrw)      : ORIGIN = 0xD0000000, LENGTH = 32M
+	SDRAM(xrw)      : ORIGIN = 0xD0000000, LENGTH = 32M
 }
 
 
@@ -29,3 +29,14 @@ _ram_start = ORIGIN(RAM);
 _ram_end = ORIGIN(RAM) + LENGTH(RAM);
 _heap_start = _ebss; /* heap starts just after statically allocated memory */
 _heap_end = _sstack;
+
+
+SECTIONS
+{		
+
+	.hjpgd_buffers (NOLOAD) : {
+	. = ABSOLUTE(0x20000000);
+	*hjpgd.o*(.bss.hdma_buf)
+    } >DTCM
+
+}

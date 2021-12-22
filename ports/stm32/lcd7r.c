@@ -33,7 +33,11 @@
 #endif
 
 #include "global.h" 
+typedef struct _tftlcd_lcd7r_obj_t {
+    mp_obj_base_t base;
+} tftlcd_lcd7r_obj_t;
 
+STATIC tftlcd_lcd7r_obj_t lcd7r_obj;
 //==============================================================================
 #if MICROPY_HW_LCD7R
 void lcd7r_init(void)
@@ -44,15 +48,15 @@ void lcd7r_init(void)
 	
 	mp_hal_pin_config(MICROPY_HW_LTDC_BL, MP_HAL_PIN_MODE_OUTPUT, MP_HAL_PIN_PULL_UP, 0);
 
-	ltdcdev.pwidth=800;			    //面板宽度,单位:像素
-	ltdcdev.pheight=480;		    //面板高度,单位:像素
-	ltdcdev.hsw=1;				    //水平同步宽度
-	ltdcdev.hbp=46;				    //水平后廊
-	ltdcdev.hfp=210;			    //水平前廊
+	ltdcdev.pwidth=800;
+	ltdcdev.pheight=480;
+	ltdcdev.hsw=1;
+	ltdcdev.hbp=46;
+	ltdcdev.hfp=210;
 	
-	ltdcdev.vsw=1;				    //垂直同步宽度
-	ltdcdev.vbp=23;				    //垂直后廊
-	ltdcdev.vfp=22;				    //垂直前廊
+	ltdcdev.vsw=1;
+	ltdcdev.vbp=23;	
+	ltdcdev.vfp=22;
 	
 	ltdcdev.layer = 0;
 	
@@ -79,13 +83,13 @@ void lcd7r_init(void)
 void lcd7r_full_cam(uint16_t x,uint16_t y,uint16_t width,uint16_t height,uint16_t *color)
 {
 	if(x >= lcddev.width || y >= lcddev.height) return;  
-#if defined(STM32F4)
+#if defined(STM32F4) || defined(STM32F7)
 	for(uint32_t i=0;i<height;i++){
 		for(uint32_t j=0;j<width;j++){
 			ltdc_DrawPoint(j+x,i+y,*color++);
 		}
 	}
-	
+
 #elif defined(STM32H7) 
 
 	uint32_t offline =0 ;
@@ -135,21 +139,6 @@ void lcd7r_full_cam(uint16_t x,uint16_t y,uint16_t width,uint16_t height,uint16_
 	DMA2D->IFCR|=1<<1;				//清除传输完成标志  	
 	#endif
 }
-
-#endif
-//==============================================================================================================
-typedef struct _tftlcd_lcd7r_obj_t {
-    mp_obj_base_t base;
-} tftlcd_lcd7r_obj_t;
-
-STATIC tftlcd_lcd7r_obj_t lcd7r_obj;
-//------------------------------------------------------------------------------------------------------
-
-STATIC void tftlcd_lcd7r_print(const mp_print_t *print, mp_obj_t self_in, mp_print_kind_t kind) {
-	mp_printf(print, "LCD(portrait=%d),width:%u,height:%u,X_PIXEL:%u,Y_PIXEL:%u\n",lcddev.dir,lcddev.width,lcddev.height,
-	lcddev.x_pixel,lcddev.y_pixel);
-}
-//------------------------------------------------------------------------------------------------------
 STATIC mp_obj_t tftlcd_lcd7r_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_kw, const mp_obj_t *all_args) {
 
 	enum { ARG_portrait };
@@ -167,11 +156,22 @@ STATIC mp_obj_t tftlcd_lcd7r_make_new(const mp_obj_type_t *type, size_t n_args, 
 	lcddev.backcolor = BLACK;
 
 	lcd7r_init();
-ltdc_clear(lcddev.backcolor);
+	ltdc_clear(lcddev.backcolor);
 	lcd7r_obj.base.type = &tftlcd_lcd7r_type;
 
 	return MP_OBJ_FROM_PTR(&lcd7r_obj);
 }
+#endif
+//==============================================================================================================
+
+//------------------------------------------------------------------------------------------------------
+
+STATIC void tftlcd_lcd7r_print(const mp_print_t *print, mp_obj_t self_in, mp_print_kind_t kind) {
+	mp_printf(print, "LCD(portrait=%d),width:%u,height:%u,X_PIXEL:%u,Y_PIXEL:%u\n",lcddev.dir,lcddev.width,lcddev.height,
+	lcddev.x_pixel,lcddev.y_pixel);
+}
+//------------------------------------------------------------------------------------------------------
+
 #if MICROPY_HW_LCD43R
 STATIC mp_obj_t tftlcd_lcd43r_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_kw, const mp_obj_t *all_args) {
 

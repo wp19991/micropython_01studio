@@ -7,8 +7,6 @@
 
 #include "boards/stm32h7xx_hal_conf_base.h"
 
-
-
 #define HAL_SRAM_MODULE_ENABLED
 #define HAL_JPEG_MODULE_ENABLED
 #define HAL_DMA2D_MODULE_ENABLED

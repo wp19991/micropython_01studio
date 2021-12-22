@@ -375,10 +375,7 @@ error:
 	
 	return res;
 }
-#if defined(STM32H7)
-// extern char _cachedbuf;
-// static char *cache_buf = &_cachedbuf;
-#endif
+
 // new cached file
 uint8_t grap_newCached(const Graphics_Display *display, uint8_t is_sdcard,
 								FATFS *fs, const char *filename, uint16_t width, uint16_t height)

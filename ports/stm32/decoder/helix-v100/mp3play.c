@@ -23,6 +23,8 @@
 #include "py/objlist.h"
 #include "bufhelper.h"
 
+#if MICROPY_ENABLE_MP3
+
 #include "global.h"
 #if MICROPY_HW_WM8978
 #include "wm8978.h"
@@ -246,7 +248,7 @@ uint8_t mp3_play_song(const char* fname)
 	audiodev.file=(FIL*)m_malloc(sizeof(FIL));
 	audiodev.tbuf=m_malloc(2304*2);
 	buffer=m_malloc(MP3_FILE_BUF_SZ);
-	#if defined(STM32F4)
+	#if defined(STM32F4) || defined(STM32F7)
 	audiodev.i2sbuf1=m_malloc(2304*2);
 	audiodev.i2sbuf2=m_malloc(2304*2);
 	if(!mp3ctrl||!audiodev.i2sbuf1||!audiodev.i2sbuf2||!audiodev.tbuf){
@@ -259,7 +261,7 @@ uint8_t mp3_play_song(const char* fname)
 		m_free(audiodev.file);
 		m_free(audiodev.tbuf);
 		
-		#if defined(STM32F4)
+		#if defined(STM32F4) || defined(STM32F7)
 		m_free(audiodev.i2sbuf1);
 		m_free(audiodev.i2sbuf2);
 		#endif
@@ -277,7 +279,7 @@ uint8_t mp3_play_song(const char* fname)
 	if(res==0){ 
 		WM8978_I2S_CFG(2,0);
  
-		#if defined(STM32F4)
+		#if defined(STM32F4) || defined(STM32F7)
 		audio_init(I2S_STANDARD_PHILIPS,I2S_MODE_MASTER_TX,I2S_CPOL_LOW,I2S_DATAFORMAT_16B_EXTENDED); 
 		I2S2_SampleRate_Set(mp3ctrl->samplerate);	
 		#elif defined(STM32H7)
@@ -394,7 +396,7 @@ uint8_t mp3_play_song(const char* fname)
 	m_free(mp3ctrl);
 	
 	m_free(audiodev.file);
-	#if defined(STM32F4)
+	#if defined(STM32F4) || defined(STM32F7)
 	m_free(audiodev.i2sbuf1);
 	m_free(audiodev.i2sbuf2);
 	#endif
@@ -404,23 +406,6 @@ uint8_t mp3_play_song(const char* fname)
 	return res;
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+#endif
 
 

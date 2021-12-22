@@ -10,10 +10,10 @@
 #define MICROPY_HW_ENABLE_SDCARD    (1)
 #define MICROPY_HW_HAS_SWITCH       (1)
 #define MICROPY_HW_HAS_FLASH        (1)
-#define	MICROPY_HW_ENABLE_SERVO			(1) 
+#define	MICROPY_HW_ENABLE_SERVO		(1) 
 
-#define MICROPY_PY_THREAD_GIL				(1)
-#define MICROPY_PY_THREAD						(1)
+#define MICROPY_PY_THREAD_GIL		(1)
+#define MICROPY_PY_THREAD			(1)
 
 #define MICROPY_ENABLE_SDCARD_NIRQ  (1)
 
@@ -36,57 +36,49 @@
 #define MICROPY_HW_CLK_PLL3Q (4)
 #define MICROPY_HW_CLK_PLL3R (8)
 
-#define MICROPY_HW_BOARD_MAGELLAM			(1)
-#define MICROPY_PY_PICLIB							(1) //图片解码
-#define MICROPY_PY_HJPEG_DECODE				(1)
-#define MICROPY_ENABLE_NEOPIXEL				(1)
+#define MICROPY_HW_BOARD_MAGELLAM				(1)
+#define MICROPY_PY_PICLIB						(1)
+#define MICROPY_PY_HJPEG_DECODE					(1)
+#define MICROPY_ENABLE_NEOPIXEL					(1)
 
 //TFTLCD
 #define MICROPY_ENABLE_TFTLCD					(1)
 #define MICROPY_HW_LTDC_LCD						(1)
-#define	MICROPY_HW_LCD43M							(1)		//液晶屏模块
-#define	MICROPY_HW_LCD43R							(1)
-#define	MICROPY_HW_LCD7R							(1)
+#define	MICROPY_HW_LCD43M						(1)
+#define	MICROPY_HW_LCD43R						(1)
+#define	MICROPY_HW_LCD7R						(1)
 //touch
-#define	MICROPY_ENABLE_TOUCH					(1)   //enable mode
-#define	MICROPY_HW_GT1151							(1)   //使用触摸芯片型号
-#define MICROPY_HW_FT54X6							(1)
-#define MICROPY_HW_GT911							(1)
+#define	MICROPY_ENABLE_TOUCH					(1)
+#define	MICROPY_HW_GT1151						(1)
+#define MICROPY_HW_FT54X6						(1)
+#define MICROPY_HW_GT911						(1)
 //gui
-#define MICROPY_ENABLE_GUI						(1) 	//GUI支持
-#define MICROPY_GUI_BUTTON						(1) 	//按钮控件
-#define GUI_BTN_NUM_MAX 							(50) 	//最大支持按钮数量
-#define GUI_BTN_STR_LEN 							(20)
+#define MICROPY_ENABLE_GUI						(1)
+#define MICROPY_GUI_BUTTON						(1)
+#define GUI_BTN_NUM_MAX							(50)
+#define GUI_BTN_STR_LEN							(20)
 //sensor
 #define MICROPY_ENABLE_SENSOR					(1)
-#define MICROPY_HW_OV2640							(1)
+#define MICROPY_HW_OV2640						(1)
 //audio
 #define MICROPY_ENABLE_AUDIO					(1)
-#define	MICROPY_HW_WM8978							(1)
+#define	MICROPY_HW_WM8978						(1)
 #define	MICROPY_ENABLE_MP3						(1)
 #define MICROPY_ENABLE_VIDEO					(1)
 //===================================================================================
 
 // UART1 config
-#define MICROPY_HW_UART1_NAME   		"UART1"    // on RX / TX
-#define MICROPY_HW_UART1_TX  				(pin_B14)
-#define MICROPY_HW_UART1_RX  				(pin_B15)
+#define MICROPY_HW_UART1_NAME		"UART1"    // on RX / TX
+#define MICROPY_HW_UART1_TX			(pin_B14)
+#define MICROPY_HW_UART1_RX			(pin_B15)
 // UART config
-#define MICROPY_HW_UART2_NAME   		"UART2"    // on RX / TX
+#define MICROPY_HW_UART2_NAME		"UART2"    // on RX / TX
 #define MICROPY_HW_UART2_TX         (pin_A2)
 #define MICROPY_HW_UART2_RX         (pin_A3)
 
-#define MICROPY_HW_UART3_NAME   		"UART3"    // on RX / TX
+#define MICROPY_HW_UART3_NAME		"UART3"    // on RX / TX
 #define MICROPY_HW_UART3_TX         (pin_B10)
 #define MICROPY_HW_UART3_RX         (pin_B11)
-// #define MICROPY_HW_UART5_TX         (pin_B6)
-// #define MICROPY_HW_UART5_RX         (pin_B12)
-// #define MICROPY_HW_UART6_TX         (pin_C6)
-// #define MICROPY_HW_UART6_RX         (pin_C7)
-// #define MICROPY_HW_UART7_TX         (pin_F7)
-// #define MICROPY_HW_UART7_RX         (pin_F6)
-// #define MICROPY_HW_UART8_TX         (pin_E1)
-// #define MICROPY_HW_UART8_RX         (pin_E0)
 
  // #define MICROPY_HW_UART_REPL        PYB_UART_2
  // #define MICROPY_HW_UART_REPL_BAUD   115200

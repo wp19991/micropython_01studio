@@ -66,9 +66,7 @@
 #else
 	#error "no define iic"
 #endif
-// #define WM_I2C									I2C1
-// #define WM_I2C_SDA							MICROPY_HW_I2C1_SDA
-// #define WM_I2C_SCL							MICROPY_HW_I2C1_SCL
+
 //======================================================
 STATIC volatile uint8_t wavtransferend=0; 
 STATIC volatile uint8_t wavwitchbuf=0;		
@@ -81,7 +79,7 @@ DMA_HandleTypeDef I2S2_TXDMA_Handler;
 DMA_HandleTypeDef I2S2_RXDMA_Handler;	
 
 STATIC const uint16_t i2splaybuf[2]={0X0000,0X0000};
-#if defined(STM32F4)
+#if defined(STM32F4) || defined(STM32F7)
 uint8_t *i2srecbuf1;
 uint8_t *i2srecbuf2;
 #elif defined(STM32H7)
@@ -297,7 +295,7 @@ void wm8978_init(void) {
 	GPIO_Initure.Speed = GPIO_SPEED_HIGH;
 	GPIO_Initure.Alternate = GPIO_AF5_SPI2;
 	HAL_GPIO_Init(GPIOC, &GPIO_Initure);
-	
+
 	GPIO_Initure.Pull = GPIO_NOPULL;
 	GPIO_Initure.Pin=GPIO_PIN_2; 
 	HAL_GPIO_Init(GPIOC,&GPIO_Initure); 
@@ -315,8 +313,29 @@ void wm8978_init(void) {
 	GPIO_Initure.Speed = GPIO_SPEED_HIGH;
 	GPIO_Initure.Alternate = GPIO_AF5_SPI2;
 	HAL_GPIO_Init(GPIOD, &GPIO_Initure);
-	#endif
-	#if defined(STM32F4)
+	#elif defined(STM32F7)
+	
+	GPIO_Initure.Mode = GPIO_MODE_AF_PP;
+	GPIO_Initure.Pull = GPIO_NOPULL;
+	GPIO_Initure.Speed = GPIO_SPEED_FAST;
+	GPIO_Initure.Alternate = GPIO_AF5_SPI2;
+	
+	GPIO_Initure.Pin = GPIO_PIN_3|GPIO_PIN_6;
+	HAL_GPIO_Init(GPIOC, &GPIO_Initure);
+
+	GPIO_Initure.Pin = GPIO_PIN_12;
+	HAL_GPIO_Init(GPIOB, &GPIO_Initure);
+
+	GPIO_Initure.Pin = GPIO_PIN_3;
+	HAL_GPIO_Init(GPIOD, &GPIO_Initure);
+	
+	GPIO_Initure.Mode = GPIO_MODE_INPUT;
+	GPIO_Initure.Pull = GPIO_NOPULL;
+	GPIO_Initure.Pin = GPIO_PIN_2;
+	HAL_GPIO_Init(GPIOC,&GPIO_Initure); 
+
+
+	#elif defined(STM32F4)
 	GPIO_Initure.Pin=GPIO_PIN_12;  
 	GPIO_Initure.Mode=GPIO_MODE_AF_PP;
 	GPIO_Initure.Pull=GPIO_NOPULL;    
@@ -334,7 +353,7 @@ void wm8978_init(void) {
 	GPIO_Initure.Alternate=GPIO_AF6_I2S2ext;
 	HAL_GPIO_Init(GPIOC,&GPIO_Initure); 
 	#endif
-	
+
 #endif
 
     // start the I2C bus in master mode
@@ -409,113 +428,110 @@ void wav_stop(void)
  } 
  //暂停播放
 void wav_pause(void)
- {
-	 if(audiodev.status&0X01)
-		 audiodev.status&=~(1<<0);
-	 else 
-		 audiodev.status|=0X01;  
- }
+{
+	if(audiodev.status&0X01)
+		audiodev.status&=~(1<<0);
+	else 
+		audiodev.status|=0X01;  
+}
 //---------------------------------------------------------------
- void wav_get_curtime(FIL*fx,__wavctrl *wavx)
- {
-	 long long fpos;	 
-	 wavx->totsec=wavx->datasize/(wavx->bitrate/8); 
-	 fpos=fx->fptr-wavx->datastart; 				 
-	 wavx->cursec=fpos*wavx->totsec/wavx->datasize;  
- }
+void wav_get_curtime(FIL*fx,__wavctrl *wavx)
+{
+	long long fpos;	 
+	wavx->totsec=wavx->datasize/(wavx->bitrate/8); 
+	fpos=fx->fptr-wavx->datastart; 				 
+	wavx->cursec=fpos*wavx->totsec/wavx->datasize;  
+}
  //==================================================================
 
 void wav_i2s_dma_tx_callback(void) {	 
-	 uint32_t bread;
-	 uint32_t i;
+	uint32_t bread;
+	uint32_t i;
 
-	 if(DMA1_Stream4->CR&(1<<19))
-	 {
-			if((audiodev.status)==3){
-				 f_read(audiodev.file,audiodev.i2sbuf1,WAV_I2S_TX_DMA_BUFSIZE,(UINT*)&bread);
-			 }else if((audiodev.status&0X01)==0) {
-					for(i=0;i<WAV_I2S_TX_DMA_BUFSIZE;i++) { //暂停
-						audiodev.i2sbuf1[i]=0;//填充0
-					}
+	if(DMA1_Stream4->CR&(1<<19)){
+		if((audiodev.status)==3){
+			f_read(audiodev.file,audiodev.i2sbuf1,WAV_I2S_TX_DMA_BUFSIZE,(UINT*)&bread);
+		 }else if((audiodev.status&0X01)==0) {
+			for(i=0;i<WAV_I2S_TX_DMA_BUFSIZE;i++) { //暂停
+				audiodev.i2sbuf1[i]=0;//填充0
 			}
-	 }else 
-	 {
-		 if((audiodev.status)==3){
-				f_read(audiodev.file,audiodev.i2sbuf2,WAV_I2S_TX_DMA_BUFSIZE,(UINT*)&bread);
-		 	}else if((audiodev.status&0X01)==0) {
-				 for(i=0;i<WAV_I2S_TX_DMA_BUFSIZE;i++) { //暂停
-					 audiodev.i2sbuf2[i]=0;//填充0
-				 }
-		 }
-
-	 }
-		//if((audiodev.status)==3 && bread < WAV_I2S_TX_DMA_BUFSIZE) {
-		if((audiodev.status)==3 && bread ==0) {
-		 for(i=bread;i<WAV_I2S_TX_DMA_BUFSIZE-bread;i++) audiodev.i2sbuf2[i]=0; 
-		 	wav_stop();
-			wm8978_adda_cfg(0,0);
-		 	f_close(audiodev.file);
-			#if defined(STM32F4)
-			m_free(audiodev.i2sbuf1);
-			m_free(audiodev.i2sbuf2);
-			#endif
-			m_free(audiodev.file);
 		}
+	}else {
+	 if((audiodev.status)==3){
+			f_read(audiodev.file,audiodev.i2sbuf2,WAV_I2S_TX_DMA_BUFSIZE,(UINT*)&bread);
+		}else if((audiodev.status&0X01)==0) {
+			for(i=0;i<WAV_I2S_TX_DMA_BUFSIZE;i++) { //暂停
+				audiodev.i2sbuf2[i]=0;//填充0
+		}
+	 }
+	}
+	if((audiodev.status)==3 && bread ==0) {
+	 for(i=bread;i<WAV_I2S_TX_DMA_BUFSIZE-bread;i++) audiodev.i2sbuf2[i]=0; 
+		wav_stop();
+		wm8978_adda_cfg(0,0);
+		f_close(audiodev.file);
+		#if defined(STM32F4)
+		m_free(audiodev.i2sbuf1);
+		m_free(audiodev.i2sbuf2);
+		#endif
+		m_free(audiodev.file);
+	}
 	wav_get_curtime(audiodev.file , &wavctrl);
 }
 
  //录音指定时间=数据大小(data)/(16000*4)
 void rec_i2s_dma_rx_callback(void) 
- { 
-	 UINT bw;
-	 uint8_t res = 0;
+{ 
+ UINT bw;
+ uint8_t res = 0;
 
-	 if(rec_sta&0X80)//录音模式
-	 {	
-		 if(DMA1_Stream3->CR&(1<<19))
-		 {
-			 res=f_write(&audio_rec,i2srecbuf1,I2S_RX_DMA_BUF_SIZE,&bw);
-			 if(res)	printf("write error:%d\r\n",res);
+	if(rec_sta&0X80)//录音模式
+	{	
+		if(DMA1_Stream3->CR&(1<<19))
+		{
+		 res=f_write(&audio_rec,i2srecbuf1,I2S_RX_DMA_BUF_SIZE,&bw);
+		 if(res)	printf("write error:%d\r\n",res);
 
-		 }else 
-		 {
+		}else 
+		{
 			res=f_write(&audio_rec,i2srecbuf2,I2S_RX_DMA_BUF_SIZE,&bw);
 			 if(res)	printf("write error:%d\r\n",res);
-		 }
-		 wavsize+=I2S_RX_DMA_BUF_SIZE;
+		}
+		wavsize+=I2S_RX_DMA_BUF_SIZE;
 
 		if(rec_sta&0X40)
-     //if(wavsize>=wavhead->fmt.SampleRate*4*20)
-      {
-				rec_sta |= 0x40;
-				__HAL_DMA_DISABLE(&I2S2_RXDMA_Handler); 	
-				#if defined(STM32H7)
-				SPI2->CR1 &= ~SPI_CR1_CSTART; 
-				SPI2->CR1 &= ~SPI_CR1_SPE;
-				#endif				
-				rec_sta=0; 
-				wavhead->riff.ChunkSize=wavsize+36;	
-				wavhead->data.ChunkSize=wavsize; 
-				f_lseek(&audio_rec,0);	
-				f_write(&audio_rec,(const void*)wavhead,sizeof(__WaveHeader),&bw);//写入头数据
-				f_close(&audio_rec);
-				wavsize=0;
-				#if defined(STM32F4)
-				m_free(i2srecbuf1);
-				m_free(i2srecbuf2);
-				#endif
-
-		 }
-	 } 
- } 
+		// if(wavsize>=wavhead->fmt.SampleRate*4*20)
+		{
+			rec_sta |= 0x40;
+			__HAL_DMA_DISABLE(&I2S2_RXDMA_Handler); 	
+			#if defined(STM32H7)
+			SPI2->CR1 &= ~SPI_CR1_CSTART; 
+			SPI2->CR1 &= ~SPI_CR1_SPE;
+			#endif				
+			rec_sta=0; 
+			wavhead->riff.ChunkSize=wavsize+36;	
+			wavhead->data.ChunkSize=wavsize; 
+			f_lseek(&audio_rec,0);	
+			f_write(&audio_rec,(const void*)wavhead,sizeof(__WaveHeader),&bw);//写入头数据
+			f_close(&audio_rec);
+			wavsize=0;
+			#if defined(STM32F4) || defined(STM32F7)
+			m_free(i2srecbuf1);
+			m_free(i2srecbuf2);
+			#endif
+		}
+	} 
+} 
  //--------------------------------------------------------------------
- //audio_init(I2S_STANDARD_PHILIPS,I2S_MODE_MASTER_TX,I2S_CPOL_LOW,i2s_bsp,wavctrl.samplerate);
-#if defined(STM32F4)
+
+#if defined(STM32F4) || defined(STM32F7)
 void audio_init(uint32_t I2S_Standard,uint32_t I2S_Mode,uint32_t I2S_Clock_Polarity,uint32_t I2S_DataFormat)
 #elif defined(STM32H7)
 void audio_init(uint32_t I2S_Standard,uint32_t I2S_Mode,uint32_t I2S_Clock_Polarity,uint32_t I2S_DataFormat,uint32_t samplerate)
 #endif
 {
+	__SPI2_CLK_ENABLE();
+	
 	#if defined(STM32F4)
 	hi2s2.Instance=SPI2;
 	hi2s2.Init.Mode=I2S_Mode;
@@ -523,24 +539,33 @@ void audio_init(uint32_t I2S_Standard,uint32_t I2S_Mode,uint32_t I2S_Clock_Polar
 	hi2s2.Init.DataFormat=I2S_DataFormat;
 	hi2s2.Init.MCLKOutput=I2S_MCLKOUTPUT_ENABLE;	
 	hi2s2.Init.CPOL=I2S_Clock_Polarity;
-
 	hi2s2.Init.AudioFreq=I2S_AUDIOFREQ_DEFAULT;
 	hi2s2.Init.ClockSource=I2S_CLOCK_PLL;
 	hi2s2.Init.FullDuplexMode=I2S_FULLDUPLEXMODE_ENABLE;	
 	HAL_I2S_Init(&hi2s2);
-	
 	SPI2->CR2|=1<<1;
 	I2S2ext->CR2|=1<<0;
-	__HAL_I2SEXT_ENABLE(&hi2s2);	
+	__HAL_I2SEXT_ENABLE(&hi2s2);
 	__HAL_I2S_ENABLE(&hi2s2);
-
+	
+	#elif defined(STM32F7)
+	hi2s2.Instance=SPI2;
+	hi2s2.Init.Mode=I2S_Mode;
+	hi2s2.Init.Standard=I2S_Standard;	
+	hi2s2.Init.DataFormat=I2S_DataFormat;
+	hi2s2.Init.MCLKOutput=I2S_MCLKOUTPUT_ENABLE;	
+	hi2s2.Init.CPOL=I2S_Clock_Polarity;
+	hi2s2.Init.AudioFreq=I2S_AUDIOFREQ_DEFAULT;
+	hi2s2.Init.ClockSource=RCC_I2SCLKSOURCE_PLLI2S;
+	
+	HAL_I2S_Init(&hi2s2);
+	SPI2->CR2|=1<<1;
+	__HAL_I2S_ENABLE(&hi2s2);
+	
 	#elif defined(STM32H7)
-
 	I2S2_SampleRate_Set(samplerate);
-
 	uint32_t tmp = 0;
 	SPI2->CR1 = 0x00U; // 设置到复位值 并解锁CFG2寄存器
-	
 	SPI2->CR2 = 0x00U; //保持复位默认值
 
 	//I2SCFGR
@@ -592,11 +617,7 @@ void audio_init(uint32_t I2S_Standard,uint32_t I2S_Mode,uint32_t I2S_Clock_Polar
 
 	//IER
 	tmp = 0x00U; //保持复位默认值
-	//tmp |= SPI_IER_TIFREIE; //开启TFREIE中断
-	//tmp |= SPI_IER_OVRIE;
-	//tmp |= SPI_IER_UDRIE;
 	tmp |= SPI_IER_TXPIE;
-	//tmp |= SPI_IER_RXPIE;
 	SPI2->IER = tmp;
 
 	SPI2->CRCPOLY = 0x107U; //保持复位默认值
@@ -606,15 +627,17 @@ void audio_init(uint32_t I2S_Standard,uint32_t I2S_Mode,uint32_t I2S_Clock_Polar
 
 	SPI2->SR = 0x1002U; //清除状态寄存器
 	SPI2->IFCR = 0x0U;
-
-	//SPI2->CR1 |= SPI_CR1_SPE;
 	#endif
 }
-#if defined(STM32H7)
+
 void audio_rx_init(uint32_t samplerate)
 {
+	#if defined(STM32F7)
+	SPI2->CR1 = 0x00;
+	SPI2->CR2 = 0x701;
+	SPI2->I2SCFGR=0xf00;
+	#elif defined(STM32H7)
 	I2S2_SampleRate_Set(samplerate);
-
 	uint32_t tmp = 0;
 	SPI2->CR1 = 0x00U; // 设置到复位值 并解锁CFG2寄存器
 	SPI2->CR2 = 0x00U; //保持复位默认值
@@ -678,8 +701,9 @@ void audio_rx_init(uint32_t samplerate)
 
 	SPI2->SR = 0x1002U; //清除状态寄存器
 	SPI2->IFCR = 0x0U;
+	#endif
 }
-#endif
+
 
 void auido_deinit(void) {
 	HAL_I2S_DeInit(&hi2s2);
@@ -694,16 +718,19 @@ void auido_deinit(void) {
 	HAL_GPIO_DeInit(GPIOC, GPIO_PIN_2|GPIO_PIN_3|GPIO_PIN_6);
 	#if defined(STM32F4)
 	__HAL_I2SEXT_DISABLE(&hi2s2);
-		HAL_GPIO_DeInit(GPIOB, GPIO_PIN_12|GPIO_PIN_13);
+	HAL_GPIO_DeInit(GPIOB, GPIO_PIN_12|GPIO_PIN_13);
+	#elif defined(STM32F7)
+	HAL_GPIO_DeInit(GPIOB, GPIO_PIN_12);
+	HAL_GPIO_DeInit(GPIOD, GPIO_PIN_3);
 	#elif defined(STM32H7)
-		HAL_GPIO_DeInit(GPIOB, GPIO_PIN_12);
+	HAL_GPIO_DeInit(GPIOB, GPIO_PIN_12);
 	HAL_GPIO_DeInit(GPIOD, GPIO_PIN_3);
 	#endif
 }
 
-#if defined(STM32F4)
 const uint16_t I2S_PSC_TBL[][5]=
 {
+	#if defined(STM32F4)
 	{800 ,256,5,12,1},		//8Khz采样率
 	{1102,429,4,19,0},		//11.025Khz采样率 
 	{1600,213,2,13,0},		//16Khz采样率
@@ -715,10 +742,34 @@ const uint16_t I2S_PSC_TBL[][5]=
 	{9600,344,2, 3,1},  	//96Khz采样率
 	{17640,361,2,2,0},  	//176.4Khz采样率 
 	{19200,393,2,2,0},  	//192Khz采样率
+	#elif defined(STM32F7)
+	//div odd
+	{800 ,	200, 2, 11, 1},
+	{1102,	200, 2, 8, 1},//
+	{1600,	200, 2, 6, 0},
+	{2205,	200, 2, 4, 1},
+	{3200,	200, 2, 3, 0},
+	{4410,	200, 2, 2, 0},
+	{4800,	200, 2, 2, 0},
+	{8820,	200, 2, 5 ,0},
+	{9600,	200, 2, 6 ,0},
+	#elif defined(STM32H7)
+	{800 ,	10,	273, 16 ,0},
+	{1102,	10,	235, 10 ,0},
+	{1600,	11,	338, 9 ,0},
+	{2205,	11,	414, 8 ,0},
+	{3200,	11,	413, 5 ,0},
+	{4410,	9,	254, 3 ,0},
+	{4800,	12,	334, 14 ,0},
+	{8820,	9,	254, 5 ,0},
+	{9600,	12,	295, 6 ,0},
+	{17640,	11,	207, 5 ,0},
+	{19200,	12,	295, 6 ,0},
+	#endif
 };
 
 uint8_t I2S2_SampleRate_Set(uint32_t samplerate)
-{   
+{
   uint8_t i=0; 
 	uint32_t tempreg=0;
 	for(i=0;i<(sizeof(I2S_PSC_TBL)/10);i++)
@@ -728,72 +779,72 @@ uint8_t I2S2_SampleRate_Set(uint32_t samplerate)
   if(i==(sizeof(I2S_PSC_TBL)/10))return 1;
 
 	RCC_PeriphCLKInitTypeDef RCCI2S2_ClkInitSture; 
-	RCCI2S2_ClkInitSture.PeriphClockSelection=RCC_PERIPHCLK_I2S;
-	RCCI2S2_ClkInitSture.PLLI2S.PLLI2SN=(uint32_t)I2S_PSC_TBL[i][1];
-	RCCI2S2_ClkInitSture.PLLI2S.PLLI2SR=(uint32_t)I2S_PSC_TBL[i][2]; 
-	HAL_RCCEx_PeriphCLKConfig(&RCCI2S2_ClkInitSture);  
-	RCC->CR|=1<<26;
-	while((RCC->CR&1<<27)==0);
-	tempreg=I2S_PSC_TBL[i][3]<<0;
-	tempreg|=I2S_PSC_TBL[i][4]<<8;
-	tempreg|=1<<9;
-	SPI2->I2SPR=tempreg;
-	return 0;
-} 
-#elif defined(STM32H7)
-const uint16_t I2S_PSC_TBL[][4]=
-{
-	{800 ,	10,	273,	16},	//8Khz采样率
-	{1102,	10,	235,	10},	//11.025Khz采样率 282,240,000
-	{1600,	11,	338,	9},	//16Khz采样率
-	{2205,	11,	414,	8},	//22.05Khz采样率
-	{3200,	11,	413,	5},	//32Khz采样率 ,90,112000
-	{4410,	9,	254,	3},	//44.1Khz采样率
-	{4800,	12,	334,	14},	//48Khz采样率 122,880,000,49,152,000, 24,576,000
-	{8820,	9,	254,	5},	//88.2Khz采样率
-	{9600,	12,	295,	6},	//96Khz采样率  49,152000
-	{17640,	11,	207,	5},	//176.4Khz采样率 45,158400,
-	{19200,	12,	295,	6},	//192Khz采样率 49,152,000
-};
-
-uint8_t I2S2_SampleRate_Set(uint32_t samplerate)
-{   
-  uint8_t i=0; 
-
-	for(i=0;i<(sizeof(I2S_PSC_TBL)/10);i++)
-	{
-		if((samplerate/10)==I2S_PSC_TBL[i][0])break;
-	}
-  if(i==(sizeof(I2S_PSC_TBL)/10))return 1;
-	RCC_PeriphCLKInitTypeDef RCCI2S_Sture; 
+	
+	#if defined(STM32H7)
 	__HAL_RCC_SPI2_CLK_ENABLE();
 	__SPI2_CLK_ENABLE();
 
-	RCCI2S_Sture.PeriphClockSelection = RCC_PERIPHCLK_SPI2;
-	RCCI2S_Sture.PLL2.PLL2M = (uint32_t)I2S_PSC_TBL[i][1];
-	RCCI2S_Sture.PLL2.PLL2N = (uint32_t)I2S_PSC_TBL[i][2];
-	RCCI2S_Sture.PLL2.PLL2P = (uint32_t)I2S_PSC_TBL[i][3];
-	RCCI2S_Sture.PLL2.PLL2Q = 2;
-	RCCI2S_Sture.PLL2.PLL2R = 2;
-	RCCI2S_Sture.PLL2.PLL2RGE = RCC_PLL2VCIRANGE_0;
-	RCCI2S_Sture.PLL2.PLL2VCOSEL = RCC_PLL2VCOWIDE;
-	RCCI2S_Sture.PLL2.PLL2FRACN = 0;
-	RCCI2S_Sture.Spi123ClockSelection = RCC_SPI123CLKSOURCE_PLL2;
-	HAL_RCCEx_PeriphCLKConfig(&RCCI2S_Sture);
+	RCCI2S2_ClkInitSture.PeriphClockSelection = RCC_PERIPHCLK_SPI2;
+	RCCI2S2_ClkInitSture.PLL2.PLL2M = (uint32_t)I2S_PSC_TBL[i][1];
+	RCCI2S2_ClkInitSture.PLL2.PLL2N = (uint32_t)I2S_PSC_TBL[i][2];
+	RCCI2S2_ClkInitSture.PLL2.PLL2P = (uint32_t)I2S_PSC_TBL[i][3];
+	RCCI2S2_ClkInitSture.PLL2.PLL2Q = 2;
+	RCCI2S2_ClkInitSture.PLL2.PLL2R = 2;
+	RCCI2S2_ClkInitSture.PLL2.PLL2RGE = RCC_PLL2VCIRANGE_0;
+	RCCI2S2_ClkInitSture.PLL2.PLL2VCOSEL = RCC_PLL2VCOWIDE;
+	RCCI2S2_ClkInitSture.PLL2.PLL2FRACN = 0;
+	RCCI2S2_ClkInitSture.Spi123ClockSelection = RCC_SPI123CLKSOURCE_PLL2;
+	HAL_RCCEx_PeriphCLKConfig(&RCCI2S2_ClkInitSture);
+	#else
+	RCCI2S2_ClkInitSture.PeriphClockSelection=RCC_PERIPHCLK_I2S;
+	RCCI2S2_ClkInitSture.PLLI2S.PLLI2SN=(uint32_t)I2S_PSC_TBL[i][1];
+	RCCI2S2_ClkInitSture.PLLI2S.PLLI2SR=(uint32_t)I2S_PSC_TBL[i][2]; 
+
+	#if defined(STM32F7)
+	RCCI2S2_ClkInitSture.I2sClockSelection = RCC_I2SCLKSOURCE_PLLI2S;
+	RCCI2S2_ClkInitSture.PLLI2S.PLLI2SQ = 2;
+	#endif
+	HAL_RCCEx_PeriphCLKConfig(&RCCI2S2_ClkInitSture);  
+
+	RCC->CR|=1<<26;
+	while((RCC->CR&1<<27)==0);
+	tempreg=I2S_PSC_TBL[i][3]<<0;	//div
+	tempreg|=I2S_PSC_TBL[i][4]<<8;  //odd
+	#if defined(STM32F7)
+	uint32_t i2sclk,packetlength,tmp;
+	uint32_t i2sdiv;
+	uint32_t i2sodd;
+	i2sclk=200000000U;
+	packetlength = 16U;
+	packetlength = packetlength * 2;
+	tmp = (uint32_t)(((((i2sclk / (packetlength * 8U)) * 10U) / samplerate)) + 5U);
+	tmp = tmp / 10U;
+	i2sodd = (uint32_t)(tmp & (uint32_t)1U);
+	i2sdiv = (uint32_t)((tmp - i2sodd) / 2U);
+	i2sodd = (uint32_t)(i2sodd << 8U);
+	SPI2->I2SPR = (uint32_t)((uint32_t)i2sdiv | (uint32_t)(i2sodd | 1<<9));
+	#elif defined(STM32F4)
+	tempreg|=1<<9;
+	SPI2->I2SPR=tempreg;
+	#endif
+
+	#endif
+
 	return 0;
 } 
-
-#endif
-
 void I2S2_TX_DMA_Init(uint8_t* buf0,uint8_t *buf1,uint32_t num)
 {  
 	__HAL_RCC_DMA1_CLK_ENABLE();                                    	
- 
-	// HAL_DMA_DeInit(&I2S2_TXDMA_Handler); 
 
 	I2S2_TXDMA_Handler.Instance=DMA1_Stream4;                       	                  
-	#if defined(STM32F4)	
+	#if defined(STM32F4)
 	I2S2_TXDMA_Handler.Init.Channel=DMA_CHANNEL_0;   
+	#elif defined(STM32F7)
+
+	__HAL_DMA_CLEAR_FLAG(&I2S2_TXDMA_Handler,DMA_FLAG_FEIF0_4 | DMA_FLAG_DMEIF0_4 |\
+						  DMA_FLAG_TEIF0_4 | DMA_FLAG_HTIF0_4 | DMA_FLAG_TCIF0_4);
+	
+	I2S2_TXDMA_Handler.Init.Channel=DMA_CHANNEL_0; 
 	#elif defined(STM32H7)
 	I2S2_TXDMA_Handler.Init.Request = DMA_REQUEST_SPI2_TX;
 	#endif
@@ -808,27 +859,29 @@ void I2S2_TX_DMA_Init(uint8_t* buf0,uint8_t *buf1,uint32_t num)
 	I2S2_TXDMA_Handler.Init.FIFOMode=DMA_FIFOMODE_DISABLE;  
 	I2S2_TXDMA_Handler.Init.MemBurst=DMA_MBURST_SINGLE;             	
 	I2S2_TXDMA_Handler.Init.PeriphBurst=DMA_PBURST_SINGLE; 
-	
-	 HAL_DMA_DeInit(&I2S2_TXDMA_Handler);  
- 
+
 	if (HAL_DMA_Init(&I2S2_TXDMA_Handler) != HAL_OK)
-  {
-    printf("HAL_DMA_Init error\r\n");
-  }
-  __HAL_LINKDMA(&hi2s2,hdmatx,I2S2_TXDMA_Handler);
-	#if defined(STM32F4)	
+	{
+		printf("HAL_DMA_Init error\r\n");
+	}
+
+	#if defined(STM32F4)
+	HAL_DMAEx_MultiBufferStart(&I2S2_TXDMA_Handler,(uint32_t)buf0,(uint32_t)&SPI2->DR,(uint32_t)buf1,num);  
+	#elif defined(STM32F7)
 	HAL_DMAEx_MultiBufferStart(&I2S2_TXDMA_Handler,(uint32_t)buf0,(uint32_t)&SPI2->DR,(uint32_t)buf1,num);  
 	#elif defined(STM32H7)
 	HAL_DMAEx_MultiBufferStart(&I2S2_TXDMA_Handler,(uint32_t)buf0,(uint32_t)&SPI2->TXDR,(uint32_t)buf1,num);
 	#endif
+	__HAL_LINKDMA(&hi2s2,hdmatx,I2S2_TXDMA_Handler);
 
 	__HAL_DMA_DISABLE(&I2S2_TXDMA_Handler);                         	
-	mp_hal_delay_us(10);                                          
+	mp_hal_delay_us(10);   
+	
 	__HAL_DMA_ENABLE_IT(&I2S2_TXDMA_Handler,DMA_IT_TC);         	
-	__HAL_DMA_CLEAR_FLAG(&I2S2_TXDMA_Handler,DMA_FLAG_TCIF0_4);     		
+	__HAL_DMA_CLEAR_FLAG(&I2S2_TXDMA_Handler,DMA_FLAG_TCIF0_4);  
+	
 	HAL_NVIC_SetPriority(DMA1_Stream4_IRQn,2,1);                    		
 	HAL_NVIC_EnableIRQ(DMA1_Stream4_IRQn);
-
 } 
 
 uint8_t wav_decode_init(FATFS *fs, const char *filename , __wavctrl* wavx) 
@@ -846,7 +899,6 @@ uint8_t wav_decode_init(FATFS *fs, const char *filename , __wavctrl* wavx)
 		printf("data malloc error\r\n");
 	}
 
-
 	FRESULT res;
 	res = f_open(fs, audiodev.file, filename , FA_READ);  //打开文件
 	if(res == FR_OK){
@@ -862,60 +914,60 @@ uint8_t wav_decode_init(FATFS *fs, const char *filename , __wavctrl* wavx)
 
 		if(riff->Format==0X45564157){
 			
-				//fmt=(ChunkFMT *)(buf+12);
-				tmp = (uint8_t*)fmt;
-				for(i=0; i<sizeof(ChunkFMT); i++)
-				{
-					tmp[i] = buf[i+12];
-				}
+			//fmt=(ChunkFMT *)(buf+12);
+			tmp = (uint8_t*)fmt;
+			for(i=0; i<sizeof(ChunkFMT); i++)
+			{
+				tmp[i] = buf[i+12];
+			}
+			
+			//fact=(ChunkFACT *)(buf+12+8+fmt->ChunkSize);
+			tmp = (uint8_t*)fact;
+			for(i=0; i<sizeof(ChunkFACT); i++)
+			{
+				tmp[i] = buf[i+12+8+fmt->ChunkSize];
+			}
+			
+			if(fact->ChunkID==0X74636166||fact->ChunkID==0X5453494C)wavx->datastart=12+8+fmt->ChunkSize+8+fact->ChunkSize;
+			else wavx->datastart=12+8+fmt->ChunkSize;  
+			
+			//data=(ChunkDATA *)(buf+wavx->datastart);	
+			tmp = (uint8_t*)data;
+			for(i=0; i<sizeof(ChunkDATA); i++)
+			{
+				tmp[i] = buf[i+wavx->datastart];
+			}
+			
+			if(data->ChunkID==0X61746164){			
+				wavx->audioformat=fmt->AudioFormat;	
+				wavx->nchannels=fmt->NumOfChannels;	
+				wavx->samplerate=fmt->SampleRate;		
+				wavx->bitrate=fmt->ByteRate*8;		
+				wavx->blockalign=fmt->BlockAlign;	
+				wavx->bps=fmt->BitsPerSample;			
 				
-				//fact=(ChunkFACT *)(buf+12+8+fmt->ChunkSize);
-				tmp = (uint8_t*)fact;
-				for(i=0; i<sizeof(ChunkFACT); i++)
-				{
-					tmp[i] = buf[i+12+8+fmt->ChunkSize];
-				}
-				
-				if(fact->ChunkID==0X74636166||fact->ChunkID==0X5453494C)wavx->datastart=12+8+fmt->ChunkSize+8+fact->ChunkSize;
-				else wavx->datastart=12+8+fmt->ChunkSize;  
-				
-				//data=(ChunkDATA *)(buf+wavx->datastart);	
-				tmp = (uint8_t*)data;
-				for(i=0; i<sizeof(ChunkDATA); i++)
-				{
-					tmp[i] = buf[i+wavx->datastart];
-				}
-				
-				if(data->ChunkID==0X61746164){			
-					wavx->audioformat=fmt->AudioFormat;	
-					wavx->nchannels=fmt->NumOfChannels;	
-					wavx->samplerate=fmt->SampleRate;		
-					wavx->bitrate=fmt->ByteRate*8;		
-					wavx->blockalign=fmt->BlockAlign;	
-					wavx->bps=fmt->BitsPerSample;			
-					
-					wavx->datasize=data->ChunkSize;		
-					wavx->datastart=wavx->datastart+8;	
-					#if 0
-					printf("wavx->audioformat:%d\n",wavx->audioformat);
-					printf("wavx->nchannels:%d\n",wavx->nchannels);
-					printf("wavx->samplerate:%ld\n",wavx->samplerate);
-					printf("wavx->bitrate:%ld\n",wavx->bitrate);
-					printf("wavx->blockalign:%d\n",wavx->blockalign);
-					printf("wavx->bps:%d\r\n",wavx->bps);
-					printf("wavx->datasize:%ld\n",wavx->datasize);
-					printf("wavx->datastart:%ld\n",wavx->datastart);  
-					#endif
+				wavx->datasize=data->ChunkSize;		
+				wavx->datastart=wavx->datastart+8;	
+				#if 0
+				printf("wavx->audioformat:%d\n",wavx->audioformat);
+				printf("wavx->nchannels:%d\n",wavx->nchannels);
+				printf("wavx->samplerate:%ld\n",wavx->samplerate);
+				printf("wavx->bitrate:%ld\n",wavx->bitrate);
+				printf("wavx->blockalign:%d\n",wavx->blockalign);
+				printf("wavx->bps:%d\r\n",wavx->bps);
+				printf("wavx->datasize:%ld\n",wavx->datasize);
+				printf("wavx->datastart:%ld\n",wavx->datastart);  
+				#endif
 
-					wav_get_curtime(audiodev.file , &wavctrl);
-				}
-				else {
-					mp_raise_ValueError(MP_ERROR_TEXT("wav decode data error"));
-				}
+				wav_get_curtime(audiodev.file , &wavctrl);
 			}
 			else {
-				mp_raise_ValueError(MP_ERROR_TEXT("not wav data"));
+				mp_raise_ValueError(MP_ERROR_TEXT("wav decode data error"));
 			}
+		}
+		else {
+			mp_raise_ValueError(MP_ERROR_TEXT("not wav data"));
+		}
 	}
 	else{
 		mp_raise_ValueError(MP_ERROR_TEXT("wav decode open file "));
@@ -933,12 +985,14 @@ uint8_t wav_decode_init(FATFS *fs, const char *filename , __wavctrl* wavx)
 //I2S2ext RX DMA配置
 void I2S2ext_RX_DMA_Init(uint8_t* buf0,uint8_t *buf1,uint32_t num)
 {  
-	__HAL_RCC_DMA1_CLK_ENABLE();                                  
-	    
-
+	__HAL_RCC_DMA1_CLK_ENABLE();   
+	
+	
 	I2S2_RXDMA_Handler.Instance=DMA1_Stream3;     
-	#if defined(STM32F4)	
-	I2S2_RXDMA_Handler.Init.Channel=DMA_CHANNEL_3;   
+	#if defined(STM32F4)
+	I2S2_RXDMA_Handler.Init.Channel=DMA_CHANNEL_3;  
+	#elif defined(STM32F7)
+	I2S2_RXDMA_Handler.Init.Channel=DMA_CHANNEL_0;  
 	#elif defined(STM32H7)
 	I2S2_RXDMA_Handler.Init.Request = DMA_REQUEST_SPI2_RX;
 	#endif
@@ -953,12 +1007,19 @@ void I2S2ext_RX_DMA_Init(uint8_t* buf0,uint8_t *buf1,uint32_t num)
 	I2S2_RXDMA_Handler.Init.FIFOMode=DMA_FIFOMODE_DISABLE;        
 	I2S2_RXDMA_Handler.Init.MemBurst=DMA_MBURST_SINGLE;          
 	I2S2_RXDMA_Handler.Init.PeriphBurst=DMA_PBURST_SINGLE;  
-	
+	#if defined(STM32F7)
+	I2S2_RXDMA_Handler.Init.FIFOThreshold = DMA_FIFO_THRESHOLD_FULL;
+	#endif
 	HAL_DMA_DeInit(&I2S2_RXDMA_Handler);                            	
 	HAL_DMA_Init(&I2S2_RXDMA_Handler);	  
-	__HAL_LINKDMA(&hi2s2,hdmarx,I2S2_RXDMA_Handler);    
-	#if defined(STM32F4)	
+	// __HAL_LINKDMA(&hi2s2,hdmarx,I2S2_RXDMA_Handler);   
+	__HAL_LINKDMA(&hi2s2_rx,hdmarx,I2S2_RXDMA_Handler);
+	
+	#if defined(STM32F4)
 	HAL_DMAEx_MultiBufferStart(&I2S2_RXDMA_Handler,(uint32_t)&I2S2ext->DR,(uint32_t)buf0,(uint32_t)buf1,num);
+	#elif defined(STM32F7)
+	HAL_DMAEx_MultiBufferStart(&I2S2_RXDMA_Handler,(uint32_t)&SPI2->DR,(uint32_t)buf0,(uint32_t)buf1,num);
+
 	#elif defined(STM32H7)
 	HAL_DMAEx_MultiBufferStart(&I2S2_RXDMA_Handler,(uint32_t)&SPI2->RXDR,(uint32_t)buf0,(uint32_t)buf1,num);
 	#endif
@@ -975,30 +1036,30 @@ void I2S2ext_RX_DMA_Init(uint8_t* buf0,uint8_t *buf1,uint32_t num)
 void recoder_enter_rec_mode(void)
 {
 	WM8978_I2S_CFG(2,0);
-	#if defined(STM32F4)
+	#if defined(STM32F4) || defined(STM32F7)
 	i2srecbuf1 = m_malloc(I2S_RX_DMA_BUF_SIZE);
 	i2srecbuf2 = m_malloc(I2S_RX_DMA_BUF_SIZE);
 	if(i2srecbuf1 == NULL || i2srecbuf2 == NULL) mp_raise_ValueError(MP_ERROR_TEXT("i2s buf malloc error"));
-
 	audio_init(I2S_STANDARD_PHILIPS,I2S_MODE_MASTER_TX,I2S_CPOL_LOW,I2S_DATAFORMAT_16B);
 	I2S2_SampleRate_Set(8000);
-	#elif defined(STM32H7)
-	audio_rx_init(8000);
 	#endif
 	
+	audio_rx_init(8000);
+
  	I2S2_TX_DMA_Init((uint8_t*)&i2splaybuf[0],(uint8_t*)&i2splaybuf[1],1); 
 
 	DMA1_Stream4->CR&=~(1<<4);
-	// #if defined(STM32H7)
-	// __HAL_DMA_DISABLE_IT(&I2S2_TXDMA_Handler,DMA_IT_TC); //关闭传输完成中断(这里不用中断送数据
-	// #endif
+
 	I2S2ext_RX_DMA_Init(i2srecbuf1,i2srecbuf2,I2S_RX_DMA_BUF_SIZE/2);
 
-  i2s_rx_callback=rec_i2s_dma_rx_callback;
- 	__HAL_DMA_ENABLE(&I2S2_TXDMA_Handler);
+	i2s_rx_callback=rec_i2s_dma_rx_callback;
+	__HAL_DMA_ENABLE(&I2S2_TXDMA_Handler);
 	__HAL_DMA_ENABLE(&I2S2_RXDMA_Handler); 
 	
-	#if defined(STM32H7)
+	
+	#if defined(STM32F7)
+	__HAL_I2S_ENABLE(&hi2s2_rx);
+	#elif defined(STM32H7)
 	SPI2->CR1 |= SPI_CR1_SPE;
 	SPI2->CR1 |= SPI_CR1_CSTART; //启动i2s
 	#endif
@@ -1040,7 +1101,6 @@ STATIC void wm8978_recorder(const char *name)
 		wavhead->fmt.ChunkSize=16; 	
 		wavhead->fmt.AudioFormat=0X01;
 		wavhead->fmt.NumOfChannels=2;
-		//wavhead->fmt.SampleRate=16000;
 		wavhead->fmt.SampleRate=8000;		
 		wavhead->fmt.ByteRate=wavhead->fmt.SampleRate*4;
 		wavhead->fmt.BlockAlign=4;
@@ -1058,9 +1118,7 @@ STATIC void wm8978_recorder(const char *name)
 	else{
 		mp_raise_ValueError(MP_ERROR_TEXT("recorder open file error"));
 	}
-
 }
-
 
 //=======================================================
 
@@ -1090,9 +1148,9 @@ void wm8978_play_song(const char * file_name) {
 	recoder_enter_play_mode();
 
 	audiodev.file=(FIL*)m_malloc(sizeof(FIL));
-	#if defined(STM32F4)
-		audiodev.i2sbuf1 = m_malloc(WAV_I2S_TX_DMA_BUFSIZE);
-		audiodev.i2sbuf2 = m_malloc(WAV_I2S_TX_DMA_BUFSIZE);
+	#if defined(STM32F4) || defined(STM32F7)
+	audiodev.i2sbuf1 = m_malloc(WAV_I2S_TX_DMA_BUFSIZE);
+	audiodev.i2sbuf2 = m_malloc(WAV_I2S_TX_DMA_BUFSIZE);
 	#endif
 
 	if(audiodev.i2sbuf1 == NULL || audiodev.i2sbuf2 == NULL || audiodev.file == NULL)
@@ -1100,7 +1158,7 @@ void wm8978_play_song(const char * file_name) {
 
 	res = wav_decode_init(&vfs_fat->fatfs , file_path , &wavctrl); 
 
-uint32_t i2s_bsp = 0;
+	uint32_t i2s_bsp = 0;
 
 	if(res == FR_OK) {
 		if(wavctrl.bps==16) {
@@ -1112,7 +1170,7 @@ uint32_t i2s_bsp = 0;
 			WM8978_I2S_CFG(2,2);
 		}
 
-	#if defined(STM32F4)
+	#if defined(STM32F4) || defined(STM32F7)
 		audio_init(I2S_STANDARD_PHILIPS,I2S_MODE_MASTER_TX,I2S_CPOL_LOW,i2s_bsp);
 		res = I2S2_SampleRate_Set(wavctrl.samplerate);
 	#elif defined(STM32H7)
@@ -1130,8 +1188,7 @@ uint32_t i2s_bsp = 0;
 			f_lseek(audiodev.file, wavctrl.datastart);		//跳过文件头
 			f_read(audiodev.file,audiodev.i2sbuf1,WAV_I2S_TX_DMA_BUFSIZE,(UINT*)&bread);
 			f_read(audiodev.file,audiodev.i2sbuf2,WAV_I2S_TX_DMA_BUFSIZE,(UINT*)&bread);
-
-			}else res=0XFF; 
+		}else res=0XFF; 
 	}
 	else res=0XFF;
 }
@@ -1147,10 +1204,10 @@ STATIC mp_obj_t auido_wm8978_make_new(const mp_obj_type_t *type, size_t n_args, 
 	mp_arg_check_num(n_args, n_kw, 0, MP_OBJ_FUN_ARGS_MAX, true);
 	wm8978_init();
 
-  wm8978_obj_t *wm_obj;
-  wm_obj = m_new_obj(wm8978_obj_t);
-  wm_obj->base.type = &audio_wm8978_type;
-  wm_obj->callback = mp_const_none;
+	wm8978_obj_t *wm_obj;
+	wm_obj = m_new_obj(wm8978_obj_t);
+	wm_obj->base.type = &audio_wm8978_type;
+	wm_obj->callback = mp_const_none;
 	audiodev.status=0;
 	audiodev.audioName = m_malloc(50);
 	if(audiodev.audioName != NULL)	memset(audiodev.audioName, '\0', 50);
@@ -1208,10 +1265,10 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_KW(audio_wm8978_continue_play_obj, 0, audio_wm897
 //-----------------------------------------------------------------------------------
 
 STATIC mp_obj_t audio_wm8978_pause(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
-		audiodev.status&=~(1<<0);
-		
-		wm8978_adda_cfg(0,0);
-		return mp_const_true;
+	audiodev.status&=~(1<<0);
+	
+	wm8978_adda_cfg(0,0);
+	return mp_const_true;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_KW(audio_wm8978_pause_obj, 0, audio_wm8978_pause);
 //-----------------------------------------------------------------------------------
@@ -1220,7 +1277,7 @@ STATIC mp_obj_t audio_wm8978_stop(size_t n_args, const mp_obj_t *pos_args, mp_ma
 		audiodev.status=0;
 		__HAL_DMA_DISABLE(&I2S2_TXDMA_Handler);//结束播放; 	
 		f_close(audiodev.file);
-		#if defined(STM32F4)
+		#if defined(STM32F4) || defined(STM32F7)
 		memset(audiodev.i2sbuf1,0,WAV_I2S_TX_DMA_BUFSIZE);
 		memset(audiodev.i2sbuf2,0,WAV_I2S_TX_DMA_BUFSIZE);
 		m_free(audiodev.i2sbuf1);
@@ -1235,44 +1292,44 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_KW(audio_wm8978_stop_obj, 0, audio_wm8978_stop);
 //-----------------------------------------------------------------------------------
 STATIC mp_obj_t audio_wm8978_load(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args)  {
 
-		STATIC const mp_arg_t wm8978_allowed_args[] = {
-			{ MP_QSTR_filename, 		MP_ARG_REQUIRED | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL} }, 
-		};
+	STATIC const mp_arg_t wm8978_allowed_args[] = {
+		{ MP_QSTR_filename, 		MP_ARG_REQUIRED | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL} }, 
+	};
 
-		mp_arg_val_t args[MP_ARRAY_SIZE(wm8978_allowed_args)];
-		mp_arg_parse_all(n_args-1, pos_args+1, kw_args, MP_ARRAY_SIZE(wm8978_allowed_args), wm8978_allowed_args, args);
-			//MP_OBJ_NULL
-		if(args[0].u_obj !=MP_OBJ_NULL) 
-		{
-			mp_buffer_info_t bufinfo;
-			if (mp_obj_is_int(args[0].u_obj)) {
-				mp_raise_ValueError(MP_ERROR_TEXT("wav name parameter error"));
-			} else {
-					mp_get_buffer_raise(args[0].u_obj, &bufinfo, MP_BUFFER_READ);
-					memset(audiodev.audioName, '\0', 50);
-					strncpy(audiodev.audioName,(char *)bufinfo.buf,bufinfo.len);
-			}
+	mp_arg_val_t args[MP_ARRAY_SIZE(wm8978_allowed_args)];
+	mp_arg_parse_all(n_args-1, pos_args+1, kw_args, MP_ARRAY_SIZE(wm8978_allowed_args), wm8978_allowed_args, args);
+		//MP_OBJ_NULL
+	if(args[0].u_obj !=MP_OBJ_NULL) 
+	{
+		mp_buffer_info_t bufinfo;
+		if (mp_obj_is_int(args[0].u_obj)) {
+			mp_raise_ValueError(MP_ERROR_TEXT("wav name parameter error"));
+		} else {
+			mp_get_buffer_raise(args[0].u_obj, &bufinfo, MP_BUFFER_READ);
+			memset(audiodev.audioName, '\0', 50);
+			strncpy(audiodev.audioName,(char *)bufinfo.buf,bufinfo.len);
 		}
-		else{
-			 mp_raise_ValueError(MP_ERROR_TEXT("load wav is empty"));
-		}
+	}
+	else{
+		mp_raise_ValueError(MP_ERROR_TEXT("load wav is empty"));
+	}
 
-		return mp_const_true;
+	return mp_const_true;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_KW(audio_wm8978_load_obj, 1, audio_wm8978_load);
 //----------------------------------------------------------------------------------------------------
 STATIC mp_obj_t audio_wm8978_volume(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
-  STATIC const mp_arg_t volume_args[] = {
-    { MP_QSTR_vol,   MP_ARG_INT, {.u_int = 80} }, 
-  };
-  mp_arg_val_t args[MP_ARRAY_SIZE(volume_args)];
-  mp_arg_parse_all(n_args-1, pos_args+1, kw_args, MP_ARRAY_SIZE(volume_args), volume_args, args);
+	STATIC const mp_arg_t volume_args[] = {
+		{ MP_QSTR_vol,   MP_ARG_INT, {.u_int = 80} }, 
+	};
+	mp_arg_val_t args[MP_ARRAY_SIZE(volume_args)];
+	mp_arg_parse_all(n_args-1, pos_args+1, kw_args, MP_ARRAY_SIZE(volume_args), volume_args, args);
 
 	uint8_t vul = (uint8_t)(args[0].u_int * 0.63);
 	wm8978_spk_vol(vul);
 	wm8978_hspk_vol(vul,vul);
 
-  return mp_obj_new_int(vul);
+	return mp_obj_new_int(vul);
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_KW(audio_wm8978_volume_obj, 0, audio_wm8978_volume);
 //----------------------------------------------------------------------------------------------------
@@ -1305,28 +1362,29 @@ STATIC mp_obj_t audio_wm8978_record(size_t n_args, const mp_obj_t *pos_args, mp_
     if (mp_obj_is_int(args[0].u_obj)) {
       mp_raise_ValueError(MP_ERROR_TEXT("input record file name error"));
     } 
-		else{
-			wm8978_adda_cfg(0,1);
-			
-			wm8978_input_cfg(1,1,0);
-			wm8978_output_cfg(0,1);
-			wm8978_spk_vol(0);
+	else{
+		wm8978_adda_cfg(0,1);
 
-			wm8978_mic_gain((uint8_t)(args[1].u_int * 0.63));
-			// WM8978_I2S_CFG(2,0);
-			
-			mp_get_buffer_raise(args[0].u_obj, &bufinfo, MP_BUFFER_READ);
-			char *str = bufinfo.buf;
+		wm8978_input_cfg(1,1,0);
 
-			while(Is_FileReadOk){
-				Is_FileReadOk = 0;
-				mp_hal_delay_ms(1000);
-			}
-			wm8978_recorder(str);
+		wm8978_output_cfg(0,1);
+		wm8978_spk_vol(0);
+
+		wm8978_mic_gain((uint8_t)(args[1].u_int * 0.63));
+		// WM8978_I2S_CFG(2,0);
+		
+		mp_get_buffer_raise(args[0].u_obj, &bufinfo, MP_BUFFER_READ);
+		char *str = bufinfo.buf;
+
+		while(Is_FileReadOk){
+			Is_FileReadOk = 0;
+			mp_hal_delay_ms(1000);
+		}
+		wm8978_recorder(str);
     }
   }
 	else	mp_raise_ValueError(MP_ERROR_TEXT("record file name parameter is empty"));
-  return mp_const_none;
+	return mp_const_none;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_KW(audio_wm8978_record_obj, 1, audio_wm8978_record);
 //-----------------------------------------------------------------------------------
@@ -1354,20 +1412,19 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_KW(audio_wm8978_deinit_obj,0, audio_wm8978_deinit
 
 /******************************************************************************/
 STATIC const mp_rom_map_elem_t audio_wm8978_locals_dict_table[] = {
-    { MP_ROM_QSTR(MP_QSTR__name__), MP_ROM_QSTR(MP_QSTR_wm8978) },
-    { MP_ROM_QSTR(MP_QSTR_deinit), MP_ROM_PTR(&audio_wm8978_deinit_obj) },
-		{ MP_ROM_QSTR(MP_QSTR_load), MP_ROM_PTR(&audio_wm8978_load_obj) },
-		{ MP_ROM_QSTR(MP_QSTR_play), MP_ROM_PTR(&audio_wm8978_play_obj) },
-		{ MP_ROM_QSTR(MP_QSTR_continue_play), MP_ROM_PTR(&audio_wm8978_continue_play_obj)},
-		{ MP_ROM_QSTR(MP_QSTR_pause), MP_ROM_PTR(&audio_wm8978_pause_obj)},
-		{ MP_ROM_QSTR(MP_QSTR_stop), MP_ROM_PTR(&audio_wm8978_stop_obj) },
-		{ MP_ROM_QSTR(MP_QSTR_volume), MP_ROM_PTR(&audio_wm8978_volume_obj)},
-		{ MP_ROM_QSTR(MP_QSTR_totsec), MP_ROM_PTR(&audio_wm8978_totsec_obj)},
-		{ MP_ROM_QSTR(MP_QSTR_cursec), MP_ROM_PTR(&audio_wm8978_cursec_obj)},
+	{ MP_ROM_QSTR(MP_QSTR__name__), MP_ROM_QSTR(MP_QSTR_wm8978) },
+	{ MP_ROM_QSTR(MP_QSTR_deinit), MP_ROM_PTR(&audio_wm8978_deinit_obj) },
+	{ MP_ROM_QSTR(MP_QSTR_load), MP_ROM_PTR(&audio_wm8978_load_obj) },
+	{ MP_ROM_QSTR(MP_QSTR_play), MP_ROM_PTR(&audio_wm8978_play_obj) },
+	{ MP_ROM_QSTR(MP_QSTR_continue_play), MP_ROM_PTR(&audio_wm8978_continue_play_obj)},
+	{ MP_ROM_QSTR(MP_QSTR_pause), MP_ROM_PTR(&audio_wm8978_pause_obj)},
+	{ MP_ROM_QSTR(MP_QSTR_stop), MP_ROM_PTR(&audio_wm8978_stop_obj) },
+	{ MP_ROM_QSTR(MP_QSTR_volume), MP_ROM_PTR(&audio_wm8978_volume_obj)},
+	{ MP_ROM_QSTR(MP_QSTR_totsec), MP_ROM_PTR(&audio_wm8978_totsec_obj)},
+	{ MP_ROM_QSTR(MP_QSTR_cursec), MP_ROM_PTR(&audio_wm8978_cursec_obj)},
 
-		{ MP_ROM_QSTR(MP_QSTR_record), MP_ROM_PTR(&audio_wm8978_record_obj)},
-		{ MP_ROM_QSTR(MP_QSTR_record_stop), MP_ROM_PTR(&audio_wm8978_record_stop_obj)},
-			
+	{ MP_ROM_QSTR(MP_QSTR_record), MP_ROM_PTR(&audio_wm8978_record_obj)},
+	{ MP_ROM_QSTR(MP_QSTR_record_stop), MP_ROM_PTR(&audio_wm8978_record_stop_obj)},
 };STATIC MP_DEFINE_CONST_DICT(audio_wm8978_locals_dict,audio_wm8978_locals_dict_table);
 
 

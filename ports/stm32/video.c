@@ -148,7 +148,7 @@ uint8_t video_play_mjpeg(const char *pname)
 		if(avix.SampleRate){
 			WM8978_I2S_CFG(2,0);	//飞利浦标准,16位数据长度
 			wm8978_adda_cfg(1,0);			//开启DAC
-			#if defined(STM32F4)
+			#if defined(STM32F4) || defined(STM32F7)
 			audio_init(I2S_STANDARD_PHILIPS,I2S_MODE_MASTER_TX,I2S_CPOL_LOW,I2S_DATAFORMAT_16B_EXTENDED);
 			I2S2_SampleRate_Set(avix.SampleRate);	//设置采样率
 			#elif defined(STM32H7)
@@ -167,7 +167,7 @@ uint8_t video_play_mjpeg(const char *pname)
 		}
 
 		videodev.status = 3;
-    DMA1_Stream4->CR|=1<<0;	
+		DMA1_Stream4->CR|=1<<0;	
 		videodev.play_while = 1;
 		video_obj_t *self;
 		self = MP_STATE_PORT(video_obj_rom);

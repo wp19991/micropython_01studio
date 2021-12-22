@@ -57,13 +57,13 @@ bool sdram_init(void) {
     FMC_SDRAM_TimingTypeDef SDRAM_Timing;
     FMC_SDRAM_CommandTypeDef command;
 		
-		__HAL_RCC_SYSCFG_CLK_ENABLE();
+	__HAL_RCC_SYSCFG_CLK_ENABLE();
     __HAL_RCC_FMC_CLK_ENABLE();
 
-		#if MICROPY_HW_LCD43M
-		mp_hal_pin_config(MICROPY_HW_MCULCD_CS, MP_HAL_PIN_MODE_OUTPUT, MP_HAL_PIN_PULL_UP, 0);
-		mp_hal_pin_high(MICROPY_HW_MCULCD_CS); 
-		#endif
+	#if MICROPY_HW_LCD43M
+	mp_hal_pin_config(MICROPY_HW_MCULCD_CS, MP_HAL_PIN_MODE_OUTPUT, MP_HAL_PIN_PULL_UP, 0);
+	mp_hal_pin_high(MICROPY_HW_MCULCD_CS); 
+	#endif
 
     #if defined(MICROPY_HW_FMC_SDCKE0)
     mp_hal_pin_config_alt_static_speed(MICROPY_HW_FMC_SDCKE0, MP_HAL_PIN_MODE_ALT, MP_HAL_PIN_PULL_NONE, MP_HAL_PIN_SPEED_VERY_HIGH, STATIC_AF_FMC_SDCKE0);
@@ -249,27 +249,27 @@ static void sdram_init_seq(SDRAM_HandleTypeDef
        refresh rate is 703 - 20 = 683.
      */
     //#define REFRESH_COUNT (MICROPY_HW_SDRAM_REFRESH_RATE * 90000 / 8192 - 20)
-		#define REFRESH_COUNT (MICROPY_HW_SDRAM_REFRESH_RATE * MICROPY_HW_SDRAM_FREQUENCY / MICROPY_HW_SDRAM_REFRESH_CYCLES - 20)
+	#define REFRESH_COUNT (MICROPY_HW_SDRAM_REFRESH_RATE * MICROPY_HW_SDRAM_FREQUENCY / MICROPY_HW_SDRAM_REFRESH_CYCLES - 20)
 
-		#if defined(MICROPY_HW_BOARD_MAGELLAM) && defined(STM32H7)
-		HAL_SDRAM_ProgramRefreshRate(hsdram, 677);
-		#else
-		HAL_SDRAM_ProgramRefreshRate(hsdram, REFRESH_COUNT);
-		#endif
+	#if defined(MICROPY_HW_BOARD_MAGELLAM) && defined(STM32H7)
+	HAL_SDRAM_ProgramRefreshRate(hsdram, 677);
+	#else
+	HAL_SDRAM_ProgramRefreshRate(hsdram, REFRESH_COUNT);
+	#endif
     //#if defined(STM32F7)
-		#if defined(STM32F7) || defined(STM32H7)
+	#if defined(STM32F7) || defined(STM32H7)
     /* Enable MPU for the SDRAM Memory Region to allow non-aligned
        accesses (hard-fault otherwise)
        Initially disable all access for the entire SDRAM memory space,
        then enable access/caching for the size used
     */
     uint32_t irq_state = mpu_config_start();
-		#if MICROPY_HW_BOARD_MAGELLAM
-			mpu_config_region(MPU_REGION_SDRAM2, SDRAM_START_ADDRESS, MPU_CONFIG_SDRAM(MPU_REGION_SIZE_16MB));
-		#else
-			mpu_config_region(MPU_REGION_SDRAM1, SDRAM_START_ADDRESS, MPU_CONFIG_DISABLE(0x00, MPU_REGION_SIZE_512MB));
-			mpu_config_region(MPU_REGION_SDRAM2, SDRAM_START_ADDRESS, MPU_CONFIG_SDRAM(SDRAM_MPU_REGION_SIZE));
-		#endif
+	#if MICROPY_HW_BOARD_MAGELLAM
+		mpu_config_region(MPU_REGION_SDRAM2, SDRAM_START_ADDRESS, MPU_CONFIG_SDRAM(MPU_REGION_SIZE_16MB));
+	#else
+		mpu_config_region(MPU_REGION_SDRAM1, SDRAM_START_ADDRESS, MPU_CONFIG_DISABLE(0x00, MPU_REGION_SIZE_512MB));
+		mpu_config_region(MPU_REGION_SDRAM2, SDRAM_START_ADDRESS, MPU_CONFIG_SDRAM(SDRAM_MPU_REGION_SIZE));
+	#endif
 
     mpu_config_end(irq_state);
     #endif
