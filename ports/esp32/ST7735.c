@@ -473,7 +473,7 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_KW(ST7735_drawCircle_obj, 1, ST7735_drawCircle);
 STATIC mp_obj_t ST7735_drawStr(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
 
   STATIC const mp_arg_t tft_allowed_args[] = {
-		{ MP_QSTR_text,     		MP_ARG_REQUIRED | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL} },
+	{ MP_QSTR_text,     		MP_ARG_REQUIRED | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL} },
     { MP_QSTR_x,        		MP_ARG_REQUIRED |MP_ARG_INT, {.u_int = 0} },
     { MP_QSTR_y,        		MP_ARG_REQUIRED |MP_ARG_INT, {.u_int = 0} },
     { MP_QSTR_color,    		MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL} },
@@ -521,11 +521,23 @@ STATIC mp_obj_t ST7735_drawStr(size_t n_args, const mp_obj_t *pos_args, mp_map_t
         mp_get_buffer_raise(args[0].u_obj, &bufinfo, MP_BUFFER_READ);
         char *str = bufinfo.buf;
 
-        if(text_size == 1)  text_size = 16;
-        else if(text_size == 2) text_size = 24;
+		if(0){}
+		#if MICROPY_STRING_SIZE_24
+		else if(text_size == 2) text_size = 24;
+		#endif
+		#if MICROPY_STRING_SIZE_32
         else if(text_size == 3) text_size = 32;
+		#endif
+		#if MICROPY_STRING_SIZE_48
         else if(text_size == 4) text_size = 48;
-        else mp_raise_ValueError(MP_ERROR_TEXT("lcd size parameter error"));
+		#endif
+		else text_size = 16;
+		
+        // if(text_size == 1)  text_size = 16;
+        // else if(text_size == 2) text_size = 24;
+        // else if(text_size == 3) text_size = 32;
+        // else if(text_size == 4) text_size = 48;
+        // else mp_raise_ValueError(MP_ERROR_TEXT("lcd size parameter error"));
 				
         grap_drawStr(&st7735_glcd, args[1].u_int, args[2].u_int, 
 									text_size* bufinfo.len, text_size , text_size,str ,color, lcddev.backcolor);
@@ -549,7 +561,7 @@ STATIC mp_obj_t ST7735_drawPicture(size_t n_args, const mp_obj_t *pos_args, mp_m
     { MP_QSTR_x,       MP_ARG_REQUIRED | MP_ARG_INT, {.u_int = 0} },
     { MP_QSTR_y,       MP_ARG_REQUIRED | MP_ARG_INT, {.u_int = 0} },
     { MP_QSTR_file,    MP_ARG_REQUIRED | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL} },
-		{ MP_QSTR_cached,  MP_ARG_KW_ONLY  | MP_ARG_BOOL, {.u_bool = true} },
+	{ MP_QSTR_cached,  MP_ARG_KW_ONLY  | MP_ARG_BOOL, {.u_bool = true} },
   };
 
   uint8_t arg_num = MP_ARRAY_SIZE(ILI9341_allowed_args);

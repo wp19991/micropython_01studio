@@ -7,6 +7,10 @@
 #define MICROPY_PY_PICLIB					(1)
 
 #define MICROPY_ENABLE_TFTLCD			(1)
+#define MICROPY_STRING_SIZE_24			(1)
+#define MICROPY_STRING_SIZE_32			(1)
+#define MICROPY_STRING_SIZE_48			(1)
+
 #define MICROPY_HW_LCD32					(1)	
 #define MICROPY_HW_LCD15					(1)	
 #define MICROPY_HW_LCD18					(1)	

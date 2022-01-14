@@ -96,7 +96,7 @@ void ft54x6_read_point(void)
 		int8_t read_id = 0;
     static uint8_t pre_touch = 0;
 
-		ft54xx_read_data(0x01, read_buf, 6);
+	ft54xx_read_data(0x01, read_buf, 6);
 
     touch_num = read_buf[1] % 6; 
 
@@ -112,27 +112,27 @@ void ft54x6_read_point(void)
       switch (tp_dev.dir)
         {
           case 2:
-						input_y = (uint16_t)(800-( ((read_buf[4] & 0x0F)<<8) + read_buf[5]));
-						input_x = (uint16_t)(480-( ((read_buf[2] & 0x0F)<<8) + read_buf[3]));
+			input_y = (uint16_t)(800-( ((read_buf[4] & 0x0F)<<8) + read_buf[5]));
+			input_x = (uint16_t)(480-( ((read_buf[2] & 0x0F)<<8) + read_buf[3]));
           break;
           case 3:
-						input_x = (uint16_t)(800-( ((read_buf[4] & 0x0F)<<8) + read_buf[5]));
-						input_y = (uint16_t)( ((read_buf[2] & 0x0F)<<8) + read_buf[3]);
+			input_x = (uint16_t)(800-( ((read_buf[4] & 0x0F)<<8) + read_buf[5]));
+			input_y = (uint16_t)( ((read_buf[2] & 0x0F)<<8) + read_buf[3]);
           break;
           case 4:
-						input_y = (uint16_t)( ((read_buf[4] & 0x0F)<<8) + read_buf[5]);
-						input_x = (uint16_t)( ((read_buf[2] & 0x0F)<<8) + read_buf[3]);
+			input_y = (uint16_t)( ((read_buf[4] & 0x0F)<<8) + read_buf[5]);
+			input_x = (uint16_t)( ((read_buf[2] & 0x0F)<<8) + read_buf[3]);
           break;
           default:
-						input_x = (uint16_t)( ((read_buf[4] & 0x0F)<<8) + read_buf[5]);
-						input_y = (uint16_t)(480 - (((read_buf[2] & 0x0F)<<8) + read_buf[3]));
+			input_x = (uint16_t)( ((read_buf[4] & 0x0F)<<8) + read_buf[5]);
+			input_y = (uint16_t)(480 - (((read_buf[2] & 0x0F)<<8) + read_buf[3]));
           break;
         }
 
-				if(input_x >= touch_w || input_y >= touch_h){
-					return;
-				}
-				//printf("lcddev.dir:%d,x:%d,,y:%d\r\n",lcddev.dir,input_x,input_y);
+		if(input_x >= touch_w || input_y >= touch_h){
+			return;
+		}
+		//printf("lcddev.dir:%d,x:%d,,y:%d\r\n",lcddev.dir,input_x,input_y);
        	tp_touch_down(read_id, input_x, input_y, input_w);
     }else if (pre_touch){
        tp_touch_up(read_id);

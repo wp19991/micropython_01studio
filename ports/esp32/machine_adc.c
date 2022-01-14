@@ -63,14 +63,14 @@ STATIC const madc_obj_t madc_obj[] = {
     {{&machine_adc_type}, GPIO_NUM_8, ADC1_CHANNEL_7},
     {{&machine_adc_type}, GPIO_NUM_9, ADC1_CHANNEL_8},
     {{&machine_adc_type}, GPIO_NUM_10, ADC1_CHANNEL_9},
-		#elif CONFIG_IDF_TARGET_ESP32C3
-		{{&machine_adc_type}, GPIO_NUM_0, ADC1_CHANNEL_0},
-		{{&machine_adc_type}, GPIO_NUM_1, ADC1_CHANNEL_1},
-		{{&machine_adc_type}, GPIO_NUM_2, ADC1_CHANNEL_2},
-		{{&machine_adc_type}, GPIO_NUM_3, ADC1_CHANNEL_3},
-		{{&machine_adc_type}, GPIO_NUM_4, ADC1_CHANNEL_4},
-		{{&machine_adc_type}, GPIO_NUM_5, ADC2_CHANNEL_0},
-		#endif
+	#elif CONFIG_IDF_TARGET_ESP32C3
+	{{&machine_adc_type}, GPIO_NUM_0, ADC1_CHANNEL_0},
+	{{&machine_adc_type}, GPIO_NUM_1, ADC1_CHANNEL_1},
+	{{&machine_adc_type}, GPIO_NUM_2, ADC1_CHANNEL_2},
+	{{&machine_adc_type}, GPIO_NUM_3, ADC1_CHANNEL_3},
+	{{&machine_adc_type}, GPIO_NUM_4, ADC1_CHANNEL_4},
+	{{&machine_adc_type}, GPIO_NUM_5, ADC2_CHANNEL_0},
+	#endif
 };
 
 STATIC uint8_t adc_bit_width;

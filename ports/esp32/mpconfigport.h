@@ -203,6 +203,7 @@ extern const struct _mp_obj_module_t tftlcd_module;
 extern const struct _mp_obj_module_t esp_usb_module;
 extern const struct _mp_obj_module_t sensor_module;
 extern const struct _mp_obj_module_t gui_module;
+extern const struct _mp_obj_module_t game_module;
 
 #if MICROPY_ENABLE_TOUCH
 #define TOUCH_MODULE              { MP_ROM_QSTR(MP_QSTR_touch), MP_ROM_PTR(&touch_module) },
@@ -236,6 +237,12 @@ extern const struct _mp_obj_module_t gui_module;
 #define USB_CAM_MODULE
 #endif
 
+#if MICROPY_ENABLE_GAME
+#define GAME_MODULE              { MP_ROM_QSTR(MP_QSTR_game), MP_ROM_PTR(&game_module) },
+#else
+#define GAME_MODULE
+#endif
+
 //end
 #define MICROPY_PORT_BUILTIN_MODULES \
     { MP_OBJ_NEW_QSTR(MP_QSTR_esp), (mp_obj_t)&esp_module }, \
@@ -246,11 +253,12 @@ extern const struct _mp_obj_module_t gui_module;
     { MP_OBJ_NEW_QSTR(MP_QSTR_machine), (mp_obj_t)&mp_module_machine }, \
     { MP_OBJ_NEW_QSTR(MP_QSTR_network), (mp_obj_t)&mp_module_network }, \
     { MP_OBJ_NEW_QSTR(MP_QSTR__onewire), (mp_obj_t)&mp_module_onewire }, \
-		TOUCH_MODULE \
-		TFTLCD_MODULE \
-		GUI_MODULE \
-		SENSOR_MODULE \
-		USB_CAM_MODULE \
+	TOUCH_MODULE \
+	TFTLCD_MODULE \
+	GUI_MODULE \
+	SENSOR_MODULE \
+	USB_CAM_MODULE \
+	GAME_MODULE \
 
 #define MP_STATE_PORT MP_STATE_VM
 
@@ -268,7 +276,7 @@ struct mp_bluetooth_nimble_root_pointers_t;
     mp_obj_t machine_pin_irq_handler[40]; \
     struct _machine_timer_obj_t *machine_timer_obj_head; \
     MICROPY_PORT_ROOT_POINTER_BLUETOOTH_NIMBLE \
-		MICROPY_PORT_ROOT_GUI \
+	MICROPY_PORT_ROOT_GUI \
 
 // type definitions for the specific machine
 

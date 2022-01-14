@@ -363,9 +363,9 @@ STATIC mp_obj_t sensor_ov2640_make_new(const mp_obj_type_t *type, size_t n_args,
 		mp_raise_ValueError(MP_ERROR_TEXT("Camera Init Failed"));
 	}
 
-  ov2640_obj_t *ov2640_obj;
-  ov2640_obj = m_new_obj(ov2640_obj_t);
-  ov2640_obj->base.type = &sensor_ov2640_type;
+	ov2640_obj_t *ov2640_obj;
+	ov2640_obj = m_new_obj(ov2640_obj_t);
+	ov2640_obj->base.type = &sensor_ov2640_type;
 	return MP_OBJ_FROM_PTR(ov2640_obj);
 }
 
@@ -373,18 +373,18 @@ STATIC mp_obj_t sensor_ov2640_make_new(const mp_obj_type_t *type, size_t n_args,
 STATIC const mp_rom_map_elem_t sensor_ov2640_locals_dict_table[] = {
     { MP_ROM_QSTR(MP_QSTR__name__), MP_ROM_QSTR(MP_QSTR_ov2640) },
     { MP_ROM_QSTR(MP_QSTR_deinit), MP_ROM_PTR(&sensor_ov2640_deinit_obj) },
-		{ MP_ROM_QSTR(MP_QSTR_reset), MP_ROM_PTR(&sensor_ov2640_reset_obj) },
-		{ MP_ROM_QSTR(MP_QSTR_set_framesize), MP_ROM_PTR(&sensor_ov2640_setframesize_obj) },
-		{ MP_ROM_QSTR(MP_QSTR_snapshot), MP_ROM_PTR(&sensor_ov2640_snapshot_obj) },
-		#if MICROPY_ENABLE_STREAM
-		{ MP_ROM_QSTR(MP_QSTR_stream), MP_ROM_PTR(&sensor_ov2640_stream_obj) },
-		#endif
-		#if MICROPY_ENABLE_TFTLCD
-		{ MP_ROM_QSTR(MP_QSTR_set_hmirror), MP_ROM_PTR(&sensor_ov2640_hmirror_obj) },
-		{ MP_ROM_QSTR(MP_QSTR_set_vflip), MP_ROM_PTR(&sensor_ov2640_vflip_obj) },
-		{ MP_ROM_QSTR(MP_QSTR_display), MP_ROM_PTR(&sensor_ov2640_display_obj) },
-		{ MP_ROM_QSTR(MP_QSTR_display_stop), MP_ROM_PTR(&sensor_ov2640_display_stop_obj) },
-		#endif
+	{ MP_ROM_QSTR(MP_QSTR_reset), MP_ROM_PTR(&sensor_ov2640_reset_obj) },
+	{ MP_ROM_QSTR(MP_QSTR_set_framesize), MP_ROM_PTR(&sensor_ov2640_setframesize_obj) },
+	{ MP_ROM_QSTR(MP_QSTR_snapshot), MP_ROM_PTR(&sensor_ov2640_snapshot_obj) },
+	#if MICROPY_ENABLE_STREAM
+	{ MP_ROM_QSTR(MP_QSTR_stream), MP_ROM_PTR(&sensor_ov2640_stream_obj) },
+	#endif
+	#if MICROPY_ENABLE_TFTLCD
+	{ MP_ROM_QSTR(MP_QSTR_set_hmirror), MP_ROM_PTR(&sensor_ov2640_hmirror_obj) },
+	{ MP_ROM_QSTR(MP_QSTR_set_vflip), MP_ROM_PTR(&sensor_ov2640_vflip_obj) },
+	{ MP_ROM_QSTR(MP_QSTR_display), MP_ROM_PTR(&sensor_ov2640_display_obj) },
+	{ MP_ROM_QSTR(MP_QSTR_display_stop), MP_ROM_PTR(&sensor_ov2640_display_stop_obj) },
+	#endif
 };
 STATIC MP_DEFINE_CONST_DICT(sensor_ov2640_locals_dict,sensor_ov2640_locals_dict_table);
 const mp_obj_type_t sensor_ov2640_type = {

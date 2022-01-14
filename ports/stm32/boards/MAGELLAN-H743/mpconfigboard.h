@@ -311,12 +311,12 @@ extern struct _spi_bdev_t spi_bdev;
 #endif
 
 #if MICROPY_HW_OV2640
-#define MICROPY_HW_DCMI_RESE 				(pin_I8)
-#define MICROPY_HW_DCMI_PWDN 				(pin_G9)
-#define MICROPY_HW_DCMI_HSYNC       (pin_A4)
-#define MICROPY_HW_DCMI_PIXCK       (pin_A6)
-#define MICROPY_HW_DCMI_VSYNC       (pin_B7)
-#define MICROPY_HW_DCMI_XCLK       	(pin_A8)
+#define MICROPY_HW_DCMI_RESE			(pin_I8)
+#define MICROPY_HW_DCMI_PWDN			(pin_G9)
+#define MICROPY_HW_DCMI_HSYNC			(pin_A4)
+#define MICROPY_HW_DCMI_PIXCK			(pin_A6)
+#define MICROPY_HW_DCMI_VSYNC			(pin_B7)
+#define MICROPY_HW_DCMI_XCLK			(pin_A8)
 #define MICROPY_HW_DCMI_D0       		(pin_C6)
 #define MICROPY_HW_DCMI_D1       		(pin_C7)
 #define MICROPY_HW_DCMI_D2       		(pin_C8)

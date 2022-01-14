@@ -8,7 +8,7 @@ set(MICROPY_PORT_WEB_STREAM y) #WEB stream
 
 set(SDKCONFIG_DEFAULTS
     boards/PYWIFI_S2P/sdkconfig.board
-		boards/sdkconfig.spiram_sx
+	boards/sdkconfig.spiram_sx
 )
 
 if(NOT MICROPY_FROZEN_MANIFEST)

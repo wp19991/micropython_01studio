@@ -106,7 +106,7 @@ void lcd_spibus_send(lcd_spibus_t *self, const uint8_t * data, uint32_t length)
 	if (length == 0) return;           //no need to send anything
 
 	spi_transaction_t t;
-  memset(&t, 0, sizeof(t));       	//Zero out the transaction
+	memset(&t, 0, sizeof(t));       	//Zero out the transaction
 	t.length = length * 8;              //Length is in bytes, transaction length is in bits.
 	t.tx_buffer = data;               	//Data
 
@@ -129,7 +129,7 @@ void lcd_spibus_fill(lcd_spibus_t *self, uint16_t data, uint32_t length)
 	}
 
 	spi_transaction_t t;
-  memset(&t, 0, sizeof(t));       	//Zero out the transaction
+	memset(&t, 0, sizeof(t));       	//Zero out the transaction
 	t.length = length * 8 *2;              //Length is in bytes, transaction length is in bits.
 	t.tx_buffer = t_data;               	//Data
 
@@ -172,7 +172,7 @@ void  lcd_bus_init(void)
 		self->cs   		= LCD_PIN_CS;
 		self->dc   		= LCD_PIN_DC;
 		self->rst  		= LCD_PIN_RST;
-		self->spihost = LCD_HOST;
+		self->spihost	= LCD_HOST;
 
 		lcd_spibus_init(self);
 		gpio_pad_select_gpio(self->dc);
@@ -183,9 +183,9 @@ void  lcd_bus_init(void)
 
 		//Reset the display
 		gpio_set_level(self->rst, 0);
-		vTaskDelay(100 / portTICK_RATE_MS);
+		vTaskDelay(500 / portTICK_RATE_MS);
 		gpio_set_level(self->rst, 1);
-		vTaskDelay(100 / portTICK_RATE_MS);
+		vTaskDelay(500 / portTICK_RATE_MS);
 		is_init = 1;
 	}
 }

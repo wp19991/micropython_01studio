@@ -74,7 +74,7 @@ static void SPI_WriteData(uint16_t tem_data)
 
 static void LCD_init_code(void)//液晶屏初始化代码
 {
-	//LCD_Reset();
+	// LCD_Reset();
 	mp_hal_pin_high(MICROPY_RGB_SPI_CS);	
 	mp_hal_delay_ms(200);
 	mp_hal_pin_low(MICROPY_RGB_SPI_CS);	
@@ -261,8 +261,8 @@ void lcd43g_init(void)
 	ltdcdev.vsw=15;	
 	ltdcdev.vbp=2;
 	ltdcdev.vfp=8;
+
 	ltdcdev.layer = 0;
-	
 	ltdcdev.pixsize=2;
 	ltdcdev.ltdc_format = LTDC_PIXEL_FORMAT_RGB565;//LTDC_PIXEL_FORMAT_ARGB8888;//
 	
@@ -273,7 +273,7 @@ void lcd43g_init(void)
 	#if defined(STM32F4) || defined(STM32F7)
 	ltdc_set_clk(7);
 	#elif defined(STM32H7)
-	ltdc_set_clk(6);
+	ltdc_set_clk(8);
 	#endif
 	ltdc_conf();
 	

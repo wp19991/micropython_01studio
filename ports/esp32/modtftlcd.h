@@ -74,13 +74,6 @@ typedef struct
 	void (*callDrawFlush)(uint16_t sx,uint16_t sy,uint16_t ex,uint16_t ey,uint16_t *color);
 } Graphics_Display;
 
-/* typedef struct _mp_vfs_t {
-    mp_obj_t file;
-    uint32_t len;
-    uint32_t pos;
-    byte *buf;
-}mp_vfs_t; */
-
 extern void grap_drawInit(uint16_t width, uint16_t height);
 
 extern void grap_drawLine(const Graphics_Display *display, uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t color);

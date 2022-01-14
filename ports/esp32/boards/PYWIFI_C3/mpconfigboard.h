@@ -12,9 +12,6 @@
 #define MICROPY_HW_SPI2_MOSI (21)
 #define MICROPY_HW_SPI2_MISO (19)
 
-
-
-
 #if 0
 #define MICROPY_ENABLE_TFTLCD			(1)
 #define MICROPY_HW_LCD15					(1)

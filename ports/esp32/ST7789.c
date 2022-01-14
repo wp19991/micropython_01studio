@@ -1,7 +1,7 @@
 /**
 	******************************************************************************
 	* This file is part of the MicroPython project, http://micropython.org/
-	* Copyright (C), 2021 -2023, 01studio Tech. Co., Ltd.http://bbs.01studio.org/
+	* Copyright (C), 2021 -2023, 01studio Tech. Co., Ltd.https://www.01studio.cc/
 	* File Name 				 :	ST7789.c
 	* Author						 :	Folktale
 	* Version 					 :	v1.0
@@ -473,7 +473,7 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_KW(ST7789_drawCircle_obj, 1, ST7789_drawCircle);
 STATIC mp_obj_t ST7789_drawStr(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
 
   STATIC const mp_arg_t tft_allowed_args[] = {
-		{ MP_QSTR_text,     		MP_ARG_REQUIRED | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL} },
+	{ MP_QSTR_text,     		MP_ARG_REQUIRED | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL} },
     { MP_QSTR_x,        		MP_ARG_REQUIRED |MP_ARG_INT, {.u_int = 0} },
     { MP_QSTR_y,        		MP_ARG_REQUIRED |MP_ARG_INT, {.u_int = 0} },
     { MP_QSTR_color,    		MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL} },
@@ -520,12 +520,24 @@ STATIC mp_obj_t ST7789_drawStr(size_t n_args, const mp_obj_t *pos_args, mp_map_t
     } else {
         mp_get_buffer_raise(args[0].u_obj, &bufinfo, MP_BUFFER_READ);
         char *str = bufinfo.buf;
-
-        if(text_size == 1)  text_size = 16;
-        else if(text_size == 2) text_size = 24;
+		
+		if(0){}
+		#if MICROPY_STRING_SIZE_24
+		else if(text_size == 2) text_size = 24;
+		#endif
+		#if MICROPY_STRING_SIZE_32
         else if(text_size == 3) text_size = 32;
+		#endif
+		#if MICROPY_STRING_SIZE_48
         else if(text_size == 4) text_size = 48;
-        else mp_raise_ValueError(MP_ERROR_TEXT("lcd size parameter error"));
+		#endif
+		else text_size = 16;
+		
+        // if(text_size == 1)  text_size = 16;
+        // else if(text_size == 2) text_size = 24;
+        // else if(text_size == 3) text_size = 32;
+        // else if(text_size == 4) text_size = 48;
+        // else mp_raise_ValueError(MP_ERROR_TEXT("lcd size parameter error"));
 				
         grap_drawStr(&st7789_glcd, args[1].u_int, args[2].u_int, 
 									text_size* bufinfo.len, text_size , text_size,str ,color, lcddev.backcolor);
@@ -661,7 +673,7 @@ STATIC mp_obj_t ST7789_make_new(const mp_obj_type_t *type, size_t n_args, size_t
 STATIC const mp_rom_map_elem_t ST7789_locals_dict_table[] = {
 	// instance methods
 	{ MP_ROM_QSTR(MP_QSTR___del__), MP_ROM_PTR(&ST7789_deinit_obj) },
-  { MP_ROM_QSTR(MP_QSTR_deinit), MP_ROM_PTR(&ST7789_deinit_obj) },
+	{ MP_ROM_QSTR(MP_QSTR_deinit), MP_ROM_PTR(&ST7789_deinit_obj) },
 	{ MP_ROM_QSTR(MP_QSTR_fill), MP_ROM_PTR(&ST7789_drawpFull_obj) },
 	{ MP_ROM_QSTR(MP_QSTR_drawPixel), MP_ROM_PTR(&ST7789_drawpPixel_obj) },
 	{ MP_ROM_QSTR(MP_QSTR_drawLine), MP_ROM_PTR(&ST7789_drawLin_obj) },

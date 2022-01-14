@@ -251,7 +251,7 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_KW(tftlcd_lcd7r_drawp_obj, 1, tftlcd_lcd7r_drawp)
 //------------------------------------------------------------------------------------------------------
 STATIC mp_obj_t tftlcd_lcd7r_drawL(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
     static const mp_arg_t drawL_args[] = {
-				{ MP_QSTR_x0,        	MP_ARG_INT, {.u_int = 0} },
+		{ MP_QSTR_x0,        	MP_ARG_INT, {.u_int = 0} },
         { MP_QSTR_y0,       	MP_ARG_INT, {.u_int = 0} },
         { MP_QSTR_x1,       	MP_ARG_INT, {.u_int = 0} },
         { MP_QSTR_y1,       	MP_ARG_INT, {.u_int = 0} },

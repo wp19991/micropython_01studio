@@ -68,14 +68,14 @@ SECTIONS
 			_sdram_base = .;
 			. = . + (16M);
 			. = ALIGN(4);
+			_ltdcbuf = .;
+			. = . + (5120K);
+			. = ALIGN(4);
 			_hjpgdbuf = .;
 			. = . + (3072K);
 			. = ALIGN(4);
 			_houtbuf = .;
 			. = . + (128K);
-			. = ALIGN(4);
-			_ltdcbuf = .;
-			. = . + (5120K);
 			. = ALIGN(4);
 			_grapbuf = .;
 			. = . + (1024K);

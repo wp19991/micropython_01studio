@@ -242,11 +242,11 @@ STATIC mp_obj_t machine_pin_obj_init_helper(const machine_pin_obj_t *self, size_
     // reset the pin to digital if this is a mode-setting init (grab it back from ADC)
     if (args[ARG_mode].u_obj != mp_const_none) {
         if (rtc_gpio_is_valid_gpio(self->id)) {
-						#if CONFIG_IDF_TARGET_ESP32C3
-						gpio_reset_pin(self->id);
-						#else
-						rtc_gpio_deinit(self->id);
-						#endif
+			#if CONFIG_IDF_TARGET_ESP32C3
+			gpio_reset_pin(self->id);
+			#else
+			rtc_gpio_deinit(self->id);
+			#endif
         }
     }
 
@@ -261,12 +261,12 @@ STATIC mp_obj_t machine_pin_obj_init_helper(const machine_pin_obj_t *self, size_
     // configure mode
     if (args[ARG_mode].u_obj != mp_const_none) {
         mp_int_t pin_io_mode = mp_obj_get_int(args[ARG_mode].u_obj);
-				#if CONFIG_IDF_TARGET_ESP32
+		#if CONFIG_IDF_TARGET_ESP32
         if (self->id >= 34 && (pin_io_mode & GPIO_MODE_DEF_OUTPUT)) {
             mp_raise_ValueError(MP_ERROR_TEXT("pin can only be input"));
         } else 
-				#endif
-				{
+		#endif
+		{
             gpio_set_direction(self->id, pin_io_mode);
         }
     }

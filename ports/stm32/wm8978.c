@@ -95,7 +95,6 @@ uint8_t *i2srecbuf2=i2s_rbuf.buf2;
 
 #endif
 //--------------------------------------------
-
 #define WM8978_REG_LEN	58
 
 STATIC uint16_t WM8978_REG_VAL[WM8978_REG_LEN] = {
@@ -771,7 +770,7 @@ const uint16_t I2S_PSC_TBL[][5]=
 uint8_t I2S2_SampleRate_Set(uint32_t samplerate)
 {
   uint8_t i=0; 
-	uint32_t tempreg=0;
+
 	for(i=0;i<(sizeof(I2S_PSC_TBL)/10);i++)
 	{
 		if((samplerate/10)==I2S_PSC_TBL[i][0])break;
@@ -796,6 +795,7 @@ uint8_t I2S2_SampleRate_Set(uint32_t samplerate)
 	RCCI2S2_ClkInitSture.Spi123ClockSelection = RCC_SPI123CLKSOURCE_PLL2;
 	HAL_RCCEx_PeriphCLKConfig(&RCCI2S2_ClkInitSture);
 	#else
+	uint32_t tempreg=0;
 	RCCI2S2_ClkInitSture.PeriphClockSelection=RCC_PERIPHCLK_I2S;
 	RCCI2S2_ClkInitSture.PLLI2S.PLLI2SN=(uint32_t)I2S_PSC_TBL[i][1];
 	RCCI2S2_ClkInitSture.PLLI2S.PLLI2SR=(uint32_t)I2S_PSC_TBL[i][2]; 

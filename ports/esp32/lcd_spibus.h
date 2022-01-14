@@ -1,7 +1,7 @@
 /**
 	******************************************************************************
 	* This file is part of the MicroPython project, http://micropython.org/
-	* Copyright (C), 2021 -2023, 01studio Tech. Co., Ltd.http://bbs.01studio.org/
+	* Copyright (C), 2021 -2023, 01studio Tech. Co., Ltd.https://www.01studio.cc/
 	* File Name 				 :	ST7789.h
 	* Author						 :	Folktale
 	* Version 					 :	v1.0
@@ -20,16 +20,16 @@
 #if (MICROPY_ENABLE_TFTLCD)
 
 typedef struct {
-    mp_obj_base_t base;
-    spi_device_handle_t spi;
-		uint8_t spihost;
-    uint8_t mhz;
-    uint8_t miso;
-    uint8_t mosi;
-    uint8_t clk;
-    uint8_t cs;
-    uint8_t dc;
-    uint8_t rst;
+	mp_obj_base_t base;
+	spi_device_handle_t spi;
+	uint8_t spihost;
+	uint8_t mhz;
+	int miso;
+	int mosi;
+	int clk;
+	int cs;
+	int dc;
+	int rst;
 } lcd_spibus_t;
 
 extern lcd_spibus_t *lcd_spibus;

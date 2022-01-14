@@ -22,8 +22,8 @@ if(MICROPY_PORT_PICLIB STREQUAL "y")
 	)
 	set(MICROPY_SOURCE_PICTURE
     ${PROJECT_DIR}/picture/bmp.c
-		${PROJECT_DIR}/picture/piclib.c
-		${PROJECT_DIR}/picture/tjpgd.c
+	${PROJECT_DIR}/picture/piclib.c
+	${PROJECT_DIR}/picture/tjpgd.c
 	)
 
 endif()
@@ -31,8 +31,8 @@ endif()
 # cam
 if(MICROPY_PORT_CAMLIB STREQUAL "y")
 	set(CAM_SRCS_DIR
-			${PROJECT_DIR}/esp32-camera
-		)
+	${PROJECT_DIR}/esp32-camera
+	)
 	set(CAM_SRCS
 		${CAM_SRCS_DIR}/driver/esp_camera.c
 		${CAM_SRCS_DIR}/driver/cam_hal.c
@@ -75,6 +75,22 @@ if(MICROPY_PORT_CAMLIB STREQUAL "y")
 	endif()
 
 endif()
+#NES
+if(MICROPY_PORT_NESEMU STREQUAL "y")
+	set(NESEMU_FILE_DIR
+		${PROJECT_DIR}/esp32-nesemu/components
+		)
+	set(NESEMU_INC
+		${NESEMU_FILE_DIR}/nofrendo
+		${NESEMU_FILE_DIR}/nofrendo/cpu
+		${NESEMU_FILE_DIR}/nofrendo/libsnss
+		${NESEMU_FILE_DIR}/nofrendo/nes
+		${NESEMU_FILE_DIR}/nofrendo/sndhrdw
+		${NESEMU_FILE_DIR}/nofrendo-esp32
+		)
+	file (GLOB_RECURSE NESEMU_SRCS "${NESEMU_FILE_DIR}/*.c") 
+	# list(REMOVE_ITEM NESEMU_SRCS "${NESEMU_FILE_DIR}/main/main.c")
+endif()
 
 #uvc cam
 if(MICROPY_PORT_USB_CAM STREQUAL "y")
@@ -90,36 +106,36 @@ set(JPEG9A_DIR
     ${PROJECT_DIR}/uvc-stream/decoder_ijg
 	)
 set(JPEG9A_SOURCE_LIB
-    ${JPEG9A_DIR}/jpeg-9a/jaricom.c
-		${JPEG9A_DIR}/jpeg-9a/jcomapi.c
-		${JPEG9A_DIR}/jpeg-9a/jutils.c
-		${JPEG9A_DIR}/jpeg-9a/jerror.c
-		${JPEG9A_DIR}/jpeg-9a/jmemmgr.c
-		${JPEG9A_DIR}/jpeg-9a/jdapimin.c
-		${JPEG9A_DIR}/jpeg-9a/jdapistd.c
-		${JPEG9A_DIR}/jpeg-9a/jdarith.c
-		${JPEG9A_DIR}/jpeg-9a/jdmaster.c
-		${JPEG9A_DIR}/jpeg-9a/jdinput.c
-		${JPEG9A_DIR}/jpeg-9a/jdmarker.c
-		${JPEG9A_DIR}/jpeg-9a/jdhuff.c
-		${JPEG9A_DIR}/jpeg-9a/jdmainct.c
-		${JPEG9A_DIR}/jpeg-9a/jdcoefct.c
-		${JPEG9A_DIR}/jpeg-9a/jddctmgr.c
-		${JPEG9A_DIR}/jpeg-9a/jdpostct.c
-		${JPEG9A_DIR}/jpeg-9a/jdsample.c
-		${JPEG9A_DIR}/jpeg-9a/jdcolor.c
-		${JPEG9A_DIR}/jpeg-9a/jquant2.c
-		${JPEG9A_DIR}/jpeg-9a/jquant1.c
-		${JPEG9A_DIR}/jpeg-9a/jdmerge.c
-		${JPEG9A_DIR}/jpeg-9a/jmemnobs.c
-		${JPEG9A_DIR}/jpeg-9a/wrppm.c
-		${JPEG9A_DIR}/jpeg-9a/jidctint.c
-		${JPEG9A_DIR}/jpeg-9a/jidctflt.c
-		${JPEG9A_DIR}/jpeg-9a/jidctfst.c
-		${JPEG9A_DIR}/jpegd2.c
+	${JPEG9A_DIR}/jpeg-9a/jaricom.c
+	${JPEG9A_DIR}/jpeg-9a/jcomapi.c
+	${JPEG9A_DIR}/jpeg-9a/jutils.c
+	${JPEG9A_DIR}/jpeg-9a/jerror.c
+	${JPEG9A_DIR}/jpeg-9a/jmemmgr.c
+	${JPEG9A_DIR}/jpeg-9a/jdapimin.c
+	${JPEG9A_DIR}/jpeg-9a/jdapistd.c
+	${JPEG9A_DIR}/jpeg-9a/jdarith.c
+	${JPEG9A_DIR}/jpeg-9a/jdmaster.c
+	${JPEG9A_DIR}/jpeg-9a/jdinput.c
+	${JPEG9A_DIR}/jpeg-9a/jdmarker.c
+	${JPEG9A_DIR}/jpeg-9a/jdhuff.c
+	${JPEG9A_DIR}/jpeg-9a/jdmainct.c
+	${JPEG9A_DIR}/jpeg-9a/jdcoefct.c
+	${JPEG9A_DIR}/jpeg-9a/jddctmgr.c
+	${JPEG9A_DIR}/jpeg-9a/jdpostct.c
+	${JPEG9A_DIR}/jpeg-9a/jdsample.c
+	${JPEG9A_DIR}/jpeg-9a/jdcolor.c
+	${JPEG9A_DIR}/jpeg-9a/jquant2.c
+	${JPEG9A_DIR}/jpeg-9a/jquant1.c
+	${JPEG9A_DIR}/jpeg-9a/jdmerge.c
+	${JPEG9A_DIR}/jpeg-9a/jmemnobs.c
+	${JPEG9A_DIR}/jpeg-9a/wrppm.c
+	${JPEG9A_DIR}/jpeg-9a/jidctint.c
+	${JPEG9A_DIR}/jpeg-9a/jidctflt.c
+	${JPEG9A_DIR}/jpeg-9a/jidctfst.c
+	${JPEG9A_DIR}/jpegd2.c
 	)
 	set(JPEG9A_SOURCE_INC
-		${JPEG9A_DIR}/include
+	${JPEG9A_DIR}/include
 	)
 endif()
 #web stream
@@ -156,54 +172,56 @@ set(MICROPY_SOURCE_DRIVERS
 )
 
 set(MICROPY_SOURCE_PORT
-    ${PROJECT_DIR}/main.c
-    ${PROJECT_DIR}/uart.c
-    ${PROJECT_DIR}/usb.c
-    ${PROJECT_DIR}/gccollect.c
-    ${PROJECT_DIR}/mphalport.c
-    ${PROJECT_DIR}/fatfs_port.c
-    ${PROJECT_DIR}/help.c
-    ${PROJECT_DIR}/modutime.c
-    ${PROJECT_DIR}/moduos.c
-    ${PROJECT_DIR}/machine_timer.c
-    ${PROJECT_DIR}/machine_pin.c
-    ${PROJECT_DIR}/machine_touchpad.c
-    ${PROJECT_DIR}/machine_adc.c
-    ${PROJECT_DIR}/machine_dac.c
-    ${PROJECT_DIR}/machine_i2c.c
-    ${PROJECT_DIR}/machine_pwm.c
-    ${PROJECT_DIR}/machine_uart.c
-    ${PROJECT_DIR}/modmachine.c
-    ${PROJECT_DIR}/modnetwork.c
-    ${PROJECT_DIR}/network_lan.c
-    ${PROJECT_DIR}/network_ppp.c
-    ${PROJECT_DIR}/mpnimbleport.c
-    ${PROJECT_DIR}/modsocket.c
-    ${PROJECT_DIR}/modesp.c
-    ${PROJECT_DIR}/esp32_nvs.c
-    ${PROJECT_DIR}/esp32_partition.c
-    ${PROJECT_DIR}/esp32_rmt.c
-    ${PROJECT_DIR}/esp32_ulp.c
-    ${PROJECT_DIR}/modesp32.c
-    ${PROJECT_DIR}/espneopixel.c
-    ${PROJECT_DIR}/machine_hw_spi.c
-    ${PROJECT_DIR}/machine_wdt.c
-    ${PROJECT_DIR}/mpthreadport.c
-    ${PROJECT_DIR}/machine_rtc.c
-    ${PROJECT_DIR}/machine_sdcard.c
-		${PROJECT_DIR}/modtftlcd.c
-		${PROJECT_DIR}/ILI9341.c
-		${PROJECT_DIR}/ST7789.c
-		${PROJECT_DIR}/ST7735.c
-		${PROJECT_DIR}/modtouch.c
-		${PROJECT_DIR}/xpt2046.c
-		${PROJECT_DIR}/modgui.c
-		${PROJECT_DIR}/gui_button.c
-		${PROJECT_DIR}/modsensor.c
-		${PROJECT_DIR}/modov2640.c
-		${PROJECT_DIR}/modespusb.c
-		${PROJECT_DIR}/modusbcam.c
-		${PROJECT_DIR}/lcd_spibus.c
+	${PROJECT_DIR}/main.c
+	${PROJECT_DIR}/uart.c
+	${PROJECT_DIR}/usb.c
+	${PROJECT_DIR}/gccollect.c
+	${PROJECT_DIR}/mphalport.c
+	${PROJECT_DIR}/fatfs_port.c
+	${PROJECT_DIR}/help.c
+	${PROJECT_DIR}/modutime.c
+	${PROJECT_DIR}/moduos.c
+	${PROJECT_DIR}/machine_timer.c
+	${PROJECT_DIR}/machine_pin.c
+	${PROJECT_DIR}/machine_touchpad.c
+	${PROJECT_DIR}/machine_adc.c
+	${PROJECT_DIR}/machine_dac.c
+	${PROJECT_DIR}/machine_i2c.c
+	${PROJECT_DIR}/machine_pwm.c
+	${PROJECT_DIR}/machine_uart.c
+	${PROJECT_DIR}/modmachine.c
+	${PROJECT_DIR}/modnetwork.c
+	${PROJECT_DIR}/network_lan.c
+	${PROJECT_DIR}/network_ppp.c
+	${PROJECT_DIR}/mpnimbleport.c
+	${PROJECT_DIR}/modsocket.c
+	${PROJECT_DIR}/modesp.c
+	${PROJECT_DIR}/esp32_nvs.c
+	${PROJECT_DIR}/esp32_partition.c
+	${PROJECT_DIR}/esp32_rmt.c
+	${PROJECT_DIR}/esp32_ulp.c
+	${PROJECT_DIR}/modesp32.c
+	${PROJECT_DIR}/espneopixel.c
+	${PROJECT_DIR}/machine_hw_spi.c
+	${PROJECT_DIR}/machine_wdt.c
+	${PROJECT_DIR}/mpthreadport.c
+	${PROJECT_DIR}/machine_rtc.c
+	${PROJECT_DIR}/machine_sdcard.c
+	${PROJECT_DIR}/modtftlcd.c
+	${PROJECT_DIR}/ILI9341.c
+	${PROJECT_DIR}/ST7789.c
+	${PROJECT_DIR}/ST7735.c
+	${PROJECT_DIR}/modtouch.c
+	${PROJECT_DIR}/xpt2046.c
+	${PROJECT_DIR}/modgui.c
+	${PROJECT_DIR}/gui_button.c
+	${PROJECT_DIR}/modsensor.c
+	${PROJECT_DIR}/modov2640.c
+	${PROJECT_DIR}/modespusb.c
+	${PROJECT_DIR}/modusbcam.c
+	${PROJECT_DIR}/lcd_spibus.c
+	${PROJECT_DIR}/modgame.c
+	${PROJECT_DIR}/modnes.c
 )
 
 set(MICROPY_SOURCE_QSTR
@@ -215,7 +233,7 @@ set(MICROPY_SOURCE_QSTR
 )
 
 set(IDF_COMPONENTS
-		esp_http_server
+	esp_http_server
     app_update
     bootloader_support
     bt
@@ -264,12 +282,12 @@ if(IDF_TARGET STREQUAL "esp32")
 elseif(IDF_TARGET STREQUAL "esp32s2")
     list(APPEND IDF_COMPONENTS esp32s2)
     list(APPEND IDF_COMPONENTS tinyusb)
-		list(APPEND IDF_COMPONENTS usb)
+	list(APPEND IDF_COMPONENTS usb)
 		
 elseif(IDF_TARGET STREQUAL "esp32c3")
     list(APPEND IDF_COMPONENTS esp32c3)
     list(APPEND IDF_COMPONENTS riscv)
-		list(APPEND IDF_COMPONENTS usb)
+	list(APPEND IDF_COMPONENTS usb)
 		
 endif()
 
@@ -281,26 +299,28 @@ idf_component_register(
         ${MICROPY_SOURCE_LIB}
         ${MICROPY_SOURCE_DRIVERS}
         ${MICROPY_SOURCE_PORT}
-				${MICROPY_SOURCE_PICTURE}
-				${CAM_SRCS}
-				${WEB_SRCS}
-				${UVC_CAM_SRCS}
-				${JPEG9A_SOURCE_LIB}
+		${MICROPY_SOURCE_PICTURE}
+		${CAM_SRCS}
+		${WEB_SRCS}
+		${UVC_CAM_SRCS}
+		${JPEG9A_SOURCE_LIB}
+		${NESEMU_SRCS}
     INCLUDE_DIRS
         ${MICROPY_INC_CORE}
         ${MICROPY_INC_USERMOD}
         ${MICROPY_PORT_DIR}
         ${MICROPY_BOARD_DIR}
         ${CMAKE_BINARY_DIR}
-				${MICROPY_INC_PICTURE}
-				${CAM_INC}
-				${WEB_SRCS_INC}
-				${UVC_CAM_INC}
-				${JPEG9A_SOURCE_INC}
+		${MICROPY_INC_PICTURE}
+		${CAM_INC}
+		${WEB_SRCS_INC}
+		${UVC_CAM_INC}
+		${JPEG9A_SOURCE_INC}
+		${NESEMU_INC}
     REQUIRES
         ${IDF_COMPONENTS}
-		EMBED_FILES
-			${WWW_EMBED_FILES}
+	EMBED_FILES
+		${WWW_EMBED_FILES}
 )
 
 # Set the MicroPython target as the current (main) IDF component target.

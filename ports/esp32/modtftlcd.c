@@ -1,7 +1,7 @@
 /**
 	******************************************************************************
 	* This file is part of the MicroPython project, http://micropython.org/
-	* Copyright (C), 2021 -2023, 01studio Tech. Co., Ltd.http://bbs.01studio.org/
+	* Copyright (C), 2021 -2023, 01studio Tech. Co., Ltd.https://www.01studio.cc/
 	* File Name 				 :	modtftlcd.c
 	* Author						 :	Folktale
 	* Version 					 :	v1.0
@@ -156,6 +156,7 @@ static uint16_t str_buf[BUF_LEN]={0};//申请最大字体内存
 void grap_drawChar(const Graphics_Display *display, uint16_t x,uint16_t y,uint8_t num,
 											uint8_t size,uint16_t color,uint16_t backcolor)
 {
+
 	uint8_t temp,t1,t;
 	uint16_t y0=0,x0=0;;
 	uint16_t str_h,str_w;
@@ -168,15 +169,23 @@ void grap_drawChar(const Graphics_Display *display, uint16_t x,uint16_t y,uint8_
 
 	for(t=0;t<csize;t++)
 	{
-		if(size==24)
-			temp=asc2_2412[num][t];
-		else if(size==32)
-			temp=asc2_3216[num][t];	
-		else if(size==48)
-			temp=asc2_4824[num][t];	
-		else 
-			temp=asc2_1608[num][t];
 		
+		if(0){
+		#if MICROPY_STRING_SIZE_24
+		}else if(size==24){
+			temp=asc2_2412[num][t];
+		#endif
+		#if MICROPY_STRING_SIZE_32
+		}else if(size==32){
+			temp=asc2_3216[num][t];	
+		#endif
+		#if MICROPY_STRING_SIZE_48
+		}else if(size==48){
+			temp=asc2_4824[num][t];
+		#endif
+		}else{
+			temp=asc2_1608[num][t];
+		}
 		for(t1=0;t1<8;t1++)
 		{
 			if(temp&0x80){
@@ -246,7 +255,7 @@ uint8_t grap_drawCached(const Graphics_Display *display,
 	};
 	mp_obj_t open_file = mp_vfs_open(MP_ARRAY_SIZE(args), &args[0], (mp_map_t *)&mp_const_empty_map);
 
-  mp_stream_posix_read(open_file, hardbuf, 8);
+	mp_stream_posix_read(open_file, hardbuf, 8);
 
 	if(errcode == 0){
 		image2lcd = (IMAGE2LCD *)hardbuf;

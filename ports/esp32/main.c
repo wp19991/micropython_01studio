@@ -147,6 +147,10 @@ void mp_task(void *pvParameter) {
             mp_task_heap = malloc(mp_task_heap_size);
             break;
     }
+	#if MICROPY_ENABLE_GAME
+	mp_task_heap = (void *)(0x3f800000 + (2 * 1024 * 1024));
+	mp_task_heap_size = 2 * 1024 * 1024;
+	#endif
     #elif CONFIG_ESP32S2_SPIRAM_SUPPORT || CONFIG_ESP32S3_SPIRAM_SUPPORT
     // Try to use the entire external SPIRAM directly for the heap
     size_t mp_task_heap_size;
@@ -166,11 +170,11 @@ void mp_task(void *pvParameter) {
     #endif
 
 soft_reset:
-		#ifdef CONFIG_IDF_TARGET_ESP32S2
-		//neopixel
-		gpio_set_direction(3, GPIO_MODE_OUTPUT);
-		gpio_set_level(3, 0);
-		#endif
+	#ifdef CONFIG_IDF_TARGET_ESP32S2
+	//neopixel
+	gpio_set_direction(3, GPIO_MODE_OUTPUT);
+	gpio_set_level(3, 0);
+	#endif
     // initialise the stack pointer for the main thread
     mp_stack_set_top((void *)sp);
     mp_stack_set_limit(MP_TASK_STACK_SIZE - 1024);

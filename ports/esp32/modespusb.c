@@ -26,7 +26,6 @@
 
 #if MICROPY_ENABLE_ESP_USB
 
-
 STATIC const mp_rom_map_elem_t esp_usb_module_globals_table[] = {
   { MP_ROM_QSTR(MP_QSTR___name__), MP_ROM_QSTR(MP_QSTR_esp_usb) },
 	
