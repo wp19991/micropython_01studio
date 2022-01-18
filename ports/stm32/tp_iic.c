@@ -61,15 +61,15 @@
 //----------------------------------------------------------------------
 static void tp_delay(void)
 {
-	mp_hal_delay_us(1);
+	mp_hal_delay_us(2);
 }
 void TP_IIC_Init(void)
 {	
-		mp_hal_pin_config(MICROPY_HW_TP_SDA, MP_HAL_PIN_MODE_OUTPUT, MP_HAL_PIN_PULL_UP, 0);
-		mp_hal_pin_config(MICROPY_HW_TP_SCL, MP_HAL_PIN_MODE_OUTPUT, MP_HAL_PIN_PULL_UP, 0);
-		
-		TP_IIC_SDA(1);
-    TP_IIC_SCL(1);	  	
+	mp_hal_pin_config(MICROPY_HW_TP_SDA, MP_HAL_PIN_MODE_OUTPUT, MP_HAL_PIN_PULL_UP, 0);
+	mp_hal_pin_config(MICROPY_HW_TP_SCL, MP_HAL_PIN_MODE_OUTPUT, MP_HAL_PIN_PULL_UP, 0);
+
+	TP_IIC_SDA(1);
+	TP_IIC_SCL(1);	  	
 
 }
 //----------------------------------------------------------------------------------

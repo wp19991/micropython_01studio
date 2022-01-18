@@ -11,12 +11,12 @@
 #define MICROPY_HW_ENABLE_SDCARD    (1)
 #define MICROPY_HW_HAS_SWITCH       (1)
 #define MICROPY_HW_HAS_FLASH        (1)
-#define	MICROPY_HW_ENABLE_SERVO			(1) 
+#define	MICROPY_HW_ENABLE_SERVO		(1) 
 
 #define MICROPY_HW_CLK_USE_HSE
 
-#define MICROPY_PY_THREAD_GIL				(1)
-#define MICROPY_PY_THREAD						(1)
+#define MICROPY_PY_THREAD_GIL		(1)
+#define MICROPY_PY_THREAD			(1)
 
 #define MICROPY_ENABLE_SDCARD_NIRQ  (1)
 
@@ -31,60 +31,60 @@
 #define MICROPY_HW_RTC_USE_US       	(0)
 #define MICROPY_HW_RTC_USE_CALOUT   	(1)
 
-#define MICROPY_HW_BOARD_MAGELLAM			(1)
+#define MICROPY_HW_BOARD_MAGELLAM		(1)
 //audio
-#define MICROPY_ENABLE_AUDIO					(1)
-#define	MICROPY_HW_WM8978							(1)
-#define	MICROPY_ENABLE_MP3						(1)
-#define MICROPY_ENABLE_VIDEO					(1)
+#define MICROPY_ENABLE_AUDIO			(1)
+#define	MICROPY_HW_WM8978				(1)
+#define	MICROPY_ENABLE_MP3				(1)
+#define MICROPY_ENABLE_VIDEO			(1)
 //TFTLCD
-#define MICROPY_ENABLE_TFTLCD					(1)
-#define MICROPY_HW_LTDC_LCD						(1)
-#define	MICROPY_HW_LCD43M							(1)
-#define	MICROPY_HW_LCD43R							(1)
-#define	MICROPY_HW_LCD7R							(1)
+#define MICROPY_ENABLE_TFTLCD			(1)
+#define MICROPY_HW_LTDC_LCD				(1)
+#define	MICROPY_HW_LCD43M				(1)
+#define	MICROPY_HW_LCD43R				(1)
+#define	MICROPY_HW_LCD7R				(1)
 //touch
-#define	MICROPY_ENABLE_TOUCH					(1)
-#define	MICROPY_HW_GT1151							(1)
-#define MICROPY_HW_FT54X6							(1)
-#define MICROPY_HW_GT911							(1)
+#define	MICROPY_ENABLE_TOUCH			(1)
+#define	MICROPY_HW_GT1151				(1)
+#define MICROPY_HW_FT54X6				(1)
+#define MICROPY_HW_GT911				(1)
 //gui
-#define MICROPY_ENABLE_GUI						(1)
-#define MICROPY_GUI_BUTTON						(1) 
-#define GUI_BTN_NUM_MAX 							(30) 
-#define GUI_BTN_STR_LEN 							(20)
+#define MICROPY_ENABLE_GUI				(1)
+#define MICROPY_GUI_BUTTON				(1) 
+#define GUI_BTN_NUM_MAX					(30) 
+#define GUI_BTN_STR_LEN					(20)
 
 //sensor
-#define MICROPY_ENABLE_SENSOR					(1)
-#define MICROPY_HW_OV2640							(1)
+#define MICROPY_ENABLE_SENSOR			(1)
+#define MICROPY_HW_OV2640				(1)
 
-#define MICROPY_PY_PICLIB							(1)
-#define MICROPY_ENABLE_NEOPIXEL				(1)
+#define MICROPY_PY_PICLIB				(1)
+#define MICROPY_ENABLE_NEOPIXEL			(1)
 
 // UART1 config
 #define MICROPY_HW_UART1_NAME   		"UART1"    // on RX / TX
-#define MICROPY_HW_UART1_TX  				(pin_B14)
-#define MICROPY_HW_UART1_RX  				(pin_B15)
+#define MICROPY_HW_UART1_TX				(pin_B14)
+#define MICROPY_HW_UART1_RX				(pin_B15)
 // UART config
 #define MICROPY_HW_UART2_NAME   		"UART2"    // on RX / TX
-#define MICROPY_HW_UART2_TX         (pin_A2)
-#define MICROPY_HW_UART2_RX         (pin_A3)
+#define MICROPY_HW_UART2_TX				(pin_A2)
+#define MICROPY_HW_UART2_RX				(pin_A3)
 
 #define MICROPY_HW_UART3_NAME   		"UART3"    // on RX / TX
-#define MICROPY_HW_UART3_TX         (pin_B10)
-#define MICROPY_HW_UART3_RX         (pin_B11)
+#define MICROPY_HW_UART3_TX				(pin_B10)
+#define MICROPY_HW_UART3_RX				(pin_B11)
 
 // #define MICROPY_HW_UART_REPL        PYB_UART_3
 // #define MICROPY_HW_UART_REPL_BAUD   115200
 
 // I2C buses
-#define MICROPY_HW_I2C1_NAME 					"I2C1"
-#define MICROPY_HW_I2C1_SCL 					(pin_B8)
-#define MICROPY_HW_I2C1_SDA 					(pin_B9)
+#define MICROPY_HW_I2C1_NAME			"I2C1"
+#define MICROPY_HW_I2C1_SCL				(pin_B8)
+#define MICROPY_HW_I2C1_SDA				(pin_B9)
 
-#define MICROPY_HW_I2C2_NAME 					"I2C2"
-#define MICROPY_HW_I2C2_SCL 					(pin_H4)
-#define MICROPY_HW_I2C2_SDA 					(pin_H5)
+#define MICROPY_HW_I2C2_NAME			"I2C2"
+#define MICROPY_HW_I2C2_SCL				(pin_H4)
+#define MICROPY_HW_I2C2_SDA				(pin_H5)
 
 // SPI buses
 // #define MICROPY_HW_SPI1_NSS     (pin_A4)

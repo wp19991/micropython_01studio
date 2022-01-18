@@ -261,7 +261,7 @@ void lcd43g_init(void)
 	ltdcdev.vsw=15;	
 	ltdcdev.vbp=2;
 	ltdcdev.vfp=8;
-
+	
 	ltdcdev.layer = 0;
 	ltdcdev.pixsize=2;
 	ltdcdev.ltdc_format = LTDC_PIXEL_FORMAT_RGB565;//LTDC_PIXEL_FORMAT_ARGB8888;//
@@ -271,9 +271,9 @@ void lcd43g_init(void)
 	
 	ltdc_init();
 	#if defined(STM32F4) || defined(STM32F7)
-	ltdc_set_clk(7);
+	ltdc_set_clk(5);
 	#elif defined(STM32H7)
-	ltdc_set_clk(8);
+	ltdc_set_clk(17);
 	#endif
 	ltdc_conf();
 	

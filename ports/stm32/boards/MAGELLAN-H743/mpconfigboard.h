@@ -31,10 +31,11 @@
 
 // The USB clock is set using PLL3
 #define MICROPY_HW_CLK_PLL3M (1)
-#define MICROPY_HW_CLK_PLL3N (16)
+#define MICROPY_HW_CLK_PLL3N (48)
 #define MICROPY_HW_CLK_PLL3P (2)
-#define MICROPY_HW_CLK_PLL3Q (4)
-#define MICROPY_HW_CLK_PLL3R (8)
+#define MICROPY_HW_CLK_PLL3Q (12)
+#define MICROPY_HW_CLK_PLL3R (17)
+
 
 #define MICROPY_HW_BOARD_MAGELLAM				(1)
 #define MICROPY_PY_PICLIB						(1)

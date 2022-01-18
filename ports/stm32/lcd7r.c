@@ -65,8 +65,12 @@ void lcd7r_init(void)
 	
 	lcddev.x_pixel = ltdcdev.pwidth;
 	lcddev.y_pixel = ltdcdev.pheight;
-
+	
+	#if defined(STM32F4) || defined(STM32F7)
 	ltdc_set_clk(6);
+	#elif defined(STM32H7)
+	ltdc_set_clk(20);
+	#endif
 
 	ltdc_init();
 	

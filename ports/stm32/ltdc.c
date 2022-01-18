@@ -53,11 +53,11 @@ uint8_t ltdc_set_clk(uint32_t pll3r)
 	RCC_PeriphCLKInitTypeDef PeriphClkIniture;
 	PeriphClkIniture.PeriphClockSelection = RCC_PERIPHCLK_LTDC;
 	#if defined(STM32F4)
-	PeriphClkIniture.PLLSAI.PLLSAIN=400;   
+	PeriphClkIniture.PLLSAI.PLLSAIN=350;   
 	PeriphClkIniture.PLLSAI.PLLSAIR=pll3r;  
 	PeriphClkIniture.PLLSAIDivR=RCC_PLLSAIDIVR_2;
 	#elif defined(STM32F7)
-	PeriphClkIniture.PLLSAI.PLLSAIN=200;  
+	PeriphClkIniture.PLLSAI.PLLSAIN=175;  
 	PeriphClkIniture.PLLSAI.PLLSAIR=pll3r;  
 	PeriphClkIniture.PLLSAIDivR=RCC_PLLSAIDIVR_2;
 	#elif defined(STM32H7)
@@ -99,7 +99,7 @@ void ltdc_init(void)
 	mp_hal_pin_config_alt_static_speed(MICROPY_HW_LCD_B7, MP_HAL_PIN_MODE_ALT, MP_HAL_PIN_PULL_NONE, MP_HAL_PIN_SPEED_VERY_HIGH, STATIC_AF_LCD_B7);
 	
 	if(ltdcdev.ltdc_format == LTDC_PIXEL_FORMAT_RGB565){
-		printf("LTDC_PIXEL_FORMAT_RGB565\r\n");
+		// printf("LTDC_PIXEL_FORMAT_RGB565\r\n");
 		mp_hal_pin_config(MICROPY_HW_LCD_R0, MP_HAL_PIN_MODE_OUTPUT, MP_HAL_PIN_PULL_DOWN, 0);
 		mp_hal_pin_config(MICROPY_HW_LCD_R1, MP_HAL_PIN_MODE_OUTPUT, MP_HAL_PIN_PULL_DOWN, 0);
 		mp_hal_pin_config(MICROPY_HW_LCD_R2, MP_HAL_PIN_MODE_OUTPUT, MP_HAL_PIN_PULL_DOWN, 0);
@@ -118,7 +118,7 @@ void ltdc_init(void)
 		mp_hal_pin_low(MICROPY_HW_LCD_B1);
 		mp_hal_pin_low(MICROPY_HW_LCD_B2);
 	}else{
-		printf("LTDC_PIXEL_FORMAT_RGB888\r\n");
+		// printf("LTDC_PIXEL_FORMAT_RGB888\r\n");
 		mp_hal_pin_config_alt_static_speed(MICROPY_HW_LCD_R0, MP_HAL_PIN_MODE_ALT, MP_HAL_PIN_PULL_NONE, MP_HAL_PIN_SPEED_VERY_HIGH, STATIC_AF_LCD_R0);
 		mp_hal_pin_config_alt_static_speed(MICROPY_HW_LCD_R1, MP_HAL_PIN_MODE_ALT, MP_HAL_PIN_PULL_NONE, MP_HAL_PIN_SPEED_VERY_HIGH, STATIC_AF_LCD_R1);
 		mp_hal_pin_config_alt_static_speed(MICROPY_HW_LCD_R2, MP_HAL_PIN_MODE_ALT, MP_HAL_PIN_PULL_NONE, MP_HAL_PIN_SPEED_VERY_HIGH, STATIC_AF_LCD_R2);
@@ -176,10 +176,17 @@ void ltdc_conf(void)
 {
 	//LTDC配置
 	LTDC_Handler.Instance=LTDC;
-	LTDC_Handler.Init.HSPolarity=LTDC_HSPOLARITY_AL;
+	
+	if(lcddev.type == 2){
+		LTDC_Handler.Init.HSPolarity=LTDC_HSPOLARITY_AH;
+		LTDC_Handler.Init.PCPolarity=LTDC_PCPOLARITY_IIPC;
+	}else{
+		LTDC_Handler.Init.HSPolarity=LTDC_HSPOLARITY_AL;
+		LTDC_Handler.Init.PCPolarity=LTDC_PCPOLARITY_IPC;	
+	}
+
 	LTDC_Handler.Init.VSPolarity=LTDC_VSPOLARITY_AL;
 	LTDC_Handler.Init.DEPolarity=LTDC_DEPOLARITY_AL;
-	LTDC_Handler.Init.PCPolarity=LTDC_PCPOLARITY_IPC;
 	LTDC_Handler.Init.HorizontalSync=ltdcdev.hsw-1;
 	LTDC_Handler.Init.VerticalSync=ltdcdev.vsw-1;
 	LTDC_Handler.Init.AccumulatedHBP=ltdcdev.hsw+ltdcdev.hbp-1;
@@ -196,8 +203,7 @@ void ltdc_conf(void)
 	ltdc_framebuf[0]=(uint32_t*)lcd_buf;
 	ltdc_framebuf[1] = (uint32_t*)((uint32_t)lcd_buf + ltdcdev.pixsize*(lcddev.x_pixel*lcddev.y_pixel));
 
-	// LTDC_Layer_Parameter_Config(0,(uint32_t)ltdc_framebuf[0],255,50,6,7,0X000000);
-	LTDC_Layer_Parameter_Config(0,(uint32_t)ltdc_framebuf[0],255,50,0,0,0X000000);
+	LTDC_Layer_Parameter_Config(0,(uint32_t)ltdc_framebuf[0],255,0,0,0,0X000000);
 	LTDC_Layer_Window_Config(0,0,0,ltdcdev.pwidth,ltdcdev.pheight);
 }
 
