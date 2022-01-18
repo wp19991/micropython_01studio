@@ -588,7 +588,6 @@ void jpeg_dma_out_callback(void)
 
 static void jpeg_endofcovert_callback(void)
 { 
-printf("jpeg_endofcovert_callback\r\n");
 	hjpgd.state=JPEG_STATE_FINISHED;
 }
 

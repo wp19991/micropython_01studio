@@ -254,13 +254,13 @@ void lcd43g_init(void)
 	ltdcdev.pwidth=480;	
 	ltdcdev.pheight=800;
 
-	ltdcdev.hsw=15;	
-	ltdcdev.hbp=2;
-	ltdcdev.hfp=3;
+	ltdcdev.hsw=1;	
+	ltdcdev.hbp=46;
+	ltdcdev.hfp=10;
 	
-	ltdcdev.vsw=15;	
-	ltdcdev.vbp=2;
-	ltdcdev.vfp=8;
+	ltdcdev.vsw=1;	
+	ltdcdev.vbp=23;
+	ltdcdev.vfp=22;
 	
 	ltdcdev.layer = 0;
 	ltdcdev.pixsize=2;
