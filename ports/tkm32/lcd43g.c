@@ -92,166 +92,166 @@ void LCD_Reset(void)
 }
 static void LCD_init_code(void)//液晶屏初始化代码
 {
-	
+
 	LCD_Reset();
 	mp_hal_pin_high(MICROPY_HW_SPI_CS);	
 	mp_hal_delay_ms(200);
 	mp_hal_pin_low(MICROPY_HW_SPI_CS);	
-	
-	
- SPI_WriteComm(0xc0);  
- SPI_WriteData(0x01);
- SPI_WriteData(0x11);
- 
- SPI_WriteComm(0x20);  
 
- SPI_WriteComm(0x36);  
- //SPI_WriteData(0x88);//BRG
- SPI_WriteData(0x80);//RGB
 
- SPI_WriteComm(0x3a);  
- SPI_WriteData(0x77);//16/18/24bit
- 
- SPI_WriteComm(0x35);  
- SPI_WriteData(0x00);
-  
- SPI_WriteComm(0xb1);  
- SPI_WriteData(0x06);
- SPI_WriteData(0x03);
- SPI_WriteData(0x00);
+	SPI_WriteComm(0xc0);  
+	SPI_WriteData(0x01);
+	SPI_WriteData(0x11);
 
- SPI_WriteComm(0xb2);            
- SPI_WriteData(0x00);
- SPI_WriteData(0xc8);
+	SPI_WriteComm(0x20);  
 
- SPI_WriteComm(0xb3);            
- SPI_WriteData(0x01);
- 
- SPI_WriteComm(0xb4);            
- SPI_WriteData(0x04);
- 
- SPI_WriteComm(0xb5);            
- SPI_WriteData(0x10);
- SPI_WriteData(0x30);
- SPI_WriteData(0x30);
- SPI_WriteData(0x00);
- SPI_WriteData(0x00);
- 
- SPI_WriteComm(0xb6);  //
- SPI_WriteData(0x0b);  //0b
- SPI_WriteData(0x0f);
- SPI_WriteData(0x3c);
- SPI_WriteData(0x13);
- SPI_WriteData(0x13);
- SPI_WriteData(0xe8);
- 
- SPI_WriteComm(0xb7);  
- SPI_WriteData(0x46);
- SPI_WriteData(0x06);
- SPI_WriteData(0x0c);
- SPI_WriteData(0x00);
- SPI_WriteData(0x00);
- 
-SPI_WriteComm(0xc0); //Internal Oscillator Setting 
- SPI_WriteData(0x01);
- SPI_WriteData(0x15);
- 
- SPI_WriteComm(0xc3); //Power Control 3 
- SPI_WriteData(0x07);
- SPI_WriteData(0x03);
- SPI_WriteData(0x04);
- SPI_WriteData(0x04);
- SPI_WriteData(0x04);
- mp_hal_delay_ms(40);
+	SPI_WriteComm(0x36);  
+	//SPI_WriteData(0x88);//BRG
+	SPI_WriteData(0x80);//RGB
 
- SPI_WriteComm(0xc4); //Power Control 4 
- SPI_WriteData(0x12);//11
- SPI_WriteData(0x24);//23
- SPI_WriteData(0x12);//12   16 
- SPI_WriteData(0x12);//12   16
- SPI_WriteData(0x02);//05   
- SPI_WriteData(0x6b);//6d  49   //6A
- mp_hal_delay_ms(20);
+	SPI_WriteComm(0x3a);  
+	SPI_WriteData(0x77);//16/18/24bit
 
- SPI_WriteComm(0xc5); //Power Control 5 
- SPI_WriteData(0x69);  //69
- mp_hal_delay_ms(10);
+	SPI_WriteComm(0x35);  
+	SPI_WriteData(0x00);
 
- SPI_WriteComm(0xc6); //Power Control 6  
- SPI_WriteData(0x41);//41 40
- SPI_WriteData(0x63);
- mp_hal_delay_ms(10);
+	SPI_WriteComm(0xb1);  
+	SPI_WriteData(0x06);
+	SPI_WriteData(0x03);
+	SPI_WriteData(0x00);
 
- SPI_WriteComm(0xd0); //Positive Gamma Curve for Red 
- SPI_WriteData(0x01);
- SPI_WriteData(0x26);
- SPI_WriteData(0x71);
- SPI_WriteData(0x16);
- SPI_WriteData(0x04);
- SPI_WriteData(0x03);
- SPI_WriteData(0x51);
- SPI_WriteData(0x15);
- SPI_WriteData(0x04);
+	SPI_WriteComm(0xb2);            
+	SPI_WriteData(0x00);
+	SPI_WriteData(0xc8);
 
- SPI_WriteComm(0xd1); //Negative Gamma Curve for Red 
- SPI_WriteData(0x01);
- SPI_WriteData(0x26);
- SPI_WriteData(0x71);
- SPI_WriteData(0x16);
- SPI_WriteData(0x04);
- SPI_WriteData(0x03);
- SPI_WriteData(0x51);
- SPI_WriteData(0x15);
- SPI_WriteData(0x04);
+	SPI_WriteComm(0xb3);            
+	SPI_WriteData(0x01);
 
- SPI_WriteComm(0xd2); //Positive Gamma Curve for Green 
- SPI_WriteData(0x01);
- SPI_WriteData(0x26);
- SPI_WriteData(0x71);
- SPI_WriteData(0x16);
- SPI_WriteData(0x04);
- SPI_WriteData(0x03);
- SPI_WriteData(0x51);
- SPI_WriteData(0x15);
- SPI_WriteData(0x04);
- 
- SPI_WriteComm(0xd3); //Negative Gamma Curve for Green 
- SPI_WriteData(0x01);
- SPI_WriteData(0x26);
- SPI_WriteData(0x71);
- SPI_WriteData(0x16);
- SPI_WriteData(0x04);
- SPI_WriteData(0x03);
- SPI_WriteData(0x51);
- SPI_WriteData(0x15);
- SPI_WriteData(0x04);
- 
- SPI_WriteComm(0xd4);//Positive Gamma Curve for Blue  
- SPI_WriteData(0x01);
- SPI_WriteData(0x26);
- SPI_WriteData(0x71);
- SPI_WriteData(0x16);
- SPI_WriteData(0x04);
- SPI_WriteData(0x03);
- SPI_WriteData(0x51);
- SPI_WriteData(0x15);
- SPI_WriteData(0x04);
+	SPI_WriteComm(0xb4);            
+	SPI_WriteData(0x04);
 
- SPI_WriteComm(0xd5);//Negative Gamma Curve for Blue  
- SPI_WriteData(0x01);
- SPI_WriteData(0x26);
- SPI_WriteData(0x71);
- SPI_WriteData(0x16);
- SPI_WriteData(0x04);
- SPI_WriteData(0x03);
- SPI_WriteData(0x51);
- SPI_WriteData(0x15);
- SPI_WriteData(0x04);
- 
- SPI_WriteComm(0x11); //Sleep Out 
- mp_hal_delay_ms(20);
+	SPI_WriteComm(0xb5);            
+	SPI_WriteData(0x10);
+	SPI_WriteData(0x30);
+	SPI_WriteData(0x30);
+	SPI_WriteData(0x00);
+	SPI_WriteData(0x00);
 
- SPI_WriteComm(0x29);//Display On	
+	SPI_WriteComm(0xb6);  //
+	SPI_WriteData(0x0b);  //0b
+	SPI_WriteData(0x0f);
+	SPI_WriteData(0x3c);
+	SPI_WriteData(0x13);
+	SPI_WriteData(0x13);
+	SPI_WriteData(0xe8);
+
+	SPI_WriteComm(0xb7);  
+	SPI_WriteData(0x46);
+	SPI_WriteData(0x06);
+	SPI_WriteData(0x0c);
+	SPI_WriteData(0x00);
+	SPI_WriteData(0x00);
+
+	SPI_WriteComm(0xc0); //Internal Oscillator Setting 
+	SPI_WriteData(0x01);
+	SPI_WriteData(0x15);
+
+	SPI_WriteComm(0xc3); //Power Control 3 
+	SPI_WriteData(0x07);
+	SPI_WriteData(0x03);
+	SPI_WriteData(0x04);
+	SPI_WriteData(0x04);
+	SPI_WriteData(0x04);
+	mp_hal_delay_ms(40);
+
+	SPI_WriteComm(0xc4); //Power Control 4 
+	SPI_WriteData(0x12);//11
+	SPI_WriteData(0x24);//23
+	SPI_WriteData(0x12);//12   16 
+	SPI_WriteData(0x12);//12   16
+	SPI_WriteData(0x02);//05   
+	SPI_WriteData(0x6b);//6d  49   //6A
+	mp_hal_delay_ms(20);
+
+	SPI_WriteComm(0xc5); //Power Control 5 
+	SPI_WriteData(0x69);  //69
+	mp_hal_delay_ms(10);
+
+	SPI_WriteComm(0xc6); //Power Control 6  
+	SPI_WriteData(0x41);//41 40
+	SPI_WriteData(0x63);
+	mp_hal_delay_ms(10);
+
+	SPI_WriteComm(0xd0); //Positive Gamma Curve for Red 
+	SPI_WriteData(0x01);
+	SPI_WriteData(0x26);
+	SPI_WriteData(0x71);
+	SPI_WriteData(0x16);
+	SPI_WriteData(0x04);
+	SPI_WriteData(0x03);
+	SPI_WriteData(0x51);
+	SPI_WriteData(0x15);
+	SPI_WriteData(0x04);
+
+	SPI_WriteComm(0xd1); //Negative Gamma Curve for Red 
+	SPI_WriteData(0x01);
+	SPI_WriteData(0x26);
+	SPI_WriteData(0x71);
+	SPI_WriteData(0x16);
+	SPI_WriteData(0x04);
+	SPI_WriteData(0x03);
+	SPI_WriteData(0x51);
+	SPI_WriteData(0x15);
+	SPI_WriteData(0x04);
+
+	SPI_WriteComm(0xd2); //Positive Gamma Curve for Green 
+	SPI_WriteData(0x01);
+	SPI_WriteData(0x26);
+	SPI_WriteData(0x71);
+	SPI_WriteData(0x16);
+	SPI_WriteData(0x04);
+	SPI_WriteData(0x03);
+	SPI_WriteData(0x51);
+	SPI_WriteData(0x15);
+	SPI_WriteData(0x04);
+
+	SPI_WriteComm(0xd3); //Negative Gamma Curve for Green 
+	SPI_WriteData(0x01);
+	SPI_WriteData(0x26);
+	SPI_WriteData(0x71);
+	SPI_WriteData(0x16);
+	SPI_WriteData(0x04);
+	SPI_WriteData(0x03);
+	SPI_WriteData(0x51);
+	SPI_WriteData(0x15);
+	SPI_WriteData(0x04);
+
+	SPI_WriteComm(0xd4);//Positive Gamma Curve for Blue  
+	SPI_WriteData(0x01);
+	SPI_WriteData(0x26);
+	SPI_WriteData(0x71);
+	SPI_WriteData(0x16);
+	SPI_WriteData(0x04);
+	SPI_WriteData(0x03);
+	SPI_WriteData(0x51);
+	SPI_WriteData(0x15);
+	SPI_WriteData(0x04);
+
+	SPI_WriteComm(0xd5);//Negative Gamma Curve for Blue  
+	SPI_WriteData(0x01);
+	SPI_WriteData(0x26);
+	SPI_WriteData(0x71);
+	SPI_WriteData(0x16);
+	SPI_WriteData(0x04);
+	SPI_WriteData(0x03);
+	SPI_WriteData(0x51);
+	SPI_WriteData(0x15);
+	SPI_WriteData(0x04);
+
+	SPI_WriteComm(0x11); //Sleep Out 
+	mp_hal_delay_ms(20);
+
+	SPI_WriteComm(0x29);//Display On	
 	mp_hal_delay_ms(10);
 }
 //==============================================================================

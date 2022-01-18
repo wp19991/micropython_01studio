@@ -120,16 +120,12 @@ void lcd7r_init(void)
 	RCC->AHB1ENR |= (1<<31);
 	RCC->CR &= ~(1<<28);
 
-	#if 0
-	RCC->PLLDCKCFGR = 0x1<<16;  //分频系数 0~3 --> 2,4,6,8
-	RCC->PLLLCDCFGR = 6<<6;   	//倍频系数
-	#else
-
-	RCC->PLLDCKCFGR = 0x10000;  //分频系数 0~3 --> 2,4,6,8
 	RCC->CR |= 1<<28;
-	RCC->PLLLCDCFGR = (0x2550U);   	//倍频系数
-	#endif
-	
+
+	RCC->PLLDCKCFGR = 0x0<<16;  //分频系数 0~3 --> 2,4,6,8
+	RCC->PLLLCDCFGR = 18<<6;   	//倍频系数	
+	RCC->PLLLCDCFGR |= 0x03;   	//倍频系数	
+
 	Set_LCD7_Timing_to_LTDC();//设置LCD的时序到LTDC寄存器中
 	LCD_Reset();
 	
