@@ -5,6 +5,8 @@ ifeq ($(wildcard boards/$(BOARD)/.),)
 $(error Invalid BOARD specified)
 endif
 
+BOARD_DIR ?= boards/$(BOARD)
+
 # If SoftDevice is selected, try to use that one.
 SD ?=
 SD_LOWER = $(shell echo $(SD) | tr '[:upper:]' '[:lower:]')
@@ -50,6 +52,8 @@ ifeq ($(DEBUG), 0)
 MICROPY_ROM_TEXT_COMPRESSION ?= 1
 endif
 
+FROZEN_MANIFEST ?= modules/manifest.py
+
 # include py core make definitions
 include ../../py/py.mk
 
@@ -70,7 +74,8 @@ INC += -I./modules/ubluepy
 INC += -I./modules/music
 INC += -I./modules/ble
 INC += -I./modules/board
-INC += -I../../lib/mp-readline
+INC += -I./modules/nrf
+INC += -I../../shared/readline
 INC += -I./drivers/bluetooth
 INC += -I./drivers
 INC += -I../../lib/nrfx/
@@ -128,6 +133,10 @@ CFLAGS += -DNRF5_HAL_H='<$(MCU_VARIANT)_hal.h>'
 LDFLAGS = $(CFLAGS)
 LDFLAGS += -Xlinker -Map=$(@:.elf=.map)
 LDFLAGS += -mthumb -mabi=aapcs $(addprefix -T,$(LD_FILES)) -L boards/
+
+ifneq ($(FS_SIZE),)
+LDFLAGS += -Wl,'--defsym=_fs_size=$(FS_SIZE)'
+endif
 
 #Debugging/Optimization
 ifeq ($(DEBUG), 1)
@@ -216,12 +225,12 @@ include drivers/secureboot/secureboot.mk
 
 endif
 
-SRC_LIB += $(addprefix lib/,\
+SRC_LIB += $(addprefix shared/,\
 	libc/string0.c \
-	mp-readline/readline.c \
-	utils/pyexec.c \
-	utils/sys_stdio_mphal.c \
-	utils/interrupt_char.c \
+	readline/readline.c \
+	runtime/pyexec.c \
+	runtime/sys_stdio_mphal.c \
+	runtime/interrupt_char.c \
 	timeutils/timeutils.c \
 	)
 
@@ -322,17 +331,14 @@ DRIVERS_SRC_C += $(addprefix modules/,\
 	music/modmusic.c \
 	music/musictunes.c \
 	ble/modble.c \
+	nrf/modnrf.c \
+	nrf/flashbdev.c \
 	)
 
 # Custom micropython startup file with smaller interrupt vector table
 # than the file provided in nrfx.
 SRC_C += \
 	device/startup_$(MCU_SUB_VARIANT).c \
-
-ifneq ($(FROZEN_MPY_DIR),)
-FROZEN_MPY_PY_FILES := $(shell find -L $(FROZEN_MPY_DIR) -type f -name '*.py')
-FROZEN_MPY_MPY_FILES := $(addprefix $(BUILD)/,$(FROZEN_MPY_PY_FILES:.py=.mpy))
-endif
 
 LIBGCC_FILE_NAME = $(shell $(CC) $(CFLAGS) -print-libgcc-file-name)
 LIBS += -L $(dir $(LIBGCC_FILE_NAME)) -lgcc
@@ -419,19 +425,19 @@ else ifeq ($(FLASHER), bmp)
 BMP_PORT ?= /dev/ttyACM0
 
 deploy: $(BUILD)/$(OUTPUT_FILENAME).elf
-	$(Q)$(GDB) \
+	$(Q)$(GDB) -nx --batch \
 	    -ex 'target extended-remote $(BMP_PORT)' \
 	    -ex 'monitor tpwr enable' \
 	    -ex 'monitor swdp_scan' \
 	    -ex 'attach 1' \
 	    -ex 'set mem inaccessible-by-default off' \
 	    -ex 'load' \
+	    -ex 'compare-sections' \
 	    -ex 'kill' \
-	    -ex 'quit' \
 	    $<
 
 sd: $(BUILD)/$(OUTPUT_FILENAME).elf
-	$(Q)$(GDB) \
+	$(Q)$(GDB) -nx --batch \
 	    -ex 'target extended-remote $(BMP_PORT)' \
 	    -ex 'monitor tpwr enable' \
 	    -ex 'monitor swdp_scan' \
@@ -439,10 +445,11 @@ sd: $(BUILD)/$(OUTPUT_FILENAME).elf
 	    -ex 'set mem inaccessible-by-default off' \
 	    -ex 'monitor erase_mass' \
 	    -ex 'load' \
+	    -ex 'compare-sections' \
 	    -ex 'file $(SOFTDEV_HEX)' \
 	    -ex 'load' \
+	    -ex 'compare-sections' \
 	    -ex 'kill' \
-	    -ex 'quit' \
 	    $<
 
 else ifeq ($(FLASHER), openocd)
@@ -530,17 +537,10 @@ GEN_PINS_QSTR = $(BUILD)/pins_qstr.h
 GEN_PINS_AF_CONST = $(HEADER_BUILD)/pins_af_const.h
 GEN_PINS_AF_PY = $(BUILD)/pins_af.py
 
-ifneq ($(FROZEN_DIR),)
-# To use frozen source modules, put your .py files in a subdirectory (eg scripts/)
-# and then invoke make with FROZEN_DIR=scripts (be sure to build from scratch).
-CFLAGS += -DMICROPY_MODULE_FROZEN_STR
-endif
-
-ifneq ($(FROZEN_MPY_DIR),)
-# To use frozen bytecode, put your .py files in a subdirectory (eg frozen/) and
-# then invoke make with FROZEN_MPY_DIR=frozen (be sure to build from scratch).
+ifneq ($(FROZEN_MANIFEST),)
 CFLAGS += -DMICROPY_QSTR_EXTRA_POOL=mp_qstr_frozen_const_pool
 CFLAGS += -DMICROPY_MODULE_FROZEN_MPY
+CFLAGS += -DMICROPY_MODULE_FROZEN_STR
 endif
 
 $(PY_BUILD)/nlr%.o: CFLAGS += -Os -fno-lto

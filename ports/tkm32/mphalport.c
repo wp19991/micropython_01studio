@@ -57,9 +57,9 @@ MP_WEAK int mp_hal_stdin_rx_chr(void) {
 	}
 }
 
-void mp_hal_stdout_tx_str(const char *str) {
-    mp_hal_stdout_tx_strn(str, strlen(str));
-}
+// void mp_hal_stdout_tx_str(const char *str) {
+    // mp_hal_stdout_tx_strn(str, strlen(str));
+// }
 
 MP_WEAK void mp_hal_stdout_tx_strn(const char *str, size_t len) {
     if (MP_STATE_PORT(pyb_stdio_uart) != NULL) {
@@ -75,24 +75,24 @@ MP_WEAK void mp_hal_stdout_tx_strn(const char *str, size_t len) {
 }
 
 // Efficiently convert "\n" to "\r\n"
-void mp_hal_stdout_tx_strn_cooked(const char *str, size_t len) {
-    const char *last = str;
-    while (len--) {
-        if (*str == '\n') {
-            if (str > last) {
-                mp_hal_stdout_tx_strn(last, str - last);
-            }
-            mp_hal_stdout_tx_strn("\r\n", 2);
-            ++str;
-            last = str;
-        } else {
-            ++str;
-        }
-    }
-    if (str > last) {
-        mp_hal_stdout_tx_strn(last, str - last);
-    }
-}
+// void mp_hal_stdout_tx_strn_cooked(const char *str, size_t len) {
+    // const char *last = str;
+    // while (len--) {
+        // if (*str == '\n') {
+            // if (str > last) {
+                // mp_hal_stdout_tx_strn(last, str - last);
+            // }
+            // mp_hal_stdout_tx_strn("\r\n", 2);
+            // ++str;
+            // last = str;
+        // } else {
+            // ++str;
+        // }
+    // }
+    // if (str > last) {
+        // mp_hal_stdout_tx_strn(last, str - last);
+    // }
+// }
 
 #if __CORTEX_M >= 0x03
 #if 0

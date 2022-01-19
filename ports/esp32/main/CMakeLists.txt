@@ -1,5 +1,7 @@
 # Set location of base MicroPython directory.
-get_filename_component(MICROPY_DIR ${PROJECT_DIR}/../.. ABSOLUTE)
+if(NOT MICROPY_DIR)
+    get_filename_component(MICROPY_DIR ${PROJECT_DIR}/../.. ABSOLUTE)
+endif()
 
 # Include core source components.
 include(${MICROPY_DIR}/py/py.cmake)
@@ -150,21 +152,28 @@ if(MICROPY_PORT_WEB_STREAM STREQUAL "y")
 endif()
 #-----------------------------------------------------------
 
+set(MICROPY_SOURCE_SHARED
+    ${MICROPY_DIR}/shared/readline/readline.c
+    ${MICROPY_DIR}/shared/netutils/netutils.c
+    ${MICROPY_DIR}/shared/timeutils/timeutils.c
+    ${MICROPY_DIR}/shared/runtime/interrupt_char.c
+    ${MICROPY_DIR}/shared/runtime/stdout_helpers.c
+    ${MICROPY_DIR}/shared/runtime/sys_stdio_mphal.c
+    ${MICROPY_DIR}/shared/runtime/pyexec.c
+)
+
 set(MICROPY_SOURCE_LIB
     ${MICROPY_DIR}/lib/littlefs/lfs1.c
     ${MICROPY_DIR}/lib/littlefs/lfs1_util.c
     ${MICROPY_DIR}/lib/littlefs/lfs2.c
     ${MICROPY_DIR}/lib/littlefs/lfs2_util.c
     ${MICROPY_DIR}/lib/mbedtls_errors/mp_mbedtls_errors.c
-    ${MICROPY_DIR}/lib/mp-readline/readline.c
-    ${MICROPY_DIR}/lib/netutils/netutils.c
     ${MICROPY_DIR}/lib/oofatfs/ff.c
     ${MICROPY_DIR}/lib/oofatfs/ffunicode.c
-    ${MICROPY_DIR}/lib/timeutils/timeutils.c
-    ${MICROPY_DIR}/lib/utils/interrupt_char.c
-    ${MICROPY_DIR}/lib/utils/sys_stdio_mphal.c
-    ${MICROPY_DIR}/lib/utils/pyexec.c
 )
+if(IDF_TARGET STREQUAL "esp32c3")
+    list(APPEND MICROPY_SOURCE_LIB ${MICROPY_DIR}/shared/runtime/gchelper_generic.c)
+endif()
 
 set(MICROPY_SOURCE_DRIVERS
     ${MICROPY_DIR}/drivers/bus/softspi.c
@@ -172,41 +181,43 @@ set(MICROPY_SOURCE_DRIVERS
 )
 
 set(MICROPY_SOURCE_PORT
-	${PROJECT_DIR}/main.c
-	${PROJECT_DIR}/uart.c
-	${PROJECT_DIR}/usb.c
-	${PROJECT_DIR}/gccollect.c
-	${PROJECT_DIR}/mphalport.c
-	${PROJECT_DIR}/fatfs_port.c
-	${PROJECT_DIR}/help.c
-	${PROJECT_DIR}/modutime.c
-	${PROJECT_DIR}/moduos.c
-	${PROJECT_DIR}/machine_timer.c
-	${PROJECT_DIR}/machine_pin.c
-	${PROJECT_DIR}/machine_touchpad.c
-	${PROJECT_DIR}/machine_adc.c
-	${PROJECT_DIR}/machine_dac.c
-	${PROJECT_DIR}/machine_i2c.c
-	${PROJECT_DIR}/machine_pwm.c
-	${PROJECT_DIR}/machine_uart.c
-	${PROJECT_DIR}/modmachine.c
-	${PROJECT_DIR}/modnetwork.c
-	${PROJECT_DIR}/network_lan.c
-	${PROJECT_DIR}/network_ppp.c
-	${PROJECT_DIR}/mpnimbleport.c
-	${PROJECT_DIR}/modsocket.c
-	${PROJECT_DIR}/modesp.c
-	${PROJECT_DIR}/esp32_nvs.c
-	${PROJECT_DIR}/esp32_partition.c
-	${PROJECT_DIR}/esp32_rmt.c
-	${PROJECT_DIR}/esp32_ulp.c
-	${PROJECT_DIR}/modesp32.c
-	${PROJECT_DIR}/espneopixel.c
-	${PROJECT_DIR}/machine_hw_spi.c
-	${PROJECT_DIR}/machine_wdt.c
-	${PROJECT_DIR}/mpthreadport.c
-	${PROJECT_DIR}/machine_rtc.c
-	${PROJECT_DIR}/machine_sdcard.c
+    ${PROJECT_DIR}/main.c
+    ${PROJECT_DIR}/uart.c
+    ${PROJECT_DIR}/usb.c
+    ${PROJECT_DIR}/usb_serial_jtag.c
+    ${PROJECT_DIR}/gccollect.c
+    ${PROJECT_DIR}/mphalport.c
+    ${PROJECT_DIR}/fatfs_port.c
+    ${PROJECT_DIR}/help.c
+    ${PROJECT_DIR}/modutime.c
+    ${PROJECT_DIR}/moduos.c
+    ${PROJECT_DIR}/machine_bitstream.c
+    ${PROJECT_DIR}/machine_timer.c
+    ${PROJECT_DIR}/machine_pin.c
+    ${PROJECT_DIR}/machine_touchpad.c
+    ${PROJECT_DIR}/machine_adc.c
+    ${PROJECT_DIR}/machine_dac.c
+    ${PROJECT_DIR}/machine_i2c.c
+    ${PROJECT_DIR}/machine_i2s.c
+    ${PROJECT_DIR}/machine_uart.c
+    ${PROJECT_DIR}/modmachine.c
+    ${PROJECT_DIR}/modnetwork.c
+    ${PROJECT_DIR}/network_lan.c
+    ${PROJECT_DIR}/network_ppp.c
+    ${PROJECT_DIR}/network_wlan.c
+    ${PROJECT_DIR}/mpnimbleport.c
+    ${PROJECT_DIR}/modsocket.c
+    ${PROJECT_DIR}/modesp.c
+    ${PROJECT_DIR}/esp32_nvs.c
+    ${PROJECT_DIR}/esp32_partition.c
+    ${PROJECT_DIR}/esp32_rmt.c
+    ${PROJECT_DIR}/esp32_ulp.c
+    ${PROJECT_DIR}/modesp32.c
+    ${PROJECT_DIR}/machine_hw_spi.c
+    ${PROJECT_DIR}/machine_wdt.c
+    ${PROJECT_DIR}/mpthreadport.c
+    ${PROJECT_DIR}/machine_rtc.c
+    ${PROJECT_DIR}/machine_sdcard.c
 	${PROJECT_DIR}/modtftlcd.c
 	${PROJECT_DIR}/ILI9341.c
 	${PROJECT_DIR}/ST7789.c
@@ -228,8 +239,10 @@ set(MICROPY_SOURCE_QSTR
     ${MICROPY_SOURCE_PY}
     ${MICROPY_SOURCE_EXTMOD}
     ${MICROPY_SOURCE_USERMOD}
+    ${MICROPY_SOURCE_SHARED}
     ${MICROPY_SOURCE_LIB}
     ${MICROPY_SOURCE_PORT}
+    ${MICROPY_SOURCE_BOARD}
 )
 
 set(IDF_COMPONENTS
@@ -261,16 +274,16 @@ set(IDF_COMPONENTS
     xtensa
 )
 
-if(IDF_VERSION_MINOR GREATER_EQUAL 1)
+if(IDF_VERSION_MINOR GREATER_EQUAL 1 OR IDF_VERSION_MAJOR GREATER_EQUAL 5)
     list(APPEND IDF_COMPONENTS esp_netif)
 endif()
 
-if(IDF_VERSION_MINOR GREATER_EQUAL 2)
+if(IDF_VERSION_MINOR GREATER_EQUAL 2 OR IDF_VERSION_MAJOR GREATER_EQUAL 5)
     list(APPEND IDF_COMPONENTS esp_system)
     list(APPEND IDF_COMPONENTS esp_timer)
 endif()
 
-if(IDF_VERSION_MINOR GREATER_EQUAL 3)
+if(IDF_VERSION_MINOR GREATER_EQUAL 3 OR IDF_VERSION_MAJOR GREATER_EQUAL 5)
     list(APPEND IDF_COMPONENTS esp_hw_support)
     list(APPEND IDF_COMPONENTS esp_pm)
     list(APPEND IDF_COMPONENTS hal)
@@ -278,17 +291,14 @@ endif()
 
 if(IDF_TARGET STREQUAL "esp32")
     list(APPEND IDF_COMPONENTS esp32)
-		
-elseif(IDF_TARGET STREQUAL "esp32s2")
-    list(APPEND IDF_COMPONENTS esp32s2)
-    list(APPEND IDF_COMPONENTS tinyusb)
-	list(APPEND IDF_COMPONENTS usb)
-		
 elseif(IDF_TARGET STREQUAL "esp32c3")
     list(APPEND IDF_COMPONENTS esp32c3)
     list(APPEND IDF_COMPONENTS riscv)
 	list(APPEND IDF_COMPONENTS usb)
-		
+elseif(IDF_TARGET STREQUAL "esp32s2")
+    list(APPEND IDF_COMPONENTS esp32s2)
+    list(APPEND IDF_COMPONENTS tinyusb)
+	list(APPEND IDF_COMPONENTS usb)
 endif()
 
 # Register the main IDF component.
@@ -296,9 +306,11 @@ idf_component_register(
     SRCS
         ${MICROPY_SOURCE_PY}
         ${MICROPY_SOURCE_EXTMOD}
+        ${MICROPY_SOURCE_SHARED}
         ${MICROPY_SOURCE_LIB}
         ${MICROPY_SOURCE_DRIVERS}
         ${MICROPY_SOURCE_PORT}
+		${MICROPY_SOURCE_BOARD}
 		${MICROPY_SOURCE_PICTURE}
 		${CAM_SRCS}
 		${WEB_SRCS}
@@ -357,14 +369,14 @@ foreach(comp ${IDF_COMPONENTS})
     micropy_gather_target_properties(__idf_${comp})
 endforeach()
 
-if(IDF_VERSION_MINOR GREATER_EQUAL 2)
+if(IDF_VERSION_MINOR GREATER_EQUAL 2 OR IDF_VERSION_MAJOR GREATER_EQUAL 5)
     # These paths cannot currently be found by the IDF_COMPONENTS search loop above,
     # so add them explicitly.
     list(APPEND MICROPY_CPP_INC_EXTRA ${IDF_PATH}/components/soc/soc/${IDF_TARGET}/include)
     list(APPEND MICROPY_CPP_INC_EXTRA ${IDF_PATH}/components/soc/soc/include)
     if(IDF_VERSION_MINOR GREATER_EQUAL 3)
-        list(APPEND MICROPY_CPP_INC_EXTRA ${IDF_PATH}/components/tinyusb/additions/include)
-        list(APPEND MICROPY_CPP_INC_EXTRA ${IDF_PATH}/components/tinyusb/tinyusb/src)
+	list(APPEND MICROPY_CPP_INC_EXTRA ${IDF_PATH}/components/tinyusb/additions/include)
+	list(APPEND MICROPY_CPP_INC_EXTRA ${IDF_PATH}/components/tinyusb/tinyusb/src)
     endif()
 endif()
 

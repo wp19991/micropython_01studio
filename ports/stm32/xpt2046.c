@@ -20,7 +20,7 @@
 #include "math.h"
 
 #include "py/mphal.h"
-#include "lib/utils/pyexec.h"
+#include "shared/runtime/pyexec.h"
 
 #if (MICROPY_HW_XPT2046 & MICROPY_ENABLE_TOUCH & MICROPY_ENABLE_SPILCD)
 	

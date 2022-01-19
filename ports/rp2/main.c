@@ -32,13 +32,16 @@
 #include "py/mperrno.h"
 #include "py/mphal.h"
 #include "py/stackctrl.h"
-#include "lib/mp-readline/readline.h"
-#include "lib/utils/gchelper.h"
-#include "lib/utils/pyexec.h"
+#include "extmod/modbluetooth.h"
+#include "extmod/modnetwork.h"
+#include "shared/readline/readline.h"
+#include "shared/runtime/gchelper.h"
+#include "shared/runtime/pyexec.h"
 #include "tusb.h"
 #include "uart.h"
 #include "modmachine.h"
 #include "modrp2.h"
+#include "mpbthciport.h"
 #include "genhdr/mpversion.h"
 
 #include "pico/stdlib.h"
@@ -80,7 +83,7 @@ int main(int argc, char **argv) {
         .year = 2021,
         .month = 1,
         .day = 1,
-        .dotw = 5, // 0 is Sunday, so 5 is Friday
+        .dotw = 4, // 0 is Monday, so 4 is Friday
         .hour = 0,
         .min = 0,
         .sec = 0,
@@ -97,15 +100,20 @@ int main(int argc, char **argv) {
 
         // Initialise MicroPython runtime.
         mp_init();
-        mp_obj_list_init(MP_OBJ_TO_PTR(mp_sys_path), 0);
-        mp_obj_list_append(mp_sys_path, MP_OBJ_NEW_QSTR(MP_QSTR_));
         mp_obj_list_append(mp_sys_path, MP_OBJ_NEW_QSTR(MP_QSTR__slash_lib));
-        mp_obj_list_init(MP_OBJ_TO_PTR(mp_sys_argv), 0);
 
         // Initialise sub-systems.
         readline_init0();
         machine_pin_init();
         rp2_pio_init();
+        machine_i2s_init0();
+
+        #if MICROPY_PY_BLUETOOTH
+        mp_bluetooth_hci_init();
+        #endif
+        #if MICROPY_PY_NETWORK
+        mod_network_init();
+        #endif
 
         // Execute _boot.py to set up the filesystem.
         pyexec_frozen_module("_boot.py");
@@ -136,7 +144,13 @@ int main(int argc, char **argv) {
 
     soft_reset_exit:
         mp_printf(MP_PYTHON_PRINTER, "MPY: soft reboot\n");
+        #if MICROPY_PY_NETWORK
+        mod_network_deinit();
+        #endif
         rp2_pio_deinit();
+        #if MICROPY_PY_BLUETOOTH
+        mp_bluetooth_deinit();
+        #endif
         machine_pin_deinit();
         #if MICROPY_PY_THREAD
         mp_thread_deinit();
@@ -227,4 +241,3 @@ const char rp2_help_text[] =
     "For further help on a specific object, type help(obj)\n"
     "For a list of available modules, type help('modules')\n"
 ;
-

@@ -44,7 +44,6 @@
 #if MICROPY_DYNAMIC_COMPILER
 typedef struct mp_dynamic_compiler_t {
     uint8_t small_int_bits; // must be <= host small_int_bits
-    bool opt_cache_map_lookup_in_bytecode;
     bool py_builtins_str_unicode;
     uint8_t native_arch;
     uint8_t nlr_buf_num_regs;
@@ -137,9 +136,6 @@ typedef struct _mp_state_vm_t {
     // dictionary with loaded modules (may be exposed as sys.modules)
     mp_obj_dict_t mp_loaded_modules_dict;
 
-    // pending exception object (MP_OBJ_NULL if not pending)
-    volatile mp_obj_t mp_pending_exception;
-
     #if MICROPY_ENABLE_SCHEDULER
     mp_sched_item_t sched_queue[MICROPY_SCHEDULER_DEPTH];
     #endif
@@ -157,9 +153,12 @@ typedef struct _mp_state_vm_t {
     // dictionary for the __main__ module
     mp_obj_dict_t dict_main;
 
-    // these two lists must be initialised per port, after the call to mp_init
+    #if MICROPY_PY_SYS
+    // If MICROPY_PY_SYS_PATH_ARGV_DEFAULTS is not enabled then these two lists
+    // must be initialised after the call to mp_init.
     mp_obj_list_t mp_sys_path_obj;
     mp_obj_list_t mp_sys_argv_obj;
+    #endif
 
     // dictionary for overridden builtins
     #if MICROPY_CAN_OVERRIDE_BUILTINS
@@ -234,6 +233,11 @@ typedef struct _mp_state_vm_t {
     // This is a global mutex used to make the VM/runtime thread-safe.
     mp_thread_mutex_t gil_mutex;
     #endif
+
+    #if MICROPY_OPT_MAP_LOOKUP_CACHE
+    // See mp_map_lookup.
+    uint8_t map_lookup_cache[MICROPY_OPT_MAP_LOOKUP_CACHE_SIZE];
+    #endif
 } mp_state_vm_t;
 
 // This structure holds state that is specific to a given thread.
@@ -266,6 +270,12 @@ typedef struct _mp_state_thread_t {
 
     nlr_buf_t *nlr_top;
 
+    // pending exception object (MP_OBJ_NULL if not pending)
+    volatile mp_obj_t mp_pending_exception;
+
+    // If MP_OBJ_STOP_ITERATION is propagated then this holds its argument.
+    mp_obj_t stop_iteration_arg;
+
     #if MICROPY_PY_SYS_SETTRACE
     mp_obj_t prof_trace_callback;
     bool prof_callback_is_executing;
@@ -285,12 +295,13 @@ extern mp_state_ctx_t mp_state_ctx;
 
 #define MP_STATE_VM(x) (mp_state_ctx.vm.x)
 #define MP_STATE_MEM(x) (mp_state_ctx.mem.x)
+#define MP_STATE_MAIN_THREAD(x) (mp_state_ctx.thread.x)
 
 #if MICROPY_PY_THREAD
 extern mp_state_thread_t *mp_thread_get_state(void);
 #define MP_STATE_THREAD(x) (mp_thread_get_state()->x)
 #else
-#define MP_STATE_THREAD(x) (mp_state_ctx.thread.x)
+#define MP_STATE_THREAD(x)  MP_STATE_MAIN_THREAD(x)
 #endif
 
 #endif // MICROPY_INCLUDED_PY_MPSTATE_H

@@ -39,7 +39,7 @@
 #include <errno.h> // used by mp_is_nonblocking_error
 #include "py/nlr.h"
 #include "py/gc.h"
-#include "lib/utils/pyexec.h"
+#include "shared/runtime/pyexec.h"
 #include "gccollect.h"
 #include "py/ringbuf.h"
 #include "py/objstr.h"

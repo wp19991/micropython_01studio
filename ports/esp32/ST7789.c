@@ -34,7 +34,7 @@
 #include "py/mperrno.h"
 #include "extmod/vfs.h"
 #include "py/stream.h"
-#include "lib/utils/pyexec.h"
+#include "shared/runtime/pyexec.h"
 
 #if (MICROPY_HW_LCD15 & MICROPY_ENABLE_TFTLCD)
 	

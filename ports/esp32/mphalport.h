@@ -30,10 +30,12 @@
 #define INCLUDED_MPHALPORT_H
 
 #include "py/ringbuf.h"
-#include "lib/utils/interrupt_char.h"
+#include "shared/runtime/interrupt_char.h"
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+
+#define MICROPY_PLATFORM_VERSION "IDF" IDF_VER
 
 // The core that the MicroPython task(s) are pinned to.
 // Until we move to IDF 4.2+, we need NimBLE on core 0, and for synchronisation
@@ -50,13 +52,14 @@ void check_esp_err(esp_err_t code);
 
 uint32_t mp_hal_ticks_us(void);
 __attribute__((always_inline)) static inline uint32_t mp_hal_ticks_cpu(void) {
-	#if CONFIG_IDF_TARGET_ESP32C3
-		return cpu_hal_get_cycle_count();
-	#else
-    uint32_t ccount = 0;
+
+    uint32_t ccount;
+    #if CONFIG_IDF_TARGET_ESP32C3
+    __asm__ __volatile__ ("csrr %0, 0x7E2" : "=r" (ccount)); // Machine Performance Counter Value
+    #else
     __asm__ __volatile__ ("rsr %0,ccount" : "=a" (ccount));
+    #endif
     return ccount;
-	#endif
 }
 
 void mp_hal_delay_us(uint32_t);

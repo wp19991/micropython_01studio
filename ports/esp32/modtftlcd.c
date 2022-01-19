@@ -16,7 +16,7 @@
 #include <math.h>
 #include "py/runtime.h"
 #include "py/mphal.h"
-#include "lib/utils/pyexec.h"
+#include "shared/runtime/pyexec.h"
 #include "mpconfigboard.h"
 #include "modmachine.h"
 #include "extmod/vfs.h"

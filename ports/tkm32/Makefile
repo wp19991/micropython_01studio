@@ -122,7 +122,6 @@ endif
 
 LDFLAGS = -nostdlib -L $(LD_DIR) $(addprefix -T,$(LD_FILES)) -Map=$(@:.elf=.map) --cref
 LDFLAGS += --defsym=_estack_reserve=8
-
 LIBS = "$(shell $(CC) $(CFLAGS) -print-libgcc-file-name)"
 
 # Remove uncalled code from the final image.
@@ -133,7 +132,6 @@ DEBUG = 1
 # Debugging/Optimization
 ifeq ($(DEBUG), 1)
 CFLAGS += -g -DPENDSV_DEBUG
-#CFLAGS += -g -gdwarf-2
 COPT = -Og
 # Disable text compression in debug builds
 MICROPY_ROM_TEXT_COMPRESSION = 0
@@ -142,28 +140,38 @@ COPT += -Os -DNDEBUG
 endif
 
 # Flags for optional C++ source code
+
 CXXFLAGS += $(filter-out -Wmissing-prototypes -Wold-style-definition -std=gnu99,$(CFLAGS))
 CXXFLAGS += $(CXXFLAGS_MOD)
 ifneq ($(SRC_CXX)$(SRC_MOD_CXX),)
 LDFLAGS += -L$(dir $(shell $(CXX) $(CXXFLAGS) -print-file-name=libstdc++.a))
 endif
 
+# Flags for optional C++ source code
+# CXXFLAGS += $(filter-out -Wmissing-prototypes -Wold-style-definition -std=gnu99,$(CFLAGS))
+# CXXFLAGS += $(CXXFLAGS_MOD)
+# ifneq ($(SRC_CXX)$(SRC_MOD_CXX),)
+# LIBSTDCPP_FILE_NAME = "$(shell $(CXX) $(CXXFLAGS) -print-file-name=libstdc++.a)"
+# LDFLAGS += -L"$(shell dirname $(LIBSTDCPP_FILE_NAME))"
+# endif
+
+
 # Options for mpy-cross
 MPY_CROSS_FLAGS += -march=armv7m
 
-LIB_SRC_C += $(addprefix lib/,\
+SHARED_SRC_C += $(addprefix shared/,\
 	libc/string0.c \
-	mp-readline/readline.c \
+	netutils/dhcpserver.c \
 	netutils/netutils.c \
 	netutils/trace.c \
-	netutils/dhcpserver.c \
+	readline/readline.c \
+	runtime/gchelper_native.c \
+	runtime/interrupt_char.c \
+	runtime/mpirq.c \
+	runtime/pyexec.c \
+	runtime/stdout_helpers.c \
+	runtime/sys_stdio_mphal.c \
 	timeutils/timeutils.c \
-	utils/gchelper_native.c \
-	utils/pyexec.c \
-	utils/interrupt_char.c \
-	utils/sys_stdio_mphal.c \
-	utils/mpirq.c \
-	utils/printf.c \
 	)
 
 ifeq ($(MICROPY_FLOAT_IMPL),double)
@@ -357,7 +365,7 @@ SRC_O += \
 
 SRC_O += \
 	resethandler.o \
-	lib/utils/gchelper_m3.o
+	shared/runtime/gchelper_m3.o
 	
 HAL_SRC_C += $(addprefix $(HAL_DIR)/src/HAL_,\
 	dma.c \
@@ -389,6 +397,7 @@ endif
 OBJ += $(PY_O)
 OBJ += $(addprefix $(BUILD)/, $(LIB_SRC_C:.c=.o))
 OBJ += $(LIBM_O)
+OBJ += $(addprefix $(BUILD)/, $(SHARED_SRC_C:.c=.o))
 OBJ += $(addprefix $(BUILD)/, $(EXTMOD_SRC_C:.c=.o))
 OBJ += $(addprefix $(BUILD)/, $(DRIVERS_SRC_C:.c=.o))
 OBJ += $(addprefix $(BUILD)/, $(HAL_SRC_C:.c=.o))
@@ -403,7 +412,7 @@ OBJ += $(BUILD)/pins_$(BOARD).o
 # This file contains performance critical functions so turn up the optimisation
 # level.  It doesn't add much to the code size and improves performance a bit.
 # Don't use -O3 with this file because gcc tries to optimise memset in terms of itself.
-$(BUILD)/lib/libc/string0.o: COPT += -O2
+$(BUILD)/shared/libc/string0.o: COPT += -O2
 
 # We put several files into the first 16K section with the ISRs.
 # If we compile these using -O0 then it won't fit. So if you really want these
@@ -423,19 +432,11 @@ $(TOP)/lib/stm32lib/README.md:
 	$(ECHO) "stm32lib submodule not found, fetching it now..."
 	(cd $(TOP) && git submodule update --init lib/stm32lib)
 
-ifneq ($(FROZEN_MANIFEST)$(FROZEN_DIR),)
-# To use frozen source modules, put your .py files in a subdirectory (eg scripts/)
-# and then invoke make with FROZEN_DIR=scripts (be sure to build from scratch).
-CFLAGS += -DMICROPY_MODULE_FROZEN_STR
-endif
-
-ifneq ($(FROZEN_MANIFEST)$(FROZEN_MPY_DIR),)
-# To use frozen bytecode, put your .py files in a subdirectory (eg frozen/) and
-# then invoke make with FROZEN_MPY_DIR=frozen (be sure to build from scratch).
+ifneq ($(FROZEN_MANIFEST),)
 CFLAGS += -DMICROPY_QSTR_EXTRA_POOL=mp_qstr_frozen_const_pool
 CFLAGS += -DMICROPY_MODULE_FROZEN_MPY
+CFLAGS += -DMICROPY_MODULE_FROZEN_STR
 endif
-
 
 define GENERATE_ELF
 	$(ECHO) "LINK $(1)"
@@ -498,8 +499,10 @@ CDCINF_TEMPLATE = pybcdc.inf_template
 GEN_CDCINF_FILE = $(HEADER_BUILD)/pybcdc.inf
 GEN_CDCINF_HEADER = $(HEADER_BUILD)/pybcdc_inf.h
 
+
 # List of sources for qstr extraction
-SRC_QSTR += $(SRC_C) $(SRC_CXX) $(SRC_MOD) $(LIB_SRC_C) $(EXTMOD_SRC_C)
+# SRC_QSTR += $(SRC_C) $(SRC_CXX) $(SRC_MOD) $(LIB_SRC_C) $(EXTMOD_SRC_C)
+SRC_QSTR += $(SRC_C) $(SRC_CXX) $(SRC_MOD) $(SHARED_SRC_C) $(EXTMOD_SRC_C)
 # Append any auto-generated sources that are needed by sources listed in
 # SRC_QSTR
 #SRC_QSTR_AUTO_DEPS += $(GEN_CDCINF_HEADER)
@@ -528,8 +531,6 @@ $(BUILD)/%_$(BOARD).c $(HEADER_BUILD)/%.h $(HEADER_BUILD)/%_af_const.h $(HEADER_
 		--af-defs $(GEN_PINS_AF_DEFS) --af-defs-cmp-strings \
 		--af-py $(GEN_PINS_AF_PY) > $(GEN_PINS_SRC)
 
-
-
 $(BUILD)/pins_$(BOARD).o: $(BUILD)/pins_$(BOARD).c
 	$(ECHO) "GEN->10 $@"
 	$(Q)$(call compile_c)
@@ -546,6 +547,7 @@ $(GEN_PLLFREQTABLE_HDR): $(PLLVALUES) | $(HEADER_BUILD)
 	$(Q)$(PYTHON) $(PLLVALUES) -c -m $(MCU_SERIES) file:boards/TKM32/tkm32f499_hal_conf.h > $@
 	#end gen2
 	
+
 $(BUILD)/modstm.o: $(GEN_STMCONST_HDR)
 # Use a pattern rule here so that make will only call make-tkmconst.py once to
 # make both modstm_const.h and modstm_qstr.h

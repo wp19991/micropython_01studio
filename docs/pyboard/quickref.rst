@@ -39,7 +39,7 @@ See :mod:`pyb`. ::
 延时和计时器
 ----------------
 
-使用 :mod:`time <utime>` 模块::
+使用 :mod:`time <time>` 模块::
 
     import time
 
@@ -185,7 +185,7 @@ See :ref:`pyb.SPI <pyb.SPI>`. ::
 
     from pyb import SPI
 
-    spi = SPI(1, SPI.MASTER, baudrate=200000, polarity=1, phase=0)
+    spi = SPI(1, SPI.CONTROLLER, baudrate=200000, polarity=1, phase=0)
     spi.send('hello')
     spi.recv(5) # 接收5个字节
     spi.send_recv('hello') # 发送和接收5个字节
@@ -210,6 +210,26 @@ I2C总线
     i2c.writeto_mem(0x42, 0x10, 'xy')   # 从设备地址 0x42和存储器地址为0x10中写入2个字节
 
 注意: 对于传统的I2C支持，请参阅 :ref:`pyb.I2C <pyb.I2C>`.
+
+I2S bus
+-------
+
+See :ref:`machine.I2S <machine.I2S>`. ::
+
+    from machine import I2S, Pin
+
+    i2s = I2S(2, sck=Pin('Y6'), ws=Pin('Y5'), sd=Pin('Y8'), mode=I2S.TX, bits=16, format=I2S.STEREO, rate=44100, ibuf=40000) # create I2S object
+    i2s.write(buf)             # write buffer of audio samples to I2S device
+
+    i2s = I2S(1, sck=Pin('X5'), ws=Pin('X6'), sd=Pin('Y4'), mode=I2S.RX, bits=16, format=I2S.MONO, rate=22050, ibuf=40000) # create I2S object
+    i2s.readinto(buf)          # fill buffer with audio samples from I2S device
+
+The I2S class is currently available as a Technical Preview.  During the preview period, feedback from
+users is encouraged.  Based on this feedback, the I2S class API and implementation may be changed.
+
+PYBv1.0/v1.1 has one I2S bus with id=2.
+PYBD-SFxW has two I2S buses with id=1 and id=2.
+I2S is shared with SPI.
 
 CAN总线 (区域网络控制)
 ---------------------------------

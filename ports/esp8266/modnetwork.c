@@ -31,7 +31,7 @@
 #include "py/objlist.h"
 #include "py/runtime.h"
 #include "py/mphal.h"
-#include "lib/netutils/netutils.h"
+#include "shared/netutils/netutils.h"
 #include "queue.h"
 #include "user_interface.h"
 #include "espconn.h"
@@ -233,11 +233,13 @@ STATIC mp_obj_t esp_scan(mp_obj_t self_in) {
     }
     mp_obj_t list = mp_obj_new_list(0, NULL);
     esp_scan_list = &list;
-    wifi_station_scan(NULL, (scan_done_cb_t)esp_scan_cb);
+    struct scan_config config = {0};
+    config.show_hidden = 1;
+    wifi_station_scan(&config, (scan_done_cb_t)esp_scan_cb);
     while (esp_scan_list != NULL) {
         // our esp_scan_cb is called via ets_loop_iter so it's safe to set the
         // esp_scan_list variable to NULL without disabling interrupts
-        if (MP_STATE_VM(mp_pending_exception) != NULL) {
+        if (MP_STATE_THREAD(mp_pending_exception) != NULL) {
             esp_scan_list = NULL;
             mp_handle_pending(true);
         }
@@ -349,9 +351,8 @@ STATIC mp_obj_t esp_config(size_t n_args, const mp_obj_t *args, mp_map_t *kwargs
 
         for (mp_uint_t i = 0; i < kwargs->alloc; i++) {
             if (mp_map_slot_is_filled(kwargs, i)) {
-                #define QS(x) (uintptr_t)MP_OBJ_NEW_QSTR(x)
-                switch ((uintptr_t)kwargs->table[i].key) {
-                    case QS(MP_QSTR_mac): {
+                switch (mp_obj_str_get_qstr(kwargs->table[i].key)) {
+                    case MP_QSTR_mac: {
                         mp_buffer_info_t bufinfo;
                         mp_get_buffer_raise(kwargs->table[i].value, &bufinfo, MP_BUFFER_READ);
                         if (bufinfo.len != 6) {
@@ -360,7 +361,7 @@ STATIC mp_obj_t esp_config(size_t n_args, const mp_obj_t *args, mp_map_t *kwargs
                         wifi_set_macaddr(self->if_id, bufinfo.buf);
                         break;
                     }
-                    case QS(MP_QSTR_essid): {
+                    case MP_QSTR_essid: {
                         req_if = SOFTAP_IF;
                         size_t len;
                         const char *s = mp_obj_str_get_data(kwargs->table[i].value, &len);
@@ -369,17 +370,17 @@ STATIC mp_obj_t esp_config(size_t n_args, const mp_obj_t *args, mp_map_t *kwargs
                         cfg.ap.ssid_len = len;
                         break;
                     }
-                    case QS(MP_QSTR_hidden): {
+                    case MP_QSTR_hidden: {
                         req_if = SOFTAP_IF;
                         cfg.ap.ssid_hidden = mp_obj_is_true(kwargs->table[i].value);
                         break;
                     }
-                    case QS(MP_QSTR_authmode): {
+                    case MP_QSTR_authmode: {
                         req_if = SOFTAP_IF;
                         cfg.ap.authmode = mp_obj_get_int(kwargs->table[i].value);
                         break;
                     }
-                    case QS(MP_QSTR_password): {
+                    case MP_QSTR_password: {
                         req_if = SOFTAP_IF;
                         size_t len;
                         const char *s = mp_obj_str_get_data(kwargs->table[i].value, &len);
@@ -388,12 +389,12 @@ STATIC mp_obj_t esp_config(size_t n_args, const mp_obj_t *args, mp_map_t *kwargs
                         cfg.ap.password[len] = 0;
                         break;
                     }
-                    case QS(MP_QSTR_channel): {
+                    case MP_QSTR_channel: {
                         req_if = SOFTAP_IF;
                         cfg.ap.channel = mp_obj_get_int(kwargs->table[i].value);
                         break;
                     }
-                    case QS(MP_QSTR_dhcp_hostname): {
+                    case MP_QSTR_dhcp_hostname: {
                         req_if = STATION_IF;
                         if (self->if_id == STATION_IF) {
                             const char *s = mp_obj_str_get_str(kwargs->table[i].value);
@@ -404,7 +405,6 @@ STATIC mp_obj_t esp_config(size_t n_args, const mp_obj_t *args, mp_map_t *kwargs
                     default:
                         goto unknown;
                 }
-#undef QS
             }
         }
 

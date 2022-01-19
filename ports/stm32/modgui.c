@@ -16,7 +16,7 @@
 
 #include "py/runtime.h"
 #include "py/mphal.h"
-#include "lib/utils/pyexec.h"
+#include "shared/runtime/pyexec.h"
 #include "stm32_it.h"
 #include "irq.h"
 #include "timer.h"
@@ -38,7 +38,6 @@
 #if MICROPY_GUI_BUTTON
 #include "gui_button.h"
 #endif
-
 
 #if MICROPY_ENABLE_GUI
 STATIC const mp_rom_map_elem_t gui_module_globals_table[] = {

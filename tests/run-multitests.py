@@ -46,6 +46,16 @@ class multitest:
         print("NEXT")
         multitest.flush()
     @staticmethod
+    def broadcast(msg):
+        print("BROADCAST", msg)
+        multitest.flush()
+    @staticmethod
+    def wait(msg):
+        msg = "BROADCAST " + msg
+        while True:
+            if sys.stdin.readline().rstrip() == msg:
+                return
+    @staticmethod
     def globals(**gs):
         for g in gs:
             print("SET {{}} = {{!r}}".format(g, gs[g]))
@@ -56,7 +66,7 @@ class multitest:
             import network
             ip = network.WLAN().ifconfig()[0]
         except:
-            ip = "127.0.0.1"
+            ip = HOST_IP
         return ip
 
 {}
@@ -66,13 +76,29 @@ multitest.flush()
 """
 
 # The btstack implementation on Unix generates some spurious output that we
-# can't control.
+# can't control.  Also other platforms may output certain warnings/errors that
+# can be safely ignored.
 IGNORE_OUTPUT_MATCHES = (
     "libusb: error ",  # It tries to open devices that it doesn't have access to (libusb prints unconditionally).
     "hci_transport_h2_libusb.c",  # Same issue. We enable LOG_ERROR in btstack.
     "USB Path: ",  # Hardcoded in btstack's libusb transport.
     "hci_number_completed_packet",  # Warning from btstack.
+    "lld_pdu_get_tx_flush_nb HCI packet count mismatch (",  # From ESP-IDF, see https://github.com/espressif/esp-idf/issues/5105
 )
+
+
+def get_host_ip(_ip_cache=[]):
+    if not _ip_cache:
+        try:
+            import socket
+
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            s.connect(("8.8.8.8", 80))
+            _ip_cache.append(s.getsockname()[0])
+            s.close()
+        except:
+            _ip_cache.append("127.0.0.1")
+    return _ip_cache[0]
 
 
 class PyInstance:
@@ -126,14 +152,12 @@ class PyInstanceSubProcess(PyInstance):
 
     def start_script(self, script):
         self.popen = subprocess.Popen(
-            self.argv,
+            self.argv + ["-c", script],
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             env=self.env,
         )
-        self.popen.stdin.write(script)
-        self.popen.stdin.close()
         self.finished = False
 
     def stop(self):
@@ -141,7 +165,7 @@ class PyInstanceSubProcess(PyInstance):
             self.popen.terminate()
 
     def readline(self):
-        sel = select.select([self.popen.stdout.raw], [], [], 0.1)
+        sel = select.select([self.popen.stdout.raw], [], [], 0.001)
         if not sel[0]:
             self.finished = self.popen.poll() is not None
             return None, None
@@ -151,6 +175,10 @@ class PyInstanceSubProcess(PyInstance):
             return None, None
         else:
             return str(out.rstrip(), "ascii"), None
+
+    def write(self, data):
+        self.popen.stdin.write(data)
+        self.popen.stdin.flush()
 
     def is_finished(self):
         return self.finished
@@ -220,6 +248,9 @@ class PyInstancePyboard(PyInstance):
             err = None
         return str(out.rstrip(), "ascii"), err
 
+    def write(self, data):
+        self.pyb.serial.write(data)
+
     def is_finished(self):
         return self.finished
 
@@ -256,6 +287,13 @@ def run_test_on_instances(test_file, num_instances, instances):
     skip = False
     injected_globals = ""
     output = [[] for _ in range(num_instances)]
+
+    # If the test calls get_network_ip() then inject HOST_IP so that devices can know
+    # the IP address of the host.  Do this lazily to not require a TCP/IP connection
+    # on the host if it's not needed.
+    with open(test_file, "rb") as f:
+        if b"get_network_ip" in f.read():
+            injected_globals += "HOST_IP = '" + get_host_ip() + "'\n"
 
     if cmd_args.trace_output:
         print("TRACE {}:".format("|".join(str(i) for i in instances)))
@@ -318,7 +356,12 @@ def run_test_on_instances(test_file, num_instances, instances):
                 last_read_time[idx] = time.time()
                 if out is not None and not any(m in out for m in IGNORE_OUTPUT_MATCHES):
                     trace_instance_output(idx, out)
-                    output[idx].append(out)
+                    if out.startswith("BROADCAST "):
+                        for instance2 in instances:
+                            if instance2 is not instance:
+                                instance2.write(bytes(out, "ascii") + b"\r\n")
+                    else:
+                        output[idx].append(out)
                 if err is not None:
                     trace_instance_output(idx, err)
                     output[idx].append(err)

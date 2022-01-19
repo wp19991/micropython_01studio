@@ -34,7 +34,7 @@
 #include <net/net_context.h>
 #endif
 
-#ifdef CONFIG_USB
+#ifdef CONFIG_USB_DEVICE_STACK
 #include <usb/usb_device.h>
 #endif
 
@@ -47,8 +47,8 @@
 #include "py/gc.h"
 #include "py/mphal.h"
 #include "py/stackctrl.h"
-#include "lib/utils/pyexec.h"
-#include "lib/mp-readline/readline.h"
+#include "shared/runtime/pyexec.h"
+#include "shared/readline/readline.h"
 #include "extmod/modbluetooth.h"
 
 #if MICROPY_VFS
@@ -59,9 +59,9 @@
 #include "modzephyr.h"
 
 #ifdef TEST
-#include "lib/upytesthelper/upytesthelper.h"
+#include "shared/upytesthelper/upytesthelper.h"
 #include "lib/tinytest/tinytest.c"
-#include "lib/upytesthelper/upytesthelper.c"
+#include "shared/upytesthelper/upytesthelper.c"
 #include TEST
 #endif
 
@@ -139,11 +139,8 @@ soft_reset:
     gc_init(heap, heap + sizeof(heap));
     #endif
     mp_init();
-    mp_obj_list_init(mp_sys_path, 0);
-    mp_obj_list_append(mp_sys_path, MP_OBJ_NEW_QSTR(MP_QSTR_)); // current dir (or base dir of the script)
-    mp_obj_list_init(mp_sys_argv, 0);
 
-    #ifdef CONFIG_USB
+    #ifdef CONFIG_USB_DEVICE_STACK
     usb_enable(NULL);
     #endif
 

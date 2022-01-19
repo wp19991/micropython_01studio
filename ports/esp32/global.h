@@ -212,14 +212,15 @@ __attribute__((weak)) int sscanf (const char *s, const char *format, ...)
 }
 #endif
 
+#if 0
  __attribute__((weak)) mp_obj_t get_sscan(const char *sour, const char *start,const char *end,uint8_t *ret)
 {
 	static char *s1;
 	static char *s2;
 	char *buf;
 	char out_buf[1024];
-	unsigned int total_len = strlen(sour);
-	unsigned int s1_start_len = strlen(start); //s1的长度
+	uint32_t total_len = strlen(sour);
+	uint32_t s1_start_len = strlen(start); //s1的长度
 	memset(out_buf, '\0', 1024);
 	*ret = 0;
 	s1 = strstr(sour,start);
@@ -231,8 +232,8 @@ __attribute__((weak)) int sscanf (const char *s, const char *format, ...)
 		s2 = strstr(buf,end);
 
 		if(s2 != NULL){
-			total_len = s1_start_len - strlen(s2);
-			strncpy(&out_buf[0],&buf[0] , total_len);
+			total_len = (s1_start_len - strlen(s2));
+			strncpy(&out_buf[0],&buf[0] , (size_t)total_len);
 			*ret = total_len;
 			m_free(buf);
 		}else{
@@ -244,6 +245,40 @@ __attribute__((weak)) int sscanf (const char *s, const char *format, ...)
 	}
 	return mp_obj_new_str(out_buf, total_len);
 }
+#else
+ __attribute__((weak)) mp_obj_t get_sscan(const char *sour, const char *start,const char *end,uint8_t *ret)
+{
+	static char *s1;
+	static char *s2;
+	char *buf;
+	char out_buf[1024];
+	uint32_t total_len = strlen(sour);
+	uint32_t s1_start_len = strlen(start); //s1的长度
+	memset(out_buf, '\0', 1024);
+	*ret = 0;
+	s1 = strstr(sour,start);
+	if(s1 != NULL){
+		buf = m_malloc(total_len);
+		memset(buf, '\0', total_len);
+		memcpy(buf,s1+s1_start_len , strlen(s1)-s1_start_len);
+		s1_start_len = strlen(buf); //buf len
+		s2 = strstr(buf,end);
+
+		if(s2 != NULL){
+			total_len = (s1_start_len - strlen(s2));
+			memcpy(&out_buf[0],&buf[0] , (size_t)total_len);
+			*ret = total_len;
+			m_free(buf);
+		}else{
+			return mp_const_none;
+		}
+		
+	}else{
+		return mp_const_none;
+	}
+	return mp_obj_new_str(out_buf, total_len);
+}
+#endif
 
 
 //-----------------------------------------------------------------------
@@ -260,7 +295,10 @@ __attribute__((weak)) int sscanf (const char *s, const char *format, ...)
 	 char *ret_path;
  
 	 memset(upda_str, '\0', sizeof(upda_str));
-	 strncpy(upda_str,&src_path[1] , strlen(src_path)-1); 
+	 // strncpy(upda_str,&src_path[1] , strlen(src_path)-1);
+	 memcpy(upda_str,&src_path[1] , strlen(src_path)-1);
+
+	 
 	 date_len = strlen(upda_str);
 
 	 ret_path=strchr(upda_str,'/');
@@ -269,9 +307,9 @@ __attribute__((weak)) int sscanf (const char *s, const char *format, ...)
 	 cp_len = date_len - strlen(ret_path);
  
 	 memset(cp_str, '\0', 7);
-	 strncpy(cp_str,upda_str,cp_len);
-
- 		*res = 2;
+	 // strncpy(cp_str,upda_str,cp_len);
+	memcpy(cp_str,upda_str,cp_len);
+	*res = 2;
 	 if(strncmp(cp_str , "flash" , 5) == 0) 	 *res = 0; 
 	 else if(strncmp(cp_str , "sd" , 2) == 0)  *res = 1;
 	 else	
@@ -281,8 +319,8 @@ __attribute__((weak)) int sscanf (const char *s, const char *format, ...)
  
 	 date_len = (date_len - cp_len - 1);
 	 memset(upda_str, '\0', sizeof(upda_str));
-	 strncpy(upda_str,&src_path[cp_len+2] , date_len); 
- 
+	 // strncpy(upda_str,&src_path[cp_len+2] , date_len); 
+	memcpy(upda_str,&src_path[cp_len+2] , date_len);
 	 return mp_obj_new_str(upda_str, date_len);
  }
 
@@ -294,7 +332,8 @@ __attribute__((weak)) int sscanf (const char *s, const char *format, ...)
 	if(ret == NULL){
 		mp_raise_TypeError(MP_ERROR_TEXT("no find file type"));
 	}
-	strncpy(dest,&ret[1] , strlen(ret)-1); 
+	// strncpy(dest,&ret[1] , strlen(ret)-1); 
+	memcpy(dest,&ret[1] , strlen(ret)-1);
 	return mp_obj_new_str(dest, strlen(ret)-1);
 }
 __attribute__((weak)) bool check_sys_file(const char *check_file) {

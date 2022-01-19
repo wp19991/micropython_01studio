@@ -10,6 +10,15 @@ set(MICROPY_QSTRDEFS_COLLECTED "${MICROPY_GENHDR_DIR}/qstrdefs.collected.h")
 set(MICROPY_QSTRDEFS_PREPROCESSED "${MICROPY_GENHDR_DIR}/qstrdefs.preprocessed.h")
 set(MICROPY_QSTRDEFS_GENERATED "${MICROPY_GENHDR_DIR}/qstrdefs.generated.h")
 
+# Need to do this before extracting MICROPY_CPP_DEF below. Rest of frozen
+# manifest handling is at the end of this file.
+if(MICROPY_FROZEN_MANIFEST)
+    target_compile_definitions(${MICROPY_TARGET} PUBLIC
+        MICROPY_QSTR_EXTRA_POOL=mp_qstr_frozen_const_pool
+        MICROPY_MODULE_FROZEN_MPY=\(1\)
+    )
+endif()
+
 # Provide defaults for preprocessor flags if not already defined
 if(NOT MICROPY_CPP_FLAGS)
     get_target_property(MICROPY_CPP_INC ${MICROPY_TARGET} INCLUDE_DIRECTORIES)
@@ -120,13 +129,25 @@ if(MICROPY_FROZEN_MANIFEST)
         ${MICROPY_FROZEN_CONTENT}
     )
 
-    target_compile_definitions(${MICROPY_TARGET} PUBLIC
-        MICROPY_QSTR_EXTRA_POOL=mp_qstr_frozen_const_pool
-        MICROPY_MODULE_FROZEN_MPY=\(1\)
-    )
+    # Note: target_compile_definitions already added earlier.
 
     if(NOT MICROPY_LIB_DIR)
         set(MICROPY_LIB_DIR ${MICROPY_DIR}/../micropython-lib)
+    endif()
+
+    # If MICROPY_MPYCROSS is not explicitly defined in the environment (which
+    # is what makemanifest.py will use) then create an mpy-cross dependency
+    # to automatically build mpy-cross if needed.
+    set(MICROPY_MPYCROSS $ENV{MICROPY_MPYCROSS})
+    if(NOT MICROPY_MPYCROSS)
+        set(MICROPY_MPYCROSS_DEPENDENCY ${MICROPY_DIR}/mpy-cross/mpy-cross)
+        if(NOT MICROPY_MAKE_EXECUTABLE)
+            set(MICROPY_MAKE_EXECUTABLE make)
+        endif()
+        add_custom_command(
+            OUTPUT ${MICROPY_MPYCROSS_DEPENDENCY}
+            COMMAND ${MICROPY_MAKE_EXECUTABLE} -C ${MICROPY_DIR}/mpy-cross
+        )
     endif()
 
     add_custom_command(
@@ -134,6 +155,7 @@ if(MICROPY_FROZEN_MANIFEST)
         COMMAND ${Python3_EXECUTABLE} ${MICROPY_DIR}/tools/makemanifest.py -o ${MICROPY_FROZEN_CONTENT} -v "MPY_DIR=${MICROPY_DIR}" -v "MPY_LIB_DIR=${MICROPY_LIB_DIR}" -v "PORT_DIR=${MICROPY_PORT_DIR}" -v "BOARD_DIR=${MICROPY_BOARD_DIR}" -b "${CMAKE_BINARY_DIR}" -f${MICROPY_CROSS_FLAGS} ${MICROPY_FROZEN_MANIFEST}
         DEPENDS MICROPY_FORCE_BUILD
             ${MICROPY_QSTRDEFS_GENERATED}
+            ${MICROPY_MPYCROSS_DEPENDENCY}
         VERBATIM
     )
 endif()

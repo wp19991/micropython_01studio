@@ -22,7 +22,7 @@ ESP32开发板 (图片来源: 01Studio).
    :maxdepth: 1
 
    general.rst
-   tutorial/intro.rst
+   tutorial/index.rst
 
 安装MicroPython
 ----------------------
@@ -104,10 +104,18 @@ The :mod:`network` module::
 一旦网络建立成功，你就可以通过 :mod:`socket <usocket>` 模块创建和使用 TCP/UDP sockets 通讯,
 以及通过 ``urequests`` 模块非常方便地发送 HTTP 请求。
 
-延时和时间
-----------------
+After a call to ``wlan.connect()``, the device will by default retry to connect
+**forever**, even when the authentication failed or no AP is in range.
+``wlan.status()`` will return ``network.STAT_CONNECTING`` in this state until a
+connection succeeds or the interface gets disabled.  This can be changed by
+calling ``wlan.config(reconnects=n)``, where n are the number of desired reconnect
+attempts (0 means it won't retry, -1 will restore the default behaviour of trying
+to reconnect forever).
 
-Use the :mod:`time <utime>` module::
+延时和时间
+-----------
+
+Use the :mod:`time <time>` module::
 
     import time
 
@@ -168,6 +176,10 @@ Virtual timers are not currently supported on this port.
 
 * 部分引脚的pull值可以设置为 ``Pin.PULL_HOLD`` 以降低深度睡眠时候的功耗。
 
+There's a higher-level abstraction :ref:`machine.Signal <machine.Signal>`
+which can be used to invert a pin. Useful for illuminating active-low LEDs
+using ``on()`` or ``value(1)``.
+
 UART (serial bus)
 -----------------
 
@@ -197,28 +209,52 @@ rx     3      9      16
 
 PWM (脉宽调制)
 ----------------------------
-There's a higher-level abstraction :ref:`machine.Signal <machine.Signal>`
-which can be used to invert a pin. Useful for illuminating active-low LEDs
-using ``on()`` or ``value(1)``.
 
 PWM 能在所有可输出引脚上实现。基频的范围可以从 1Hz 到 40MHz 但需要权衡: 随着基频的
 *增加* 占空分辨率 *下降*. 详情请参阅：
-`LED Control <https://docs.espressif.com/projects/esp-idf/en/latest/api-reference/peripherals/ledc.html>`_
-.
-现在占空比范围为 0-1023
+`LED Control <https://docs.espressif.com/projects/esp-idf/en/latest/api-reference/peripherals/ledc.html>`_.
 
-Use the ``machine.PWM`` class::
+Use the :ref:`machine.PWM <machine.PWM>` class::
 
     from machine import Pin, PWM
 
-    pwm0 = PWM(Pin(0))      # 从1个引脚中创建PWM对象
-    pwm0.freq()             # 获取当前频率
-    pwm0.freq(1000)         # 设置频率
-    pwm0.duty()             # 获取当前占空比
-    pwm0.duty(200)          # 设置占空比
-    pwm0.deinit()           # 关闭引脚的 PWM
+    pwm0 = PWM(Pin(0))         # create PWM object from a pin
+    freq = pwm0.freq()         # get current frequency (default 5kHz)
+    pwm0.freq(1000)            # set PWM frequency from 1Hz to 40MHz
 
-    pwm2 = PWM(Pin(2), freq=20000, duty=512) # 在同一语句下创建和配置 PWM
+    duty = pwm0.duty()         # get current duty cycle, range 0-1023 (default 512, 50%)
+    pwm0.duty(256)             # set duty cycle from 0 to 1023 as a ratio duty/1023, (now 25%)
+
+    duty_u16 = pwm0.duty_u16() # get current duty cycle, range 0-65535
+    pwm0.duty_u16(2**16*3//4)  # set duty cycle from 0 to 65535 as a ratio duty_u16/65535, (now 75%)
+
+    duty_ns = pwm0.duty_ns()   # get current pulse width in ns
+    pwm0.duty_ns(250_000)      # set pulse width in nanoseconds from 0 to 1_000_000_000/freq, (now 25%)
+
+    pwm0.deinit()              # turn off PWM on the pin
+
+    pwm2 = PWM(Pin(2), freq=20000, duty=512)  # create and configure in one go
+    print(pwm2)                               # view PWM settings
+
+ESP chips have different hardware peripherals:
+
+=====================================================  ========  ========  ========
+Hardware specification                                    ESP32  ESP32-S2  ESP32-C3
+-----------------------------------------------------  --------  --------  --------
+Number of groups (speed modes)                                2         1         1
+Number of timers per group                                    4         4         4
+Number of channels per group                                  8         8         6
+-----------------------------------------------------  --------  --------  --------
+Different PWM frequencies (groups * timers)                   8         4         4
+Total PWM channels (Pins, duties) (groups * channels)        16         8         6
+=====================================================  ========  ========  ========
+
+A maximum number of PWM channels (Pins) are available on the ESP32 - 16 channels,
+but only 8 different PWM frequencies are available, the remaining 8 channels must
+have the same frequency.  On the other hand, 16 independent PWM duty cycles are
+possible at the same frequency.
+
+See more examples in the :ref:`esp32_pwm` tutorial.
 
 ADC (模数转换)
 ----------------------------------
@@ -366,8 +402,27 @@ has the same methods as software I2C above::
     i2c = I2C(0)
     i2c = I2C(1, scl=Pin(5), sda=Pin(4), freq=400000)
 
+I2S bus
+-------
+
+See :ref:`machine.I2S <machine.I2S>`. ::
+
+    from machine import I2S, Pin
+
+    i2s = I2S(0, sck=Pin(13), ws=Pin(14), sd=Pin(34), mode=I2S.TX, bits=16, format=I2S.STEREO, rate=44100, ibuf=40000) # create I2S object
+    i2s.write(buf)             # write buffer of audio samples to I2S device
+
+    i2s = I2S(1, sck=Pin(33), ws=Pin(25), sd=Pin(32), mode=I2S.RX, bits=16, format=I2S.MONO, rate=22050, ibuf=40000) # create I2S object
+    i2s.readinto(buf)          # fill buffer with audio samples from I2S device
+
+The I2S class is currently available as a Technical Preview.  During the preview period, feedback from
+users is encouraged.  Based on this feedback, the I2S class API and implementation may be changed.
+
+ESP32 has two I2S buses with id=0 and id=1
+
 实时时钟(RTC)
 ----------------
+
 See :ref:`machine.RTC <machine.RTC>` ::
 
     from machine import RTC
@@ -420,15 +475,15 @@ SD card
 
 See :ref:`machine.SDCard <machine.SDCard>`. ::
 
-    import machine, uos
+    import machine, os
 
     # Slot 2 uses pins sck=18, cs=5, miso=19, mosi=23
     sd = machine.SDCard(slot=2)
-    uos.mount(sd, "/sd")  # mount
+    os.mount(sd, "/sd")  # mount
 
-    uos.listdir('/sd')    # list directory contents
+    os.listdir('/sd')    # list directory contents
 
-    uos.umount('/sd')     # eject
+    os.umount('/sd')     # eject
 
 RMT
 ----
@@ -442,7 +497,7 @@ The RMT is ESP32-specific and allows generation of accurate digital pulses with
     r = esp32.RMT(0, pin=Pin(18), clock_div=8)
     r   # RMT(channel=0, pin=18, source_freq=80000000, clock_div=8)
     # The channel resolution is 100ns (1/(source_freq/clock_div)).
-    r.write_pulses((1, 20, 2, 40), start=0) # Send 0 for 100ns, 1 for 2000ns, 0 for 200ns, 1 for 4000ns
+    r.write_pulses((1, 20, 2, 40), 0) # Send 0 for 100ns, 1 for 2000ns, 0 for 200ns, 1 for 4000ns
 
 单总线驱动（Onewire）
 ---------------------
@@ -503,6 +558,10 @@ APA102 (DotStar) uses a different driver as it has an additional clock pin.
    默认情况下 ``NeoPixel`` 被配置成控制更常用的 *800kHz* 单元设备。用户可以通过使用替代的定时器
    来说控制其他频率的设备 (通常是 400kHz)。 可以通过使用定时器 ``timing=0`` 当构建 ``NeoPixel`` 对象的时候。
 
+The low-level driver uses an RMT channel by default.  To configure this see
+`RMT.bitstream_channel`.
+
+APA102 (DotStar) uses a different driver as it has an additional clock pin.
 
 电容触摸
 ----------------

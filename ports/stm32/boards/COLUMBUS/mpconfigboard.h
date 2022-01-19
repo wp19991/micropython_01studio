@@ -8,53 +8,53 @@
 #define MICROPY_HW_ENABLE_RNG       	(1)
 #define MICROPY_HW_ENABLE_RTC       	(1)
 #define MICROPY_HW_ENABLE_DAC       	(1)
-#define MICROPY_HW_ENABLE_ADC					(1)
+#define MICROPY_HW_ENABLE_ADC			(1)
 #define MICROPY_HW_ENABLE_USB       	(1)
-#define	MICROPY_HW_ENABLE_SERVO				(1) 
+#define	MICROPY_HW_ENABLE_SERVO			(1) 
 
-#define MICROPY_ENABLE_SDCARD_NIRQ  (1)
+#define MICROPY_ENABLE_SDCARD_NIRQ		(1)
 //===================================================================================
 //01studio
 //------------------------------------------------------------------------------------
 #define MICROPY_HW_BOARD_COLUMBUS 		(1) //哥伦布
-#define MICROPY_PY_PICLIB							(1) //图片解码
-#define MICROPY_ENABLE_NEOPIXEL				(1)
+#define MICROPY_PY_PICLIB				(1) //图片解码
+#define MICROPY_ENABLE_NEOPIXEL			(1)
 
 //gui
-#define MICROPY_ENABLE_GUI						(1) 	//GUI支持
-#define MICROPY_GUI_BUTTON						(1) 	//按钮控件
-#define GUI_BTN_NUM_MAX 							(30) 	//最大支持按钮数量
-#define GUI_BTN_STR_LEN 							(20)
+#define MICROPY_ENABLE_GUI				(1) 	//GUI支持
+#define MICROPY_GUI_BUTTON				(1) 	//按钮控件
+#define GUI_BTN_NUM_MAX					(30) 	//最大支持按钮数量
+#define GUI_BTN_STR_LEN					(20)
 
 //touch
-#define	MICROPY_ENABLE_TOUCH					(1)   //enable mode
-#define	MICROPY_HW_GT1151							(1)   //使用触摸芯片型号
+#define	MICROPY_ENABLE_TOUCH			(1)   //enable mode
+#define	MICROPY_HW_GT1151				(1)   //使用触摸芯片型号
 
 //------------------------------------------------------------------------------------
 //TFTLCD
-#define MICROPY_ENABLE_TFTLCD					(1)
-#define	MICROPY_HW_LCD43M							(1)		//液晶屏模块
+#define MICROPY_ENABLE_TFTLCD			(1)
+#define	MICROPY_HW_LCD43M				(1)		//液晶屏模块
 
 //------------------------------------------------------------------------------------
 //audio
-#define MICROPY_ENABLE_AUDIO					(1)
-#define	MICROPY_HW_WM8978							(1)
-#define MICROPY_ENABLE_MP3						(1)
+#define MICROPY_ENABLE_AUDIO			(1)
+#define	MICROPY_HW_WM8978				(1)
+#define MICROPY_ENABLE_MP3				(1)
 //------------------------------------------------------------------------------------
 //video
-#define MICROPY_ENABLE_VIDEO					(1)
+#define MICROPY_ENABLE_VIDEO			(1)
 //------------------------------------------------------------------------------------
 //sensor
-#define MICROPY_ENABLE_SENSOR					(1)
-#define MICROPY_HW_OV2640							(1)
+#define MICROPY_ENABLE_SENSOR			(1)
+#define MICROPY_HW_OV2640				(1)
 //===================================================================================
 
 #if MICROPY_HW_OV2640
-#define MICROPY_HW_DCMI_RESE 				(pin_G15)
-#define MICROPY_HW_DCMI_PWDN 				(pin_G9)
-#define MICROPY_HW_DCMI_HSYNC       (pin_A4)
-#define MICROPY_HW_DCMI_PIXCK       (pin_A6)
-#define MICROPY_HW_DCMI_VSYNC       (pin_B7)
+#define MICROPY_HW_DCMI_RESE			(pin_G15)
+#define MICROPY_HW_DCMI_PWDN			(pin_G9)
+#define MICROPY_HW_DCMI_HSYNC			(pin_A4)
+#define MICROPY_HW_DCMI_PIXCK			(pin_A6)
+#define MICROPY_HW_DCMI_VSYNC			(pin_B7)
 #define MICROPY_HW_DCMI_D0       		(pin_C6)
 #define MICROPY_HW_DCMI_D1       		(pin_C7)
 #define MICROPY_HW_DCMI_D2       		(pin_C8)
@@ -66,8 +66,8 @@
 #endif
 //===================================================================================
 
-#define MICROPY_PY_THREAD_GIL					(1)
-#define MICROPY_PY_THREAD							(1)
+#define MICROPY_PY_THREAD_GIL			(1)
+#define MICROPY_PY_THREAD				(1)
 
 #define MICROPY_HW_CLK_USE_HSE
 
@@ -162,7 +162,7 @@ extern struct _spi_bdev_t spi_bdev;
 #define MICROPY_HW_ETH_RMII_TXD1    (pin_G14)
 
 // SD card detect switch
-#define MICROPY_HW_ENABLE_SDCARD	(1)
+#define MICROPY_HW_ENABLE_SDCARD			(1)
 #define MICROPY_HW_SDCARD_DETECT_PIN        (pin_C0)
 #define MICROPY_HW_SDCARD_DETECT_PULL       (GPIO_NOPULL)
 #define MICROPY_HW_SDCARD_DETECT_PRESENT    (GPIO_PIN_RESET)

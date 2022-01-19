@@ -33,16 +33,30 @@
 #include "py/objstr.h"
 #include "py/mperrno.h"
 #include "py/mphal.h"
+#include "extmod/machine_bitstream.h"
 #include "extmod/machine_mem.h"
 #include "extmod/machine_signal.h"
 #include "extmod/machine_pulse.h"
 #include "extmod/machine_i2c.h"
 #include "extmod/machine_spi.h"
-#include "lib/utils/pyexec.h"
+#include "shared/runtime/pyexec.h"
 #include "lib/oofatfs/ff.h"
 #include "extmod/vfs.h"
 #include "extmod/vfs_fat.h"
-#include "extmod/utime_mphal.h"
+#include "gccollect.h"
+#include "irq.h"
+#include "powerctrl.h"
+#include "pybthread.h"
+#include "rng.h"
+#include "storage.h"
+#include "pin.h"
+#include "timer.h"
+#include "usb.h"
+#include "rtc.h"
+#include "i2c.h"
+#include "spi.h"
+#include "uart.h"
+#include "wdt.h"
 
 #include "gccollect.h"
 #include "irq.h"
@@ -352,18 +366,18 @@ STATIC const mp_rom_map_elem_t machine_module_globals_table[] = {
     #if 0
     { MP_ROM_QSTR(MP_QSTR_wake_reason),         MP_ROM_PTR(&machine_wake_reason_obj) },
     #endif
-    #if MICROPY_PY_PYB_LEGACY
-    { MP_ROM_QSTR(MP_QSTR_millis), MP_ROM_PTR(&mp_utime_ticks_ms_obj) },
-    { MP_ROM_QSTR(MP_QSTR_micros), MP_ROM_PTR(&mp_utime_ticks_us_obj) },
-    { MP_ROM_QSTR(MP_QSTR_delay), MP_ROM_PTR(&mp_utime_sleep_ms_obj) },
-    { MP_ROM_QSTR(MP_QSTR_udelay), MP_ROM_PTR(&mp_utime_sleep_us_obj) },
-    { MP_ROM_QSTR(MP_QSTR_mount), MP_ROM_PTR(&mp_vfs_mount_obj) },
-    #endif
+    // #if MICROPY_PY_PYB_LEGACY
+    // { MP_ROM_QSTR(MP_QSTR_millis), MP_ROM_PTR(&mp_utime_ticks_ms_obj) },
+    // { MP_ROM_QSTR(MP_QSTR_micros), MP_ROM_PTR(&mp_utime_ticks_us_obj) },
+    // { MP_ROM_QSTR(MP_QSTR_delay), MP_ROM_PTR(&mp_utime_sleep_ms_obj) },
+    // { MP_ROM_QSTR(MP_QSTR_udelay), MP_ROM_PTR(&mp_utime_sleep_us_obj) },
+    // { MP_ROM_QSTR(MP_QSTR_mount), MP_ROM_PTR(&mp_vfs_mount_obj) },
+    // #endif
 		
-		{ MP_ROM_QSTR(MP_QSTR_pixelbitstream),      MP_ROM_PTR(&machine_pixelbitstream_obj) },
+	{ MP_ROM_QSTR(MP_QSTR_pixelbitstream),      MP_ROM_PTR(&machine_pixelbitstream_obj) },
 		
     // This function is not intended to be public and may be moved elsewhere
-    { MP_ROM_QSTR(MP_QSTR_dht_readinto), MP_ROM_PTR(&dht_readinto_obj) },
+    { MP_ROM_QSTR(MP_QSTR_dht_readinto),		MP_ROM_PTR(&dht_readinto_obj) },
 		
     { MP_ROM_QSTR(MP_QSTR_disable_irq),         MP_ROM_PTR(&machine_disable_irq_obj) },
     { MP_ROM_QSTR(MP_QSTR_enable_irq),          MP_ROM_PTR(&machine_enable_irq_obj) },
@@ -375,13 +389,13 @@ STATIC const mp_rom_map_elem_t machine_module_globals_table[] = {
     { MP_ROM_QSTR(MP_QSTR_mem32),               MP_ROM_PTR(&machine_mem32_obj) },
 
     { MP_ROM_QSTR(MP_QSTR_Pin),                 MP_ROM_PTR(&pin_type) },
-		{ MP_ROM_QSTR(MP_QSTR_ExtInt), MP_ROM_PTR(&extint_type) },
-		#if defined(MICROPY_HW_LED1)
-    { MP_ROM_QSTR(MP_QSTR_LED), MP_ROM_PTR(&pyb_led_type) },
+	{ MP_ROM_QSTR(MP_QSTR_ExtInt),				MP_ROM_PTR(&extint_type) },
+	#if defined(MICROPY_HW_LED1)
+    { MP_ROM_QSTR(MP_QSTR_LED),					MP_ROM_PTR(&pyb_led_type) },
     #endif
 		
-		#if MICROPY_HW_HAS_SWITCH
-    { MP_ROM_QSTR(MP_QSTR_Switch), MP_ROM_PTR(&pyb_switch_type) },
+	#if MICROPY_HW_HAS_SWITCH
+    { MP_ROM_QSTR(MP_QSTR_Switch),				MP_ROM_PTR(&pyb_switch_type) },
     #endif
 
     { MP_ROM_QSTR(MP_QSTR_Signal),              MP_ROM_PTR(&machine_signal_type) },
@@ -395,10 +409,13 @@ STATIC const mp_rom_map_elem_t machine_module_globals_table[] = {
     { MP_ROM_QSTR(MP_QSTR_I2C),                 MP_ROM_PTR(&mp_machine_soft_i2c_type) },
     #endif
     //{ MP_ROM_QSTR(MP_QSTR_SoftI2C),             MP_ROM_PTR(&mp_machine_soft_i2c_type) },
-		{ MP_ROM_QSTR(MP_QSTR_SoftI2C),             MP_ROM_PTR(&tkm32_soft_i2c_type) },
-
-    { MP_ROM_QSTR(MP_QSTR_SPI),                 MP_ROM_PTR(&pyb_spi_type) },
-    { MP_ROM_QSTR(MP_QSTR_SoftSPI),             MP_ROM_PTR(&mp_machine_soft_spi_type) },
+	{ MP_ROM_QSTR(MP_QSTR_SoftI2C),             MP_ROM_PTR(&tkm32_soft_i2c_type) },
+    // #if MICROPY_PY_MACHINE_SPI
+    // { MP_ROM_QSTR(MP_QSTR_SPI),                 MP_ROM_PTR(&machine_hard_spi_type) },
+    // { MP_ROM_QSTR(MP_QSTR_SoftSPI),             MP_ROM_PTR(&mp_machine_soft_spi_type) },
+    // #endif
+    // { MP_ROM_QSTR(MP_QSTR_SPI),                 MP_ROM_PTR(&pyb_spi_type) },
+    // { MP_ROM_QSTR(MP_QSTR_SoftSPI),             MP_ROM_PTR(&mp_machine_soft_spi_type) },
     { MP_ROM_QSTR(MP_QSTR_UART),                MP_ROM_PTR(&pyb_uart_type) },
     { MP_ROM_QSTR(MP_QSTR_WDT),                 MP_ROM_PTR(&pyb_wdt_type) },
     { MP_ROM_QSTR(MP_QSTR_Timer),           		MP_ROM_PTR(&pyb_timer_type) },
@@ -423,7 +440,7 @@ STATIC const mp_rom_map_elem_t machine_module_globals_table[] = {
     { MP_ROM_QSTR(MP_QSTR_RTC_WAKE),            MP_ROM_INT(PYB_SLP_WAKED_BY_RTC) },
     #endif
 		
-		{ MP_ROM_QSTR(MP_QSTR_USB_VCP), MP_ROM_PTR(&usb_vcp_type) },
+	{ MP_ROM_QSTR(MP_QSTR_USB_VCP), MP_ROM_PTR(&usb_vcp_type) },
 };
 
 STATIC MP_DEFINE_CONST_DICT(machine_module_globals, machine_module_globals_table);

@@ -38,7 +38,7 @@
 #include "py/stackctrl.h"
 #include "py/gc.h"
 #include "py/compile.h"
-#include "lib/utils/pyexec.h"
+#include "shared/runtime/pyexec.h"
 #include "readline.h"
 #include "gccollect.h"
 #include "modmachine.h"
@@ -74,6 +74,13 @@
 
 #if MICROPY_HW_USB_CDC
 #include "usb_cdc.h"
+#endif
+
+#if MICROPY_HW_ENABLE_INTERNAL_FLASH_STORAGE
+#include "extmod/vfs_fat.h"
+#include "lib/oofatfs/ff.h"
+#include "extmod/vfs.h"
+#include "flashbdev.h"
 #endif
 
 void do_str(const char *src, mp_parse_input_kind_t input_kind) {
@@ -122,12 +129,7 @@ soft_reset:
     gc_init(&_heap_start, &_heap_end);
 
     mp_init();
-    mp_obj_list_init(mp_sys_path, 0);
-    mp_obj_list_append(mp_sys_path, MP_OBJ_NEW_QSTR(MP_QSTR_)); // current dir (or base dir of the script)
-    mp_obj_list_init(mp_sys_argv, 0);
-
     readline_init0();
-
 
     #if MICROPY_PY_MACHINE_HW_SPI
     spi_init0();
@@ -168,6 +170,23 @@ soft_reset:
     #endif
 
     pin_init0();
+
+    #if MICROPY_HW_ENABLE_INTERNAL_FLASH_STORAGE
+    flashbdev_init();
+
+    // Try to mount the flash on "/flash" and chdir to it for the boot-up directory.
+    mp_obj_t mount_point = MP_OBJ_NEW_QSTR(MP_QSTR__slash_flash);
+    int ret = mp_vfs_mount_and_chdir_protected((mp_obj_t)&nrf_flash_obj, mount_point);
+
+    if ((ret == -MP_ENODEV) || (ret == -MP_EIO)) {
+        pyexec_frozen_module("_mkfs.py"); // Frozen script for formatting flash filesystem.
+        ret = mp_vfs_mount_and_chdir_protected((mp_obj_t)&nrf_flash_obj, mount_point);
+    }
+
+    if (ret != 0) {
+        printf("MPY: can't mount flash\n");
+    }
+    #endif
 
     #if MICROPY_MBFS
     microbit_filesystem_init();
