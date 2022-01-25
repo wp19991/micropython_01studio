@@ -643,7 +643,6 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_KW(ILI9341_drawStr_obj, 1, ILI9341_drawStr);
 //---------------------------华丽的分割线-------------------------------------------------------------------
 
 #if MICROPY_PY_PICLIB
-static uint8_t is_sdcard = 0;
 
 mp_obj_t ILI9341_CachePicture(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
 

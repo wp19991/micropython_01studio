@@ -110,23 +110,23 @@
 #define MBOOT_I2C_SDA (pin_B9)
 #define MBOOT_I2C_ALTFUNC (4)
 
-#define MICROPY_PY_THREAD_GIL					(1)
-#define MICROPY_PY_THREAD							(1)
+#define MICROPY_PY_THREAD_GIL				(1)
+#define MICROPY_PY_THREAD					(1)
 
-#define MICROPY_PY_PICLIB							(1) //图片解码
-#define MICROPY_ENABLE_SPILCD			(1)
-#define MICROPY_ENABLE_TFTLCD			(1)
+#define MICROPY_PY_PICLIB					(1) //图片解码
+#define MICROPY_ENABLE_SPILCD				(1)
+#define MICROPY_ENABLE_TFTLCD				(1)
 #define MICROPY_HW_LCD32					(1)	
 #define MICROPY_HW_LCD18					(1)	
 #define MICROPY_HW_LCD15					(1)
 
-#define	MICROPY_ENABLE_TOUCH			(1)
-#define	MICROPY_HW_XPT2046				(1)
+#define	MICROPY_ENABLE_TOUCH				(1)
+#define	MICROPY_HW_XPT2046					(1)
 #define XPT_PIN_IRQ    						(pin_C6)
 #define XPT_PIN_CS    						(pin_C7)
 
-#define MICROPY_ENABLE_GUI				(1)
-#define MICROPY_GUI_BUTTON				(1)
+#define MICROPY_ENABLE_GUI					(1)
+#define MICROPY_GUI_BUTTON					(1)
 #define GUI_BTN_NUM_MAX 					(20)
 #define GUI_BTN_STR_LEN 					(20)
 

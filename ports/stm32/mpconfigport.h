@@ -307,8 +307,10 @@ extern const struct _mp_obj_module_t magellan_module;
 #if defined(MICROPY_HW_ETH_MDC)
 extern const struct _mp_obj_type_t network_lan_type;
 #define MICROPY_HW_NIC_ETH                  { MP_ROM_QSTR(MP_QSTR_LAN), MP_ROM_PTR(&network_lan_type) },
+#define MICROPY_HW_01STUDIO_ETH				{ MP_ROM_QSTR(MP_QSTR_Ethernet), MP_ROM_PTR(&network_lan_type) },
 #else
 #define MICROPY_HW_NIC_ETH
+#define MICROPY_HW_01STUDIO_ETH
 #endif
 
 #if MICROPY_PY_NETWORK_CYW43
@@ -347,13 +349,13 @@ extern const struct _mod_network_nic_type_t mod_network_nic_type_cc3k;
     NETWORK_BUILTIN_MODULE \
     ONEWIRE_BUILTIN_MODULE \
     { MP_ROM_QSTR(MP_QSTR__onewire), MP_ROM_PTR(&mp_module_onewire) }, \
-		TFTLCD_MODULE \
-		TOUCH_MODULE \
-		AUDIO_MODULE \
-		VIDEO_MODULE \
-		SENSOR_MODULE \
-		GUI_MODULE \
-		MAGELLAN_MODULE \
+	TFTLCD_MODULE \
+	TOUCH_MODULE \
+	AUDIO_MODULE \
+	VIDEO_MODULE \
+	SENSOR_MODULE \
+	GUI_MODULE \
+	MAGELLAN_MODULE \
   
 
 
@@ -376,6 +378,7 @@ extern const struct _mod_network_nic_type_t mod_network_nic_type_cc3k;
     MICROPY_HW_NIC_CYW43 \
     MICROPY_HW_NIC_WIZNET5K \
     MICROPY_HW_NIC_CC3K \
+	MICROPY_HW_01STUDIO_ETH \
 
 #define MP_STATE_PORT MP_STATE_VM
 

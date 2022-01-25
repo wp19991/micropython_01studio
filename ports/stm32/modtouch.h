@@ -50,6 +50,7 @@ extern TP_DEV tp_dev;
 
 #if MICROPY_HW_XPT2046
 extern const mp_obj_type_t touch_xpt2046_type;
+extern void xpt_read_point(void);
 #endif
 
 extern void tp_touch_down(int8_t id, uint16_t x, uint16_t y, uint8_t w);

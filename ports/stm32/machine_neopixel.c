@@ -78,7 +78,11 @@ np = NeoPixel(machine.Pin('X1', machine.Pin.OUT), 8)
 #endif
 
 uint32_t mp_hal_delay_ns_calc(uint32_t ns, uint32_t extra_overhead) {
-uint32_t nclk = SystemCoreClock / 1000000 * ns / 1000 / NS_PRESCALE;
+	#if defined(STM32H7)
+	uint32_t nclk = SystemCoreClock / 1000000 * ns / 1200 / NS_PRESCALE;
+	#else
+	uint32_t nclk = SystemCoreClock / 1000000 * ns / 1000 / NS_PRESCALE;
+	#endif
     if (nclk <= NS_OVERHEAD + extra_overhead) {
         nclk = 1;
     } else {

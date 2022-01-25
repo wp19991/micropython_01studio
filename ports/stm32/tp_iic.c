@@ -45,7 +45,16 @@
 	#define MICROPY_HW_TP_SCL			(pin_B0)
 	#define TP_SCL_PIN                  GPIO_PIN_0
 	#define TP_SCL_GPIO_PORT            GPIOB
+#else
+	#define MICROPY_HW_TP_SDA			(pin_B11)
+	#define TP_SDA_PIN					GPIO_PIN_11
+	#define TP_SDA_GPIO_PORT            GPIOB
+	#define MICROPY_TP_SDA_NUM			(11)
+	#define MICROPY_HW_TP_SCL			(pin_B0)
+	#define TP_SCL_PIN                  GPIO_PIN_0
+	#define TP_SCL_GPIO_PORT            GPIOB
 #endif
+
 #endif
 
 #define TP_SDA_IN()  {TP_SDA_GPIO_PORT->MODER&=~(3<<(2*MICROPY_TP_SDA_NUM));TP_SDA_GPIO_PORT->MODER|=0<<(2*MICROPY_TP_SDA_NUM);}	//INT MODE

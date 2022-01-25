@@ -10,12 +10,12 @@
 #define MICROPY_HW_LCD15				(1)
 
 #define MICROPY_PY_PICLIB				(1)
-#define LCD_PIN_DC    	21
-#define LCD_PIN_RST    	33
-#define LCD_PIN_CS    	15
-#define LCD_PIN_CLK    	14
-#define LCD_PIN_MISO    12
-#define LCD_PIN_MOSI    13
+#define LCD_PIN_DC						(21)
+#define LCD_PIN_RST						(33)
+#define LCD_PIN_CS						(15)
+#define LCD_PIN_CLK						(14)
+#define LCD_PIN_MISO					(12)
+#define LCD_PIN_MOSI					(13)
 
 #define	MICROPY_ENABLE_TOUCH			(1)
 #define	MICROPY_HW_XPT2046				(1)
@@ -25,5 +25,5 @@
 
 #define MICROPY_ENABLE_GUI				(1)
 #define MICROPY_GUI_BUTTON				(1)
-#define GUI_BTN_NUM_MAX					(20)
+#define GUI_BTN_NUM_MAX					(15)
 #define GUI_BTN_STR_LEN					(20)

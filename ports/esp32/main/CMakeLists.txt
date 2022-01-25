@@ -251,6 +251,7 @@ set(IDF_COMPONENTS
     bootloader_support
     bt
     driver
+	esp_adc_cal
     esp_common
     esp_eth
     esp_event
@@ -299,6 +300,9 @@ elseif(IDF_TARGET STREQUAL "esp32s2")
     list(APPEND IDF_COMPONENTS esp32s2)
     list(APPEND IDF_COMPONENTS tinyusb)
 	list(APPEND IDF_COMPONENTS usb)
+elseif(IDF_TARGET STREQUAL "esp32s3")
+    list(APPEND IDF_COMPONENTS esp32s3)
+    list(APPEND IDF_COMPONENTS tinyusb)
 endif()
 
 # Register the main IDF component.

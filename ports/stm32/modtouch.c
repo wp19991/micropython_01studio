@@ -28,11 +28,11 @@
 	******************************************************************************
 	* This file is part of the MicroPython project, http://bbs.01studio.org/
 	* Copyright (C), 2020 -2021, 01studio Tech. Co., Ltd.
-	* File Name 				 :	modtouch.c
-	* Author						 :	spring
-	* Version 					 :	v1.0
-	* date							 :	2020/12/01
-	* Description 			 :	
+	* File Name					:	modtouch.c
+	* Author					:	spring
+	* Version					:	v1.0
+	* date						:	2020/12/01
+	* Description				:	
 	******************************************************************************
 **/
 

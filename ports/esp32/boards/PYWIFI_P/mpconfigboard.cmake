@@ -1,7 +1,7 @@
 set(MICROPY_PORT_PICLIB y) #
 
 set(SDKCONFIG_DEFAULTS
-    boards/sdkconfig.base
+	boards/PYWIFI_P/sdkconfig.board
     boards/sdkconfig.ble
     boards/sdkconfig.spiram
 	boards/sdkconfig.240mhz

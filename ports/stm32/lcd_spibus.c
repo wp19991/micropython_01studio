@@ -35,14 +35,14 @@ typedef struct {
     uint8_t databytes; //No of data in data; bit 7 = delay after set; 0xFF = end of cmds.
 } lcd_init_cmd_t;
 
-uint16_t get_rgb565(uint8_t r_color, uint8_t g_color , uint8_t b_color)
-{
-	uint16_t B_color = (b_color >> 3) & 0x001F;
-	uint16_t G_color = ((g_color >> 2) << 5) & 0x07E0;
-	uint16_t R_color = ((r_color >> 3) << 11) & 0xF800;
+// uint16_t get_rgb565(uint8_t r_color, uint8_t g_color , uint8_t b_color)
+// {
+	// uint16_t B_color = (b_color >> 3) & 0x001F;
+	// uint16_t G_color = ((g_color >> 2) << 5) & 0x07E0;
+	// uint16_t R_color = ((r_color >> 3) << 11) & 0xF800;
 
-	return (uint16_t) (R_color | G_color | B_color);
-}
+	// return (uint16_t) (R_color | G_color | B_color);
+// }
 
 STATIC void lcd_delay(void) {
     __asm volatile ("nop\nnop");
@@ -179,7 +179,7 @@ void lcd_bus_init(void)
 
 void lcd_spibus_deinit(void) {
 	if(is_init){
-		spi_deinit(lcd_spibus->spi->spi);
+		spi_deinit(lcd_spibus->spi);
 		is_init = 0;
 	}
 }

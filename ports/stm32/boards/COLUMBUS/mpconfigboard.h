@@ -65,7 +65,6 @@
 #define MICROPY_HW_DCMI_D7       		(pin_E6)
 #endif
 //===================================================================================
-
 #define MICROPY_PY_THREAD_GIL			(1)
 #define MICROPY_PY_THREAD				(1)
 
@@ -83,8 +82,8 @@
 #define MICROPY_HW_RTC_USE_US       	(0)
 #define MICROPY_HW_RTC_USE_CALOUT   	(1)
 
-//#define MICROPY_HW_UART_REPL        PYB_UART_3
-//#define MICROPY_HW_UART_REPL_BAUD   115200
+#define MICROPY_HW_UART_REPL        PYB_UART_3
+#define MICROPY_HW_UART_REPL_BAUD   115200
 
 #define MICROPY_HW_UART1_NAME   "UART1"    // on RX / TX
 #define MICROPY_HW_UART1_TX     (pin_B6)
@@ -189,6 +188,7 @@ extern struct _spi_bdev_t spi_bdev;
 #define MICROPY_HEAP_START  ((sram_valid) ? sram_start() : &_heap_start)
 #define MICROPY_HEAP_END    ((sram_valid) ? sram_end() : &_heap_end)
 
+#if MICROPY_HW_SRAM_SIZE
 #define MICROPY_HW_FSMC_NBL0     (pin_E0)
 #define MICROPY_HW_FSMC_NBL1     (pin_E1)
 #define MICROPY_HW_FSMC_NOE      (pin_D4)
@@ -231,6 +231,7 @@ extern struct _spi_bdev_t spi_bdev;
 #define MICROPY_HW_FSMC_D13      (pin_D8)
 #define MICROPY_HW_FSMC_D14      (pin_D9)
 #define MICROPY_HW_FSMC_D15      (pin_D10)
+#endif
 
 #if MICROPY_HW_LCD43M
 //lcd

@@ -2,11 +2,11 @@
 	******************************************************************************
 	* This file is part of the MicroPython project, http://micropython.org/
 	* Copyright (C), 2021 -2023, 01studio Tech. Co., Ltd.http://bbs.01studio.org/
-	* File Name 				 :	ST7789.c
-	* Author						 :	Folktale
-	* Version 					 :	v1.0
-	* date							 :	2021/9/18
-	* Description 			 :	
+	* File Name				:	ST7789.c
+	* Author				:	Folktale
+	* Version				:	v1.0
+	* date					:	2021/9/18
+	* Description			:	
 	******************************************************************************
 **/
 #include <stdio.h>
@@ -516,7 +516,6 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_KW(ST7789_drawStr_obj, 1, ST7789_drawStr);
 //---------------------------华丽的分割线-------------------------------------------------------------------
 
 #if MICROPY_PY_PICLIB
-static uint8_t is_sdcard = 0;
 
 mp_obj_t ST7789_CachePicture(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
 

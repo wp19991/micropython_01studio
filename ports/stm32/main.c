@@ -431,8 +431,6 @@ void stm32_main(uint32_t reset_mode) {
     MICROPY_BOARD_EARLY_INIT();
     #endif
 
-//--------------------------------------------------------------------	
-		//SRAM
 	#if defined(MICROPY_HW_SRAM_SIZE)
 	sram_init();
 	bool sram_valid = true;
