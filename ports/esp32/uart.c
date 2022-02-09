@@ -38,13 +38,20 @@ STATIC void uart_irq_handler(void *arg);
 
 void uart_init(void) {
     uart_isr_handle_t handle;
-    uart_isr_register(UART_NUM_0, uart_irq_handler, NULL, ESP_INTR_FLAG_LOWMED | ESP_INTR_FLAG_IRAM, &handle);
+	
+
+	uart_isr_register(UART_NUM_0, uart_irq_handler, NULL, ESP_INTR_FLAG_LOWMED | ESP_INTR_FLAG_IRAM, &handle);
+	// while(1){}
+    // if (res != ESP_OK) {
+       // while(1){}
+    // }
     uart_enable_rx_intr(UART_NUM_0);
 }
 
 // all code executed in ISR must be in IRAM, and any const data must be in DRAM
 STATIC void IRAM_ATTR uart_irq_handler(void *arg) {
     volatile uart_dev_t *uart = &UART0;
+	while(1){}
     #if CONFIG_IDF_TARGET_ESP32S3
     uart->int_clr.rxfifo_full_int_clr = 1;
     uart->int_clr.rxfifo_tout_int_clr = 1;
@@ -58,8 +65,6 @@ STATIC void IRAM_ATTR uart_irq_handler(void *arg) {
         uint8_t c = uart->fifo.rw_byte;
         #elif CONFIG_IDF_TARGET_ESP32C3 || CONFIG_IDF_TARGET_ESP32S2 || CONFIG_IDF_TARGET_ESP32S3
         uint8_t c = READ_PERI_REG(UART_FIFO_AHB_REG(0)); // UART0
-		#elif CONFIG_IDF_TARGET_ESP32C3
-		uint8_t c = READ_PERI_REG(UART_FIFO_AHB_REG(0)); // UART0
         #endif
         if (c == mp_interrupt_char) {
             mp_sched_keyboard_interrupt();
