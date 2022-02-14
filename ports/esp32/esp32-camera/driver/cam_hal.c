@@ -115,9 +115,7 @@ static void cam_task(void *arg)
         switch (cam_obj->state) {
 
             case CAM_STATE_IDLE: {
-//printf("CAM_STATE_IDLE\r\n");
                 if (cam_event == CAM_VSYNC_EVENT) {
-                    //DBG_PIN_SET(1);
                     if(cam_start_frame(&frame_pos)){
                         cam_obj->frames[frame_pos].fb.len = 0;
                         cam_obj->state = CAM_STATE_READ_BUF;
@@ -133,7 +131,6 @@ static void cam_task(void *arg)
                 size_t pixels_per_dma = (cam_obj->dma_half_buffer_size * cam_obj->fb_bytes_per_pixel) / (cam_obj->dma_bytes_per_item * cam_obj->in_bytes_per_pixel);
                 
                 if (cam_event == CAM_IN_SUC_EOF_EVENT) {
-//printf("CAM_IN_SUC_EOF_EVENT\r\n");
                     if(!cam_obj->psram_mode){
                         if (cam_obj->fb_size < (frame_buffer_event->len + pixels_per_dma)) {
                             ESP_LOGW(TAG, "FB-OVF");
@@ -154,8 +151,6 @@ static void cam_task(void *arg)
                     cnt++;
 
                 } else if (cam_event == CAM_VSYNC_EVENT) {
-//printf("CAM_VSYNC_EVENT:%d,%d,%d\r\n",cam_obj->jpeg_mode,cam_obj->psram_mode,cnt);
-                    //DBG_PIN_SET(1);
                     ll_cam_stop(cam_obj);
 
                     if (cnt || !cam_obj->jpeg_mode || cam_obj->psram_mode) {
@@ -225,7 +220,6 @@ static void cam_task(void *arg)
 static lldesc_t * allocate_dma_descriptors(uint32_t count, uint16_t size, uint8_t * buffer)
 {
     lldesc_t *dma = (lldesc_t *)heap_caps_malloc(count * sizeof(lldesc_t), MALLOC_CAP_DMA);
-	//lldesc_t *dma = (lldesc_t *)m_malloc(count * sizeof(lldesc_t));
     if (dma == NULL) {
         return dma;
     }

@@ -85,6 +85,7 @@ TaskHandle_t ov2640_handle = NULL;
 static bool is_display = false; //目前在显示图像
 static bool is_snapshot = false;
 static bool is_init = 0;
+
 //------------------------------------------------------------
 static esp_err_t init_camera( pixformat_t pixel_format, framesize_t frame_size)
 {
@@ -240,7 +241,8 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_KW(sensor_ov2640_setframesize_obj, 1, sensor_ov26
 
 static void display_task(void *pvParameter)
 {
-static uint16_t x=0,y=0;
+	static uint16_t x=0,y=0;
+
 	while (1)
 	{
 		if(!is_snapshot){

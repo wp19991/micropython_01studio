@@ -214,7 +214,7 @@ void st7735_Fill(uint16_t sx,uint16_t sy,uint16_t ex,uint16_t ey,uint16_t color)
 	/*Memory write*/
 	lcd_spibus_send_cmd(p_st7735, 0x2C);
 
-#if CONFIG_ESP32_SPIRAM_SUPPORT || CONFIG_ESP32S2_SPIRAM_SUPPORT || CONFIG_ESP32S3_SPIRAM_SUPPORT
+#if CONFIG_ESP32_SPIRAM_SUPPORT || CONFIG_ESP32S2_SPIRAM_SUPPORT
 	lcd_spibus_fill(p_st7735, color, size);
 #else
 	uint32_t size_max = 0;

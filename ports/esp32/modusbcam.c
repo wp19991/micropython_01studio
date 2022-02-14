@@ -133,7 +133,7 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_KW(usbcam_snapshot_obj, 1, usbcam_snapshot);
 static void display_task(void *pvParameter)
 {
 	static uint16_t x=0,y=0;
-	uint32_t lcd_size = lcddev.width*lcddev.height;
+	// uint32_t lcd_size = lcddev.width*lcddev.height;
 
 	while (1)
 	{
@@ -146,25 +146,34 @@ static void display_task(void *pvParameter)
 			y = (lcddev.height - pic->height)>>1;
 
 			mjpegdraw(pic->buf, pic->len,outbuf);
- 
-		 if( (pic->height*pic->height) >= (lcd_size >> 1)){
-				ili9341_Full(x,y,pic->width, pic->height>>1,outbuf);
-				ili9341_Full(x,y+(pic->height>>1),pic->width, pic->height>>1,outbuf+(lcd_size>>1));
-		 }else{
-			 ili9341_Full(x,y,pic->width, pic->height,outbuf);
-		 }
 
+			// if( (pic->height*pic->height) >= (lcd_size >> 1)){
+				// ili9341_Full(x,y,pic->width, pic->height>>1,outbuf);
+				// ili9341_Full(x,y+(pic->height>>1),pic->width, pic->height>>1,outbuf+(lcd_size>>1));
+			// }else{
+				// ili9341_Full(x,y,pic->width, pic->height,outbuf);
+			// }
+
+			uint32_t i;
+			uint8_t * color_u8 = (uint8_t *) outbuf;
+			uint8_t color_tmp;
+
+			for(i = 0; i < pic->width*pic->height * 2; i += 2) {
+				color_tmp = color_u8[i + 1];
+				color_u8[i + 1] = color_u8[i];
+				color_u8[i] = color_tmp;
+			}
+			ili9341_cam_full(x,y,pic->width,pic->height,outbuf);
+ 
 			if (pic) {
 				uvc_camera_fb_return(pic);
 				pic = NULL;
 			}
 
-		}
-		else{
+		}else{
 			vTaskDelay(1000 / portTICK_RATE_MS);
 		}
 	}
-
 }
 
 STATIC mp_obj_t usbcam_display(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {

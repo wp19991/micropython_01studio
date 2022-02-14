@@ -221,7 +221,7 @@ void ili9341_Fill(uint16_t sx,uint16_t sy,uint16_t ex,uint16_t ey,uint16_t color
 
 	/*Memory write*/
 	lcd_spibus_send_cmd(p_ili9341, 0x2C);
-#if CONFIG_ESP32_SPIRAM_SUPPORT || CONFIG_ESP32S2_SPIRAM_SUPPORT || CONFIG_ESP32S3_SPIRAM_SUPPORT
+#if CONFIG_ESP32_SPIRAM_SUPPORT || CONFIG_ESP32S2_SPIRAM_SUPPORT
 	if(size >= 320*120){
 		size_max = size>>2;
 		lcd_spibus_fill(p_ili9341, color, size_max);
@@ -308,7 +308,7 @@ void ili9341_Full(uint16_t sx,uint16_t sy,uint16_t ex,uint16_t ey,uint16_t *colo
 	}else{
 		lcd_spibus_send_data(p_ili9341, (uint8_t*)color, size * 2);
 	}
-	
+
 	/*Column addresses*/
 	lcd_spibus_send_cmd(p_ili9341, 0x2A);
 	data[0] = (0 >> 8) & 0xFF;
@@ -330,6 +330,8 @@ void ili9341_Full(uint16_t sx,uint16_t sy,uint16_t ex,uint16_t ey,uint16_t *colo
 //开始位置填充多少个
 void ili9341_cam_full(uint16_t sx,uint16_t sy,uint16_t ex,uint16_t ey,uint16_t *color)
 {
+	if(ex > lcddev.width || ey > lcddev.height) return;
+	
 	uint8_t data[4];
 
 	/*Column addresses*/
@@ -351,16 +353,21 @@ void ili9341_cam_full(uint16_t sx,uint16_t sy,uint16_t ex,uint16_t ey,uint16_t *
 	/*Memory write*/
 	lcd_spibus_send_cmd(p_ili9341, 0x2C);
 
-	uint32_t size = ex * ey;
+	// uint32_t size = ex * ey;
 	
-	if(size > 320*120){
-		lcd_spibus_send_data(p_ili9341, (uint8_t*)color, size);
-		color += (size>>1);
-		lcd_spibus_send_data(p_ili9341, (uint8_t*)color, size);
-	}else{
-		lcd_spibus_send_data(p_ili9341, (uint8_t*)color, size * 2);
+	// if(size > 320*120){
+		// lcd_spibus_send_data(p_ili9341, (uint8_t*)color, size);
+		// color += (size>>1);
+		// lcd_spibus_send_data(p_ili9341, (uint8_t*)color, size);
+	// }else{
+		// lcd_spibus_send_data(p_ili9341, (uint8_t*)color, size * 2);
+	// }
+
+	uint8_t* c_data = (uint8_t*)color;
+	for(uint32_t i=0; i < ey; i++){
+		lcd_spibus_send_data(p_ili9341, (uint8_t*)c_data, ex*2);
+		c_data += (ex*2);
 	}
-	
 }
 
 //绘制横线函数
@@ -783,7 +790,7 @@ STATIC mp_obj_t ILI9341_make_new(const mp_obj_type_t *type, size_t n_args, size_
 STATIC const mp_rom_map_elem_t ILI9341_locals_dict_table[] = {
 	// instance methods
 	{ MP_ROM_QSTR(MP_QSTR___del__), MP_ROM_PTR(&ILI9341_deinit_obj) },
-  { MP_ROM_QSTR(MP_QSTR_deinit), MP_ROM_PTR(&ILI9341_deinit_obj) },
+	{ MP_ROM_QSTR(MP_QSTR_deinit), MP_ROM_PTR(&ILI9341_deinit_obj) },
 	{ MP_ROM_QSTR(MP_QSTR_fill), MP_ROM_PTR(&ILI9341_drawpFull_obj) },
 	{ MP_ROM_QSTR(MP_QSTR_drawPixel), MP_ROM_PTR(&ILI9341_drawpPixel_obj) },
 	{ MP_ROM_QSTR(MP_QSTR_drawLine), MP_ROM_PTR(&ILI9341_drawLin_obj) },

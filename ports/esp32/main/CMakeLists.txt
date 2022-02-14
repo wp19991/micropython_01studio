@@ -54,7 +54,6 @@ if(MICROPY_PORT_CAMLIB STREQUAL "y")
 		${CAM_SRCS_DIR}/conversions/to_bmp.c
 		${CAM_SRCS_DIR}/conversions/jpge.cpp
 		${CAM_SRCS_DIR}/conversions/esp_jpg_decode.c
-		${CAM_SRCS_DIR}/target/xclk.c
 		)
 
 	set(CAM_INC
@@ -68,8 +67,10 @@ if(MICROPY_PORT_CAMLIB STREQUAL "y")
 		
 	if(IDF_TARGET STREQUAL "esp32")
 		list(APPEND CAM_SRCS ${CAM_SRCS_DIR}/target/esp32/ll_cam.c)
+		list(APPEND CAM_SRCS ${CAM_SRCS_DIR}/target/xclk.c)
 	elseif(IDF_TARGET STREQUAL "esp32s2")
 		list(APPEND CAM_SRCS ${CAM_SRCS_DIR}/target/esp32s2/ll_cam.c)
+		list(APPEND CAM_SRCS ${CAM_SRCS_DIR}/target/xclk.c)
 		list(APPEND CAM_SRCS ${CAM_SRCS_DIR}/target/esp32s2/tjpgd.c)
 		list(APPEND CAM_INC ${CAM_SRCS_DIR}/target/esp32s2/private_include)
 	elseif(IDF_TARGET STREQUAL "esp32s3")
@@ -99,9 +100,11 @@ if(MICROPY_PORT_USB_CAM STREQUAL "y")
 set(UVC_CAM_SRCS
 		${PROJECT_DIR}/uvc-stream/uvc_stream.c
 		${PROJECT_DIR}/uvc-stream/usb_uvc_port.c
+		${PROJECT_DIR}/uvc-stream/usb/hcd.c
 	)
 set(UVC_CAM_INC
 		${PROJECT_DIR}/uvc-stream/include
+		${PROJECT_DIR}/uvc-stream/usb/private_include
 	)
 #jpeg-9a lib
 set(JPEG9A_DIR
@@ -303,6 +306,7 @@ elseif(IDF_TARGET STREQUAL "esp32s2")
 elseif(IDF_TARGET STREQUAL "esp32s3")
     list(APPEND IDF_COMPONENTS esp32s3)
     list(APPEND IDF_COMPONENTS tinyusb)
+	# list(APPEND IDF_COMPONENTS usb)
 endif()
 
 # Register the main IDF component.

@@ -34,24 +34,57 @@
 #include "py/runtime.h"
 #include "py/mphal.h"
 
-STATIC void uart_irq_handler(void *arg);
+#include "esp_system.h"
+
+#if ESP_IDF_VERSION > ESP_IDF_VERSION_VAL(4, 2, 0)
+static const int RX_BUF_SIZE = 1024;
+static void rx_task(void *arg)
+{
+    uint8_t* data = (uint8_t*) malloc(RX_BUF_SIZE+1);
+    while (1) {
+        const int rxBytes = uart_read_bytes(UART_NUM_0, data, RX_BUF_SIZE, 10 / portTICK_RATE_MS);
+		if(rxBytes > 0){
+			for(uint32_t i=0 ; i< rxBytes; i++){
+				uint8_t c = data[i]; // UART0
+				if (c == mp_interrupt_char) {
+					mp_sched_keyboard_interrupt();
+				} else {
+					// this is an inline function so will be in IRAM
+					ringbuf_put(&stdin_ringbuf, c);
+				}
+			}
+		}
+    }
+    free(data);
+}
 
 void uart_init(void) {
-    uart_isr_handle_t handle;
+    const uart_config_t uart_config = {
+        .baud_rate = 115200,
+        .data_bits = UART_DATA_8_BITS,
+        .parity = UART_PARITY_DISABLE,
+        .stop_bits = UART_STOP_BITS_1,
+        .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
+        .source_clk = UART_SCLK_APB,
+    };
+    uart_driver_install(UART_NUM_0, RX_BUF_SIZE * 2, 0, 0, NULL, 0);
+    uart_param_config(UART_NUM_0, &uart_config);
 	
-
+    //Set UART pins (using UART0 default pins ie no changes.)
+    uart_set_pin(UART_NUM_0, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
+	xTaskCreate(rx_task, "uart_rx_task", 1024*2, NULL, configMAX_PRIORITIES, NULL);
+}
+#else
+STATIC void uart_irq_handler(void *arg);
+void uart_init(void) {
+    uart_isr_handle_t handle;
 	uart_isr_register(UART_NUM_0, uart_irq_handler, NULL, ESP_INTR_FLAG_LOWMED | ESP_INTR_FLAG_IRAM, &handle);
-	// while(1){}
-    // if (res != ESP_OK) {
-       // while(1){}
-    // }
     uart_enable_rx_intr(UART_NUM_0);
 }
 
 // all code executed in ISR must be in IRAM, and any const data must be in DRAM
 STATIC void IRAM_ATTR uart_irq_handler(void *arg) {
     volatile uart_dev_t *uart = &UART0;
-	while(1){}
     #if CONFIG_IDF_TARGET_ESP32S3
     uart->int_clr.rxfifo_full_int_clr = 1;
     uart->int_clr.rxfifo_tout_int_clr = 1;
@@ -74,3 +107,4 @@ STATIC void IRAM_ATTR uart_irq_handler(void *arg) {
         }
     }
 }
+#endif

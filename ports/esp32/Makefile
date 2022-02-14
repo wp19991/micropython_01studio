@@ -60,5 +60,6 @@ submodules:
 	git submodule update --init $(addprefix ../../,$(GIT_SUBMODULES))
 
 idf-usb-patch:
+	cp -r $(IDF_PATH)/components/usb/CMakeLists.txt $(IDF_PATH)/components/usb/CMakeLists.txt.bak
 	cp -r esp32-camera/CMakeLists.txt $(IDF_PATH)/components/usb/CMakeLists.txt
 	cat $(IDF_PATH)/components/usb/CMakeLists.txt

@@ -58,7 +58,7 @@ static char *part_buf=NULL;
 STATIC camera_fb_t *ov2640_fb = NULL;
 #endif
 
-#if MICROPY_ENABLE_SENSOR
+#if MICROPY_HW_USB_CAM
 STATIC uvcam_fb_t *uvc_fb = NULL;
 #endif
 
@@ -75,6 +75,7 @@ typedef struct {
     int *values; //array to be filled with values
 } ra_filter_t;
 
+#if 0
 static ra_filter_t ra_filter;
 
 static ra_filter_t *ra_filter_init(ra_filter_t *filter, size_t sample_size)
@@ -92,6 +93,7 @@ static ra_filter_t *ra_filter_init(ra_filter_t *filter, size_t sample_size)
     filter->size = sample_size;
     return filter;
 }
+
 static int ra_filter_run(ra_filter_t *filter, int value)
 {
     if (!filter->values) {
@@ -110,7 +112,7 @@ static int ra_filter_run(ra_filter_t *filter, int value)
 
     return filter->sum / filter->count;
 }
-
+#endif
 static size_t jpg_encode_stream(void *arg, size_t index, const void *data, size_t len)
 {
     jpg_chunking_t *j = (jpg_chunking_t *)arg;

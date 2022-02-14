@@ -48,6 +48,9 @@
 #elif defined CONFIG_IDF_TARGET_ESP32C3
 #define LCD_HOST    	SPI2_HOST
 #define SPI_DMA_CH    LCD_HOST
+#elif defined CONFIG_IDF_TARGET_ESP32S3
+#define LCD_HOST    SPI2_HOST
+#define SPI_DMA_CH	SPI_DMA_CH_AUTO
 #else
 #error Target CONFIG_IDF_TARGET is not supported
 #endif
@@ -160,7 +163,7 @@ void  lcd_bus_init(void)
 		lcd_spibus = (lcd_spibus_t *)m_malloc(sizeof(lcd_spibus_t));
 		
 		lcd_spibus_t *self = lcd_spibus;
-		#ifdef CONFIG_IDF_TARGET_ESP32C3
+		#if CONFIG_IDF_TARGET_ESP32C3
 		self->mhz			= 10;
 		#else
 		self->mhz			= 50;

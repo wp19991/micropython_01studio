@@ -41,11 +41,9 @@ STATIC const mp_rom_map_elem_t sensor_module_globals_table[] = {
     { MP_OBJ_NEW_QSTR(MP_QSTR_XGA),                 MP_OBJ_NEW_SMALL_INT(FRAMESIZE_XGA)},      /* 1024x768  */
     { MP_OBJ_NEW_QSTR(MP_QSTR_UXGA),                MP_OBJ_NEW_SMALL_INT(FRAMESIZE_UXGA)},     /* 1600x1200 */
 
-		#if MICROPY_HW_OV2640
-		{ MP_ROM_QSTR(MP_QSTR_OV2640), MP_ROM_PTR(&sensor_ov2640_type) },
-		#endif
-
-
+	#if MICROPY_HW_OV2640
+	{ MP_ROM_QSTR(MP_QSTR_OV2640), MP_ROM_PTR(&sensor_ov2640_type) },
+	#endif
 };
 STATIC MP_DEFINE_CONST_DICT(sensor_module_globals, sensor_module_globals_table);
 

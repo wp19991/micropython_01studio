@@ -206,7 +206,7 @@ void st7789_Fill(uint16_t sx,uint16_t sy,uint16_t ex,uint16_t ey,uint16_t color)
 	lcd_spibus_send_cmd(p_st7789, 0x2C);
 
 
-#if CONFIG_ESP32_SPIRAM_SUPPORT || CONFIG_ESP32S2_SPIRAM_SUPPORT || CONFIG_ESP32S3_SPIRAM_SUPPORT
+#if CONFIG_ESP32_SPIRAM_SUPPORT || CONFIG_ESP32S2_SPIRAM_SUPPORT
 	if(size >= 240*120){
 		size_max = size>>2;
 		lcd_spibus_fill(p_st7789, color, size_max);
