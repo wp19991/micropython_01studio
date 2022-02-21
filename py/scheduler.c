@@ -76,7 +76,7 @@ void mp_handle_pending(bool raise_exc) {
                 }
                 if (raise_exc) {
                     MICROPY_END_ATOMIC_SECTION(atomic_state);
-                    //nlr_raise(obj);
+                    nlr_raise(obj);
                 }
             }
             mp_handle_pending_tail(atomic_state);

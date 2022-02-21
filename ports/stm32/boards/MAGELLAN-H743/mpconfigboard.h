@@ -12,8 +12,8 @@
 #define MICROPY_HW_HAS_FLASH        (1)
 #define	MICROPY_HW_ENABLE_SERVO		(1) 
 
-#define MICROPY_PY_THREAD_GIL		(1)
-#define MICROPY_PY_THREAD			(1)
+// #define MICROPY_PY_THREAD_GIL		(1)
+// #define MICROPY_PY_THREAD			(1)
 
 #define MICROPY_ENABLE_SDCARD_NIRQ  (1)
 
@@ -81,8 +81,8 @@
 #define MICROPY_HW_UART3_TX         (pin_B10)
 #define MICROPY_HW_UART3_RX         (pin_B11)
 
- // #define MICROPY_HW_UART_REPL        PYB_UART_2
- // #define MICROPY_HW_UART_REPL_BAUD   115200
+// #define MICROPY_HW_UART_REPL        PYB_UART_2
+// #define MICROPY_HW_UART_REPL_BAUD   115200
 
 // I2C buses
 #define MICROPY_HW_I2C1_NAME 					"I2C1"

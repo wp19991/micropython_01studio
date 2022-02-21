@@ -28,9 +28,9 @@
 #if MICROPY_ENABLE_MAGELLAN_MODULE
 
 STATIC const mp_rom_map_elem_t magellan_module_globals_table[] = {
-    { MP_ROM_QSTR(MP_QSTR___name__), MP_ROM_QSTR(MP_QSTR_pyb) },
+    { MP_ROM_QSTR(MP_QSTR___name__), MP_ROM_QSTR(MP_QSTR_magellan) },
 		
-		#if MICROPY_HW_ENABLE_MAGELLAN_CAN
+	#if MICROPY_HW_ENABLE_MAGELLAN_CAN
     { MP_ROM_QSTR(MP_QSTR_CAN), MP_ROM_PTR(&pyb_can_type) },
     #endif
 };

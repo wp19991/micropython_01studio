@@ -236,6 +236,7 @@ set(MICROPY_SOURCE_PORT
 	${PROJECT_DIR}/lcd_spibus.c
 	${PROJECT_DIR}/modgame.c
 	${PROJECT_DIR}/modnes.c
+	${PROJECT_DIR}/psxcontroller.c
 )
 
 set(MICROPY_SOURCE_QSTR
@@ -365,6 +366,8 @@ target_compile_options(${MICROPY_TARGET} PUBLIC
     -Wno-clobbered
     -Wno-deprecated-declarations
     -Wno-missing-field-initializers
+	-Wno-stringop-truncation
+	-Wno-implicit-fallthrough
 )
 
 # Add additional extmod and usermod components.

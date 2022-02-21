@@ -16,6 +16,7 @@
 #include "esp_system.h"
 #include "driver/gpio.h"
 #include "driver/spi_master.h"
+#include "driver/rtc_io.h"
 
 #include "py/obj.h"
 #include <math.h>
@@ -58,6 +59,27 @@
 lcd_spibus_t *lcd_spibus = NULL;
 
 STATIC bool is_init = 0;
+
+static void lcd_global_init(gpio_num_t gpio,gpio_mode_t io_mode,uint8_t mode)
+{
+	if (rtc_gpio_is_valid_gpio(gpio)) {
+		#if CONFIG_IDF_TARGET_ESP32C3
+		gpio_reset_pin(gpio);
+		#else
+		rtc_gpio_deinit(gpio);
+		#endif
+	}
+	gpio_pad_select_gpio(gpio);
+	gpio_set_direction(gpio, io_mode);
+	
+	gpio_pulldown_dis(gpio);
+
+	gpio_pullup_en(gpio);
+
+	if (GPIO_IS_VALID_OUTPUT_GPIO(gpio)) {
+		gpio_hold_dis(gpio);
+	}
+}
 
 uint16_t get_rgb565(uint8_t r_color, uint8_t g_color , uint8_t b_color)
 {
@@ -161,7 +183,9 @@ void  lcd_bus_init(void)
 	if(!is_init)
 	{
 		lcd_spibus = (lcd_spibus_t *)m_malloc(sizeof(lcd_spibus_t));
-		
+		if(lcd_spibus == NULL){
+			printf("lcd_spibus is NULL\r\n");
+		}
 		lcd_spibus_t *self = lcd_spibus;
 		#if CONFIG_IDF_TARGET_ESP32C3
 		self->mhz			= 10;
@@ -178,17 +202,16 @@ void  lcd_bus_init(void)
 		self->spihost	= LCD_HOST;
 
 		lcd_spibus_init(self);
-		gpio_pad_select_gpio(self->dc);
-
-		//Initialize non-SPI GPIOs
-		gpio_set_direction(self->dc, GPIO_MODE_OUTPUT);
-		gpio_set_direction(self->rst, GPIO_MODE_OUTPUT);
-
+		
+		lcd_global_init(self->dc,GPIO_MODE_OUTPUT,2);
+		lcd_global_init(self->rst,GPIO_MODE_OUTPUT,2);
+		
 		//Reset the display
 		gpio_set_level(self->rst, 0);
-		vTaskDelay(500 / portTICK_RATE_MS);
+		vTaskDelay(100 / portTICK_RATE_MS);
 		gpio_set_level(self->rst, 1);
-		vTaskDelay(500 / portTICK_RATE_MS);
+		vTaskDelay(100 / portTICK_RATE_MS);
+		
 		is_init = 1;
 	}
 }
@@ -204,15 +227,15 @@ void lcd_spibus_deinit(void) {
 				mp_raise_msg(&mp_type_OSError, MP_ERROR_TEXT("SPI device already freed"));
 				return;
 		}
-    switch (spi_bus_free(lcd_spibus->spihost)) {
-        case ESP_ERR_INVALID_ARG:
-            mp_raise_msg(&mp_type_OSError, MP_ERROR_TEXT("invalid configuration"));
-            return;
+		switch (spi_bus_free(lcd_spibus->spihost)) {
+			case ESP_ERR_INVALID_ARG:
+				mp_raise_msg(&mp_type_OSError, MP_ERROR_TEXT("invalid configuration"));
+				return;
 
-        case ESP_ERR_INVALID_STATE:
-            mp_raise_msg(&mp_type_OSError, MP_ERROR_TEXT("SPI bus already freed"));
-            return;
-    }
+			case ESP_ERR_INVALID_STATE:
+				mp_raise_msg(&mp_type_OSError, MP_ERROR_TEXT("SPI bus already freed"));
+				return;
+		}
 		int8_t pins[6] = {lcd_spibus->miso, lcd_spibus->mosi, lcd_spibus->clk, lcd_spibus->cs, lcd_spibus->dc, lcd_spibus->rst};
 
 		for (int i = 0; i < 6; i++) {

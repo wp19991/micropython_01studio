@@ -71,6 +71,7 @@
 #include "modmachine.h"
 #include "modnetwork.h"
 #include "mpthreadport.h"
+#include "psxcontroller.h"
 
 #if MICROPY_BLUETOOTH_NIMBLE
 #include "extmod/modbluetooth.h"
@@ -126,7 +127,7 @@ void mp_task(void *pvParameter) {
     #endif
     machine_init();
 
-    size_t mp_task_heap_size;
+    size_t mp_task_heap_size = 0;
     void *mp_task_heap = NULL;
 
     #if CONFIG_SPIRAM_USE_MALLOC
@@ -148,10 +149,6 @@ void mp_task(void *pvParameter) {
             mp_task_heap = NULL;
             break;
     }
-	#if MICROPY_ENABLE_GAME
-	mp_task_heap = (void *)(0x3f800000 + (2 * 1024 * 1024));
-	mp_task_heap_size = 2 * 1024 * 1024;
-	#endif
     #elif CONFIG_ESP32S2_SPIRAM_SUPPORT || CONFIG_ESP32S3_SPIRAM_SUPPORT
     // Try to use the entire external SPIRAM directly for the heap
     size_t esp_spiram_size = esp_spiram_get_size();
@@ -159,6 +156,7 @@ void mp_task(void *pvParameter) {
         mp_task_heap = (void *)SOC_EXTRAM_DATA_HIGH - esp_spiram_size;
         mp_task_heap_size = esp_spiram_size;
     }
+	
     #endif
 
     if (mp_task_heap == NULL) {

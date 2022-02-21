@@ -1,12 +1,11 @@
 /**
 	******************************************************************************
-	* This file is part of the MicroPython project, http://micropython.org/
-	* Copyright (C), 2021 -2023, 01studio Tech. Co., Ltd.http://bbs.01studio.org/
-	* File Name 				 :	ili9341.c
-	* Author						 :	Folktale
-	* Version 					 :	v1.0
-	* date							 :	2021/7/1
-	* Description 			 :	
+	* Copyright (C), 2021 -2023, 01studio Tech. Co., Ltd.https://www.01studio.cc/
+	* File Name					:	psxcontroller.c
+	* Author					:	Folktale
+	* Version					:	v1.0
+	* date						:	2021/7/1
+	* Description				:	
 	******************************************************************************
 **/
 
@@ -683,7 +682,7 @@ STATIC mp_obj_t ILI9341_drawPicture(size_t n_args, const mp_obj_t *pos_args, mp_
     { MP_QSTR_x,       MP_ARG_REQUIRED | MP_ARG_INT, {.u_int = 0} },
     { MP_QSTR_y,       MP_ARG_REQUIRED | MP_ARG_INT, {.u_int = 0} },
     { MP_QSTR_file,    MP_ARG_REQUIRED | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL} },
-		{ MP_QSTR_cached,  MP_ARG_KW_ONLY  | MP_ARG_BOOL, {.u_bool = true} },
+	{ MP_QSTR_cached,  MP_ARG_KW_ONLY  | MP_ARG_BOOL, {.u_bool = true} },
   };
 
   uint8_t arg_num = MP_ARRAY_SIZE(ILI9341_allowed_args);

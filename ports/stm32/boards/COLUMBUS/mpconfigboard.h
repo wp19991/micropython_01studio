@@ -82,8 +82,8 @@
 #define MICROPY_HW_RTC_USE_US       	(0)
 #define MICROPY_HW_RTC_USE_CALOUT   	(1)
 
-#define MICROPY_HW_UART_REPL        PYB_UART_3
-#define MICROPY_HW_UART_REPL_BAUD   115200
+// #define MICROPY_HW_UART_REPL        PYB_UART_3
+// #define MICROPY_HW_UART_REPL_BAUD   115200
 
 #define MICROPY_HW_UART1_NAME   "UART1"    // on RX / TX
 #define MICROPY_HW_UART1_TX     (pin_B6)
