@@ -1,7 +1,6 @@
 #define MICROPY_HW_BOARD_NAME "01Studio PYCONTROLLER-ESP32S3"
 #define MICROPY_HW_MCU_NAME "ESP32S3"
 
-#define MICROPY_PY_BLUETOOTH			(0)
 #define MICROPY_PY_MACHINE_DAC			(0)
 
 #define MICROPY_HW_I2C0_SCL				(9)
@@ -9,17 +8,13 @@
 
 #define MICROPY_ENABLE_TFTLCD			(1)
 
-// #define MICROPY_STRING_SIZE_24			(1)
-// #define MICROPY_STRING_SIZE_32			(1)
-// #define MICROPY_STRING_SIZE_48			(1)
+#define MICROPY_STRING_SIZE_24			(1)
+#define MICROPY_STRING_SIZE_32			(1)
+#define MICROPY_STRING_SIZE_48			(1)
 
 #define MICROPY_HW_LCD15				(1)
 
-// #define MICROPY_PY_PICLIB				(1)
-// #define MICROPY_ENABLE_GUI				(1)
-// #define MICROPY_GUI_BUTTON				(1)
-// #define GUI_BTN_NUM_MAX 					(20)
-// #define GUI_BTN_STR_LEN 					(20)
+#define MICROPY_PY_PICLIB				(1)
 
 #define LCD_PIN_RST						(42)
 #define LCD_PIN_DC						(38)
@@ -28,10 +23,12 @@
 #define LCD_PIN_MISO					(-1)
 #define LCD_PIN_MOSI					(41)
 
+#define MICROPY_ENABLE_CONTROLLER		(1)
+#define MICROPY_HW_GAMEPAD				(1)
+
 #define MICROPY_ENABLE_GAME				(1)
 #define MICROPY_HW_NESEMU				(1)
 #define MICROPY_ENABLE_PSXCONTROLLER	(1)
-
 
 #define PSX_GPIO_UP						(10)
 #define PSX_GPIO_DOWN					(11)
@@ -57,6 +54,7 @@
 #define PSX_BACK_PRESSED				(0)
 #define PSX_START_PRESSED				(0)
 #define PSX_AOK_PRESSED					(0)
+#define PSX_BOK_PRESSED					(0)
 
 #define PSX_ADCL_LEFTRIGHT_CH		ADC1_CHANNEL_3
 #define PSX_ADCL_UPDOWN_CH			ADC1_CHANNEL_4

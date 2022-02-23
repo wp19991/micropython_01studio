@@ -47,8 +47,6 @@
 #include "psxcontroller.h"
 #include "sdkconfig.h"
 
-// #define DELAY() asm("nop; nop; nop; nop;nop; nop; nop; nop;nop; nop; nop; nop;nop; nop; nop; nop;")
-
 #if MICROPY_ENABLE_PSXCONTROLLER
 
 #include "driver/adc.h"
@@ -81,6 +79,9 @@
 
 #define NO_OF_SAMPLES	10
 
+static bool is_initpsx = 0;
+
+
 static void joy_gpio_init(void)
 {
 	esp_err_t err;
@@ -95,13 +96,22 @@ static void joy_gpio_init(void)
 	
 	err = adc1_config_channel_atten(PSX_ADCL_LEFTRIGHT_CH, ADC_ATTEN_DB_11);
     if (err != ESP_OK) {
-        printf("joy_gpio_init init error1\r\n");
+        printf("PSX_ADCL_LEFTRIGHT_CH init error\r\n");
     }
 	err = adc1_config_channel_atten(PSX_ADCL_UPDOWN_CH, ADC_ATTEN_DB_11);
     if (err != ESP_OK) {
-        printf("joy_gpio_init init error2\r\n");
+        printf("PSX_ADCL_UPDOWN_CH init error\r\n");
+    }
+
+	err = adc1_config_channel_atten(PSX_ADCR_LEFTRIGHT_CH, ADC_ATTEN_DB_11);
+    if (err != ESP_OK) {
+        printf("PSX_ADCR_LEFTRIGHT_CH init error\r\n");
     }
 	
+	err = adc1_config_channel_atten(PSX_ADCR_UPDOWN_CH, ADC_ATTEN_DB_11);
+    if (err != ESP_OK) {
+        printf("PSX_ADCR_UPDOWN_CH init error\r\n");
+    }
 }
 static void gpio_global_init(gpio_num_t gpio,gpio_mode_t io_mode,uint8_t mode)
 {
@@ -141,8 +151,10 @@ static void input_gpio_init(void)
 	gpio_global_init(PSX_GPIO_B,GPIO_MODE_INPUT,GPIO_PULL_UP);
 	gpio_global_init(PSX_GPIO_BACK,GPIO_MODE_INPUT,GPIO_PULL_UP);
 	gpio_global_init(PSX_GPIO_START,GPIO_MODE_INPUT,GPIO_PULL_UP);
+	
+	gpio_global_init(PSX_GPIO_A_OK,GPIO_MODE_INPUT,GPIO_PULL_UP);
+	gpio_global_init(PSX_GPIO_B_OK,GPIO_MODE_INPUT,GPIO_PULL_UP);
 }
-
 
 static void joy_adc_read(uint16_t *joy_leftright,uint16_t *joy_updown)
 {	
@@ -160,6 +172,124 @@ static void joy_adc_read(uint16_t *joy_leftright,uint16_t *joy_updown)
 	*joy_updown = (uint16_t)adc_reading2;
 }
 
+void gamepad_get_adc(uint16_t *leftX ,uint16_t *leftY,uint16_t *rightX,uint16_t *rightY)
+{
+	uint32_t adc_reading1 = 0;
+	uint32_t adc_reading2 = 0;
+	uint32_t adc_reading3 = 0;
+	uint32_t adc_reading4 = 0;
+	//Multisampling
+	for (int i = 0; i < NO_OF_SAMPLES; i++) {
+		adc_reading1 += adc1_get_raw(PSX_ADCL_LEFTRIGHT_CH);
+		adc_reading2 += adc1_get_raw(PSX_ADCL_UPDOWN_CH);
+		adc_reading3 += adc1_get_raw(PSX_ADCR_LEFTRIGHT_CH);
+		adc_reading4 += adc1_get_raw(PSX_ADCR_UPDOWN_CH);
+	}
+	adc_reading1 /= NO_OF_SAMPLES;
+	adc_reading2 /= NO_OF_SAMPLES;
+	adc_reading3 /= NO_OF_SAMPLES;
+	adc_reading4 /= NO_OF_SAMPLES;
+	
+	*leftX = (uint16_t)adc_reading1;
+	*leftY = (uint16_t)adc_reading2;
+	
+	*rightX = (uint16_t)adc_reading3;
+	*rightY = (uint16_t)adc_reading4;
+}
+/****************************************************************
+Byte5:
+buttons - right cluster buttons
+bit7	X
+bit6	A
+bit5	B
+bit4	Y
+
+VALUE	KEY
+0	up
+1	right&up
+
+2	right
+3	right&down
+4	down
+
+5	left&down
+6	left
+7	left&up
+8	no action
+
+Byte6:
+button
+BIT		KEY
+bit7	AOK
+bit6	BOK
+bit5	START
+bit4	BACK
+bit3	RT
+bit2	LT
+bit1	RB
+bit0	LB
+****************************************************************/
+void gamepad_get_key(uint8_t *keyByte5,uint8_t * keyByte6)
+{
+	uint8_t key5 = 0,key6 = 0;
+	bool up = 0,down=0,left=0,right=0;
+
+	if(PSX_UP_PRESSED == gpio_get_level(PSX_GPIO_UP)){
+		up = 1;
+	}
+	if(PSX_RIGHT_PRESSED == gpio_get_level(PSX_GPIO_RIGHT)){
+		right = 1;
+	}
+	if(PSX_DOWN_PRESSED == gpio_get_level(PSX_GPIO_DOWN)){
+		down = 1;
+	}
+	if(PSX_LEFT_PRESSED == gpio_get_level(PSX_GPIO_LEFT)){
+		left = 1;
+	}
+	if(up){
+		if(right)		key5 = 1;
+		else if(left)	key5 = 7;
+		else			key5 = 0;
+	}else if(down){
+		if(right)		key5 = 3;
+		else if(left)	key5 = 5;
+		else			key5 = 4;
+	}else if(right){
+						key5 = 2;
+	}else if(left){
+						key5 = 6;
+	}else{
+						key5 = 8;
+	}
+
+	if(PSX_A_PRESSED == gpio_get_level(PSX_GPIO_A)){
+		key5 |= (1<<6);
+	}
+	if(PSX_B_PRESSED == gpio_get_level(PSX_GPIO_B)){
+		key5 |= (1<<5);
+	}
+	if(PSX_X_PRESSED == gpio_get_level(PSX_GPIO_X)){
+		key5 |= (1<<7);
+	}
+	if(PSX_Y_PRESSED == gpio_get_level(PSX_GPIO_Y)){
+		key5 |= (1<<4);
+	}
+	if(PSX_BACK_PRESSED == gpio_get_level(PSX_GPIO_BACK)){
+		key6 |= (1<<4);
+	}
+	if(PSX_START_PRESSED == gpio_get_level(PSX_GPIO_START)){
+		key6 |= (1<<5);
+	}
+	if(PSX_AOK_PRESSED == gpio_get_level(PSX_GPIO_A_OK)){
+		key6 |= (1<<7);
+	}
+	if(PSX_BOK_PRESSED == gpio_get_level(PSX_GPIO_B_OK)){
+		key6 |= (1<<6);
+	}
+	
+	*keyByte5 = key5;
+	*keyByte6 = key6;
+}
 /*********************************************************************
  ________________________________________________________________________________________________________
 |  15 |   14  |   13  |   12   | 11| 10| 9 | 8 |   7  |   6   |  5  |   4   |   3   |   2    |  1  |  0  |
@@ -233,8 +363,11 @@ int psxReadInput() {
 }
 
 void psxcontrollerInit() {
-	input_gpio_init();
-	joy_gpio_init();
+	if(!is_initpsx){
+		input_gpio_init();
+		joy_gpio_init();
+		is_initpsx = 1;
+	}
 }
 
 #else

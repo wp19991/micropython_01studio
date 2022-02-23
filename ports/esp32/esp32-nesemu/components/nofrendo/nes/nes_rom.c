@@ -66,7 +66,7 @@
 #define  ROM_MIRRORTYPE    0x01
 #define  ROM_INES_MAGIC    "NES\x1A"
 
-static const char *TAG = "nes_rom";
+// static const char *TAG = "nes_rom";
 
 //ToDo: packed - JD
 typedef struct inesheader_s

@@ -529,8 +529,7 @@ STATIC mp_obj_t ST7789_drawStr(size_t n_args, const mp_obj_t *pos_args, mp_map_t
 
     } else {
         mp_get_buffer_raise(args[0].u_obj, &bufinfo, MP_BUFFER_READ);
-        char *str = bufinfo.buf;
-		
+
 		if(0){}
 		#if MICROPY_STRING_SIZE_24
 		else if(text_size == 2) text_size = 24;
@@ -542,16 +541,17 @@ STATIC mp_obj_t ST7789_drawStr(size_t n_args, const mp_obj_t *pos_args, mp_map_t
         else if(text_size == 4) text_size = 48;
 		#endif
 		else text_size = 16;
+
+		char * displayStr = (char * )m_malloc(bufinfo.len+1);
+		memset(displayStr,0,bufinfo.len+1);
+
+		if((text_size>>1) * bufinfo.len > lcddev.width){
+			bufinfo.len = lcddev.width/(text_size>>1);
+		}
 		
-        // if(text_size == 1)  text_size = 16;
-        // else if(text_size == 2) text_size = 24;
-        // else if(text_size == 3) text_size = 32;
-        // else if(text_size == 4) text_size = 48;
-        // else mp_raise_ValueError(MP_ERROR_TEXT("lcd size parameter error"));
-				
+		memcpy(displayStr,bufinfo.buf,bufinfo.len);
         grap_drawStr(&st7789_glcd, args[1].u_int, args[2].u_int, 
-									text_size* bufinfo.len, text_size , text_size,str ,color, lcddev.backcolor);
-													
+									text_size* bufinfo.len, text_size , text_size,displayStr ,color, lcddev.backcolor);
     }
   }
 	else{

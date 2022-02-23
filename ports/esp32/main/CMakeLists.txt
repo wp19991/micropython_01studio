@@ -237,6 +237,8 @@ set(MICROPY_SOURCE_PORT
 	${PROJECT_DIR}/modgame.c
 	${PROJECT_DIR}/modnes.c
 	${PROJECT_DIR}/psxcontroller.c
+	${PROJECT_DIR}/modcontroller.c
+	${PROJECT_DIR}/modgamepad.c
 )
 
 set(MICROPY_SOURCE_QSTR

@@ -28,8 +28,8 @@
 #if MICROPY_ENABLE_GAME
 
 STATIC const mp_rom_map_elem_t game_module_globals_table[] = {
-  { MP_ROM_QSTR(MP_QSTR___name__), MP_ROM_QSTR(MP_QSTR_game) },
-	
+	{ MP_ROM_QSTR(MP_QSTR___name__), MP_ROM_QSTR(MP_QSTR_game) },
+
 	#if MICROPY_HW_NESEMU
 	{ MP_ROM_QSTR(MP_QSTR_NES), MP_ROM_PTR(&game_nesemu_type) },
 	#endif
