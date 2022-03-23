@@ -116,6 +116,8 @@ esp_err_t uvc_streaming_stop(void);
  */
 esp_err_t uvc_streaming_simulate_start(uvc_frame_callback_t *cb, void *user_ptr);
 
+
+void uvc_stream_deinit(void);
 #ifdef __cplusplus
 }
 #endif

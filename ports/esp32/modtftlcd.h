@@ -72,6 +72,7 @@ typedef struct
 	void (*callDrawvline)(uint16_t x,uint16_t y,uint16_t len,uint16_t color);
 	void (*callDrawFill)(uint16_t sx,uint16_t sy,uint16_t ex,uint16_t ey,uint16_t color);
 	void (*callDrawFlush)(uint16_t sx,uint16_t sy,uint16_t ex,uint16_t ey,uint16_t *color);
+	void (*callDrawCam)(uint16_t sx,uint16_t sy,uint16_t ex,uint16_t ey,uint16_t *color);
 } Graphics_Display;
 
 extern void grap_drawInit(uint16_t width, uint16_t height);
@@ -93,11 +94,18 @@ extern void grap_drawStr(const Graphics_Display *display, uint16_t x,uint16_t y,
 #include "extmod/vfs.h"
 #include "extmod/vfs_fat.h"
 
+extern Graphics_Display * draw_global;
+
 extern uint8_t grap_drawCached(const Graphics_Display *display,
 								void *fs, uint16_t x, uint16_t y, const char *filename);
 								
 extern uint8_t grap_newCached(const Graphics_Display *display, 
 								mp_obj_t stream ,const char *filename, uint16_t width, uint16_t height);
+								
+extern void grap_drawCam(uint16_t x,uint16_t y,uint16_t width,uint16_t height,uint16_t *color);
+void grap_drawFull(uint16_t x,uint16_t y,uint16_t width,uint16_t height,uint16_t *color);
+void grap_drawFill(uint16_t x,uint16_t y,uint16_t width,uint16_t height,uint16_t color);
+
 #endif
 /**
   * @}

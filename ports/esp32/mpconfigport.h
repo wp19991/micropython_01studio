@@ -236,6 +236,7 @@ extern const struct _mp_obj_module_t sensor_module;
 extern const struct _mp_obj_module_t gui_module;
 extern const struct _mp_obj_module_t game_module;
 extern const struct _mp_obj_module_t controller_module;
+extern const struct _mp_obj_module_t espai_module;
 
 #if MICROPY_ENABLE_TOUCH
 #define TOUCH_MODULE              { MP_ROM_QSTR(MP_QSTR_touch), MP_ROM_PTR(&touch_module) },
@@ -261,6 +262,12 @@ extern const struct _mp_obj_module_t controller_module;
 #define SENSOR_MODULE              { MP_ROM_QSTR(MP_QSTR_sensor), MP_ROM_PTR(&sensor_module) },
 #else
 #define SENSOR_MODULE
+#endif
+
+#if MICROPY_HW_ESPAI
+#define USB_ESPAI_MODULE              { MP_ROM_QSTR(MP_QSTR_esp_ai), MP_ROM_PTR(&espai_module) },
+#else
+#define USB_ESPAI_MODULE
 #endif
 
 #if MICROPY_ENABLE_ESP_USB
@@ -298,6 +305,7 @@ extern const struct _mp_obj_module_t controller_module;
 	USB_CAM_MODULE \
 	GAME_MODULE \
 	CONTROLLER_MODULE \
+	USB_ESPAI_MODULE \
 
 #define MP_STATE_PORT MP_STATE_VM
 

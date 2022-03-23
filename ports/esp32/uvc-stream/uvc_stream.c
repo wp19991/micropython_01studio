@@ -33,6 +33,8 @@
 #include "uvc_debug.h"
 #include "sdkconfig.h"
 
+#include "usb_uvc_port.h"
+
 #include "usb.h"
 #define UVC_CHECK(a, str, ret) if(!(a)) { \
         ESP_LOGE(TAG,"%s:%d (%s):%s", __FILE__, __LINE__, __FUNCTION__, str); \
@@ -96,7 +98,7 @@ const char *TAG = "UVC_STREAM";
 
 static TaskHandle_t s_usb_processing_task_hdl = NULL;
 static TaskHandle_t s_samlpe_processing_task_hdl = NULL;
-
+static hcd_port_handle_t deinit_port_hdl = NULL;
 /********************************************** Helper Functions **********************************************/
 /**
  * @brief
@@ -494,6 +496,10 @@ static esp_err_t _usb_port_get_speed(hcd_port_handle_t port_hdl, usb_speed_t *po
     return ret;
 }
 
+void uvc_stream_deinit(void)
+{
+	_usb_port_deinit(deinit_port_hdl);
+}
 /*------------------------------------------------ USB URB Code ----------------------------------------------------*/
 
 urb_t *_usb_urb_alloc(int num_isoc_packets, size_t packet_data_buffer_size, void *context)
@@ -576,6 +582,7 @@ static void _default_pipe_event_process(hcd_pipe_handle_t pipe_handle, hcd_pipe_
             break;
 
         case HCD_PIPE_EVENT_ERROR_XFER:
+
             ESP_LOGW(TAG, "line %u Pipe: default HCD_PIPE_EVENT_ERROR_XFER", __LINE__);
             break;
 
@@ -614,7 +621,7 @@ static void _stream_pipe_event_process(hcd_pipe_handle_t pipe_handle, hcd_pipe_e
                 break;
             }
 
-            TRIGGER_URB_DEQUEUE();
+            // TRIGGER_URB_DEQUEUE();
             _uvc_stream_handle_t *strmh = (_uvc_stream_handle_t *)(urb_done->transfer.context);
             size_t index = 0;
 
@@ -636,7 +643,7 @@ static void _stream_pipe_event_process(hcd_pipe_handle_t pipe_handle, hcd_pipe_e
                     ESP_LOGW(TAG, "line:%u URB ENQUEUE FAILED %s", __LINE__, esp_err_to_name(ret));
                 }
 
-                TRIGGER_URB_ENQUEUE();
+                // TRIGGER_URB_ENQUEUE();
             }
 
             ESP_LOGV(TAG, "line %u Pipe: iso HCD_PIPE_EVENT_URB_DONE", __LINE__);
@@ -647,7 +654,7 @@ static void _stream_pipe_event_process(hcd_pipe_handle_t pipe_handle, hcd_pipe_e
             ESP_LOGW(TAG, "line %u Pipe: iso HCD_PIPE_EVENT_INVALID", __LINE__);
             break;
 
-        case HCD_PIPE_EVENT_ERROR_XFER:
+        case HCD_PIPE_EVENT_ERROR_XFER:  /////////////////////////////////
             ESP_LOGW(TAG, "line %u Pipe: iso HCD_PIPE_EVENT_ERROR_XFER", __LINE__);
             break;
 
@@ -708,6 +715,7 @@ static esp_err_t _default_pipe_event_wait_until(hcd_pipe_handle_t expected_pipe_
     BaseType_t queue_ret = errQUEUE_EMPTY;
 
     do {
+
         queue_ret = xQueueReceive(queue_hdl, &evt_msg, xTicksToWait);
 
         if (queue_ret != pdPASS) {
@@ -717,6 +725,7 @@ static esp_err_t _default_pipe_event_wait_until(hcd_pipe_handle_t expected_pipe_
         if (PORT_EVENT == evt_msg._type) {
             _usb_port_event_process(evt_msg._handle.port_hdl, evt_msg._event.port_event);
             ret = ESP_ERR_NOT_FOUND;
+			ESP_LOGW(TAG, "ESP_ERR_NOT_FOUND--->");
         } else {
             if (expected_pipe_hdl != evt_msg._handle.pipe_handle) {
                 _stream_pipe_event_process(evt_msg._handle.pipe_handle, evt_msg._event.pipe_event, true);
@@ -766,7 +775,7 @@ static esp_err_t _stream_pipe_event_wait_until_num(hcd_pipe_handle_t expected_pi
             } else {
                 rest_num--;
                 _stream_pipe_event_process(evt_msg._handle.pipe_handle, evt_msg._event.pipe_event, !if_dequeue);//check dequeue status
-                ESP_LOGD(TAG, "Got expected pipe_handle and event");
+                ESP_LOGW(TAG, "Got expected pipe_handle and event");
                 ret = ESP_OK;
             }
         }
@@ -785,6 +794,7 @@ static esp_err_t _stream_pipe_event_wait_until_num(hcd_pipe_handle_t expected_pi
 
 static esp_err_t _usb_set_device_addr(hcd_pipe_handle_t pipe_handle, uint8_t dev_addr)
 {
+
     UVC_CHECK(pipe_handle != NULL, "pipe_handle can't be NULL", ESP_ERR_INVALID_ARG);
     //malloc URB for default control
     urb_t *urb_ctrl = _usb_urb_alloc(0, sizeof(usb_ctrl_req_t), NULL);
@@ -821,20 +831,23 @@ static esp_err_t _usb_set_device_config(hcd_pipe_handle_t pipe_handle, uint16_t 
     urb_t *urb_ctrl = _usb_urb_alloc(0, sizeof(usb_ctrl_req_t), NULL);
     UVC_CHECK(urb_ctrl != NULL, "alloc urb failed", ESP_ERR_NO_MEM);
 
-    USB_CTRL_REQ_INIT_SET_CONFIG((usb_ctrl_req_t *)urb_ctrl->transfer.data_buffer, configuration);
+	//Enqueue it
+	USB_CTRL_REQ_INIT_SET_CONFIG((usb_ctrl_req_t *)urb_ctrl->transfer.data_buffer, configuration);
     urb_ctrl->transfer.num_bytes = 0; //No data stage
-    //Enqueue it
     ESP_LOGI(TAG, "Set Device Configuration = %u", configuration);
     esp_err_t ret = hcd_urb_enqueue(pipe_handle, urb_ctrl);
     UVC_CHECK_GOTO(ESP_OK == ret, "urb enqueue failed", free_urb_);
+
     ret = _default_pipe_event_wait_until(pipe_handle, HCD_PIPE_EVENT_URB_DONE, portMAX_DELAY);
     UVC_CHECK_GOTO(ESP_OK == ret, "urb event error", free_urb_);
+	
     urb_t *urb_done = hcd_urb_dequeue(pipe_handle);
     UVC_CHECK_GOTO(urb_done == urb_ctrl, "urb status: not same", free_urb_);
     UVC_CHECK_GOTO(USB_TRANSFER_STATUS_COMPLETED == urb_done->transfer.status, "urb status: not complete", free_urb_);
     ESP_LOGI(TAG, "Set Device Configuration Done");
 
 free_urb_:
+
     _usb_urb_free(urb_ctrl);
     return ret;
 }
@@ -875,13 +888,17 @@ static esp_err_t _uvc_vs_commit_control(hcd_pipe_handle_t pipe_handle, uvc_strea
     urb_t *urb_done = NULL;
 
     ESP_LOGI(TAG, "SET_CUR Probe");
+
     USB_CTRL_UVC_PROBE_SET_REQ((usb_ctrl_req_t *)urb_ctrl->transfer.data_buffer);
     _uvc_stream_ctrl_to_buf((urb_ctrl->transfer.data_buffer + sizeof(usb_ctrl_req_t)), ((usb_ctrl_req_t *)urb_ctrl->transfer.data_buffer)->wLength, ctrl_set);
     urb_ctrl->transfer.num_bytes = ((usb_ctrl_req_t *)urb_ctrl->transfer.data_buffer)->wLength;
+	
     esp_err_t ret = hcd_urb_enqueue(pipe_handle, urb_ctrl);
     UVC_CHECK_GOTO(ESP_OK == ret, "urb enqueue failed", free_urb_);
+
     ret = _default_pipe_event_wait_until(pipe_handle, HCD_PIPE_EVENT_URB_DONE, portMAX_DELAY);
     UVC_CHECK_GOTO(ESP_OK == ret, "urb event error", free_urb_);
+
     urb_done = hcd_urb_dequeue(pipe_handle);
     UVC_CHECK_GOTO(urb_done == urb_ctrl, "urb status: not same", free_urb_);
     UVC_CHECK_GOTO(USB_TRANSFER_STATUS_COMPLETED == urb_done->transfer.status, "urb status: not complete", free_urb_);
@@ -894,6 +911,7 @@ static esp_err_t _uvc_vs_commit_control(hcd_pipe_handle_t pipe_handle, uvc_strea
     UVC_CHECK_GOTO(ESP_OK == ret, "urb enqueue failed", free_urb_);
     ret = _default_pipe_event_wait_until(pipe_handle, HCD_PIPE_EVENT_URB_DONE, portMAX_DELAY);
     UVC_CHECK_GOTO(ESP_OK == ret, "urb event error", free_urb_);
+
     urb_done = hcd_urb_dequeue(pipe_handle);
     UVC_CHECK_GOTO(urb_done == urb_ctrl, "urb status: not same", free_urb_);
     UVC_CHECK_GOTO(USB_TRANSFER_STATUS_COMPLETED == urb_done->transfer.status, "urb status: not complete", free_urb_);
@@ -1194,22 +1212,27 @@ static void _usb_processing_task(void *arg)
 
     esp_err_t ret = ESP_OK;
     usb_speed_t port_speed = 0;
-    hcd_port_handle_t port_hdl = NULL;
+    // hcd_port_handle_t port_hdl = NULL;
     _uvc_stream_handle_t *stream_hdl = NULL;
     _uvc_event_msg_t evt_msg = {};
     bool keep_running = true;
 
+	hcd_pipe_handle_t stream_pipe_hdl = NULL;
+	hcd_pipe_handle_t dflt_pipe_hdl = NULL;
+
     //Waitting for camera ready
     ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+	
+//---------------------------------------------------------------------------------------
+    deinit_port_hdl = _usb_port_init((void *)uvc_dev->queue_hdl, (void *)uvc_dev->queue_hdl);
 
-    port_hdl = _usb_port_init((void *)uvc_dev->queue_hdl, (void *)uvc_dev->queue_hdl);
-    UVC_CHECK_GOTO(port_hdl != NULL, "USB Port init failed", delete_dev_);
+    UVC_CHECK_GOTO(deinit_port_hdl != NULL, "USB Port init failed", delete_dev_);
 
-    ret = _usb_port_get_speed(port_hdl, &port_speed);
+    ret = _usb_port_get_speed(deinit_port_hdl, &port_speed);
     UVC_CHECK_GOTO(ESP_OK == ret, "USB Port get speed failed", delete_dev_);
 
     // Initialize default pipe
-    hcd_pipe_handle_t dflt_pipe_hdl = _usb_pipe_init(port_hdl, NULL, 0, port_speed,
+    dflt_pipe_hdl = _usb_pipe_init(deinit_port_hdl, NULL, 0, port_speed,
                                       (void *)uvc_dev->queue_hdl, (void *)uvc_dev->queue_hdl);
     UVC_CHECK_GOTO(dflt_pipe_hdl != NULL, "default pipe create failed", deinit_usb_port_);
 
@@ -1221,22 +1244,27 @@ static void _usb_processing_task(void *arg)
         .wMaxPacketSize = uvc_dev->isoc_ep_mps,
         .bInterval = 1,
     };
-    hcd_pipe_handle_t stream_pipe_hdl = _usb_pipe_init(port_hdl, &isoc_ep_desc, uvc_dev->dev_addr,
+
+    stream_pipe_hdl = _usb_pipe_init(deinit_port_hdl, &isoc_ep_desc, uvc_dev->dev_addr,
                                         port_speed, (void *)uvc_dev->queue_hdl, (void *)uvc_dev->queue_hdl);
     UVC_CHECK_GOTO(stream_pipe_hdl != NULL, "stream pipe create failed", deinit_dflt_pipe_);
 
     ret = _usb_set_device_addr(dflt_pipe_hdl, uvc_dev->dev_addr);
     UVC_CHECK_GOTO(ESP_OK == ret, "Set device address failed", deinit_stream_pipe_);
-    ret = _usb_set_device_config(dflt_pipe_hdl, uvc_dev->configuration);
+
+	ret = _usb_set_device_config(dflt_pipe_hdl, uvc_dev->configuration);
     UVC_CHECK_GOTO(ESP_OK == ret, "Set device configuration failed", deinit_stream_pipe_);
+
     ret = _uvc_vs_commit_control(dflt_pipe_hdl, &uvc_dev->ctrl_set, &uvc_dev->ctrl_probed);
     UVC_CHECK_GOTO(ESP_OK == ret, "UVC negotiate failed", deinit_stream_pipe_);
+
     ret = _usb_set_device_interface(dflt_pipe_hdl, uvc_dev->interface, uvc_dev->interface_alt);
     UVC_CHECK_GOTO(ESP_OK == ret, "Set device interface failed", deinit_stream_pipe_);
 
     uvc_stream_open_ctrl((uvc_device_handle_t *)(&uvc_dev), &stream_hdl, &uvc_dev->ctrl_probed);
     UVC_CHECK_GOTO(stream_hdl != NULL, "UVC open stream failed", deinit_stream_pipe_);
-
+	
+//----------------------------------------------------------------------------------------------
     uvc_stream_start(stream_hdl, uvc_dev->user_cb, uvc_dev->user_ptr, 0);
     //Enum done,start the periodic pipe task
     vTaskDelay(pdMS_TO_TICKS(50));
@@ -1269,7 +1297,7 @@ static void _usb_processing_task(void *arg)
 
         switch (evt_msg._type) {
             case PORT_EVENT:
-                _usb_port_event_process(port_hdl, evt_msg._event.port_event);
+                _usb_port_event_process(deinit_port_hdl, evt_msg._event.port_event);
                 break;
 
             case PIPE_EVENT:
@@ -1323,17 +1351,21 @@ static void _usb_processing_task(void *arg)
     uvc_stream_close(stream_hdl);
 deinit_stream_pipe_:
     _usb_pipe_deinit(stream_pipe_hdl);
+
 deinit_dflt_pipe_:
     _usb_pipe_deinit(dflt_pipe_hdl);
 deinit_usb_port_:
-    _usb_port_deinit(port_hdl);
+    _usb_port_deinit(deinit_port_hdl);
 delete_dev_:
     xEventGroupSetBits(uvc_dev->event_group, USB_STREAM_STOP_DONE);
     free(uvc_dev);
 delete_task_:
     ESP_LOGW(TAG, "_usb_processing_task deleted");
     ESP_LOGW(TAG, "_usb_processing_task watermark = %d B", uxTaskGetStackHighWaterMark(NULL));
+
     vTaskDelete(NULL);
+
+
 }
 
 /*populate frame then call user callback*/
@@ -1425,7 +1457,7 @@ esp_err_t uvc_streaming_config(const uvc_config_t *config)
     s_uvc_dev.ctrl_set.dwMaxVideoFrameSize = config->frame_buffer_size;
     s_uvc_dev.ctrl_set.dwMaxPayloadTransferSize = config->isoc_ep_mps;
 
-    TRIGGER_INIT();
+    // TRIGGER_INIT();
 
     s_uvc_dev.active = true;
 

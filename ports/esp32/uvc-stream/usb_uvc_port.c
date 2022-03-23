@@ -56,6 +56,7 @@ then hardcode the related MACROS below
 #define DESCRIPTOR_STREAM_ISOC_ENDPOINT_ADDR 0x85
 
 #define XFER_BUFFER_SIZE (65 * 1024) //Double buffer
+
 /* max packet size of esp32-s2 is 1*512, bigger is not supported*/
 #define ISOC_EP_MPS 512
 
@@ -95,9 +96,12 @@ void uvc_camera_fb_return(uvcam_fb_t * fb)
  * input queue. If this function takes too long, you'll start losing frames. */
 static void frame_cb(uvc_frame_t *frame, void *ptr)
 {
-    ESP_LOGV(TAG, "callback! frame_format = %d, seq = %u, width = %d, height = %d, length = %u, ptr = %d",
-            frame->frame_format, frame->sequence, frame->width, frame->height, frame->data_bytes, (int) ptr);
+    // ESP_LOGV(TAG, "callback! frame_format = %d, seq = %u, width = %d, height = %d, length = %u, ptr = %d",
+            // frame->frame_format, frame->sequence, frame->width, frame->height, frame->data_bytes, (int) ptr);
 
+    ESP_LOGI(TAG, "callback! frame_format = %d, seq = %u, width = %d, height = %d, length = %u, ptr = %d",
+            frame->frame_format, frame->sequence, frame->width, frame->height, frame->data_bytes, (int) ptr);
+			
     switch (frame->frame_format) {
         case UVC_FRAME_FORMAT_MJPEG:
             s_fb.buf = frame->data;

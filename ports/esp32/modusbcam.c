@@ -147,13 +147,6 @@ static void display_task(void *pvParameter)
 
 			mjpegdraw(pic->buf, pic->len,outbuf);
 
-			// if( (pic->height*pic->height) >= (lcd_size >> 1)){
-				// ili9341_Full(x,y,pic->width, pic->height>>1,outbuf);
-				// ili9341_Full(x,y+(pic->height>>1),pic->width, pic->height>>1,outbuf+(lcd_size>>1));
-			// }else{
-				// ili9341_Full(x,y,pic->width, pic->height,outbuf);
-			// }
-
 			uint32_t i;
 			uint8_t * color_u8 = (uint8_t *) outbuf;
 			uint8_t color_tmp;
@@ -235,8 +228,8 @@ STATIC mp_obj_t usbcam_deinit(size_t n_args, const mp_obj_t *pos_args, mp_map_t 
 
 	vTaskDelay(2000 / portTICK_RATE_MS);
 
- esp_err_t err = uvc_streaming_stop();
- 
+	esp_err_t err = uvc_streaming_stop();
+
 	if (err != ESP_OK) {
 		mp_raise_ValueError(MP_ERROR_TEXT("UVC Camera deinit Failed"));
 	}

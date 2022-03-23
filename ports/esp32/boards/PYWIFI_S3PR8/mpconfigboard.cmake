@@ -9,7 +9,7 @@ set(MICROPY_PORT_WEB_STREAM y) #WEB stream
 set(SDKCONFIG_DEFAULTS
     boards/sdkconfig.base
 	boards/sdkconfig.ble
-    boards/PYWIFI_S3P/sdkconfig.board
+    boards/PYWIFI_S3PR8/sdkconfig.board
 	boards/sdkconfig.cam
 )
 

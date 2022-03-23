@@ -28,7 +28,6 @@
 
 #include "esp_camera.h"
 
-
 STATIC const mp_rom_map_elem_t sensor_module_globals_table[] = {
   { MP_ROM_QSTR(MP_QSTR___name__), MP_ROM_QSTR(MP_QSTR_sensor) },
 	

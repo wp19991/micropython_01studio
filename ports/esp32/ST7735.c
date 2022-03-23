@@ -277,6 +277,26 @@ void st7735_draw_vline(uint16_t x0,uint16_t y0,uint16_t len,uint16_t color)
 	st7735_Fill(x0, y0,x0, y0+len, color);
 }
 //------------------------------------------------
+
+//填充指定区域块颜色
+//开始位置填充多少个
+void st7735_cam_full(uint16_t sx,uint16_t sy,uint16_t ex,uint16_t ey,uint16_t *color)
+{
+	if(ex > lcddev.width || ey > lcddev.height) return;
+	
+	st7735_set_addr(sx, sy, sx+ex-1, sy+ey-1);
+
+	/*Memory write*/
+	lcd_spibus_send_cmd(p_st7735, 0x2C);
+
+	uint8_t* c_data = (uint8_t*)color;
+	for(uint32_t i=0; i < ey; i++){
+		lcd_spibus_send_data(p_st7735, (uint8_t*)c_data, ex*2);
+		c_data += (ex*2);
+	}
+}
+
+
 Graphics_Display st7735_glcd =
 {
 	16,
@@ -287,7 +307,8 @@ Graphics_Display st7735_glcd =
 	st7735_draw_hline,
 	st7735_draw_vline,
 	st7735_Fill,
-	st7735_Full
+	st7735_Full,
+	st7735_cam_full
 };
 //==============================================================================================
 //mpy
@@ -486,6 +507,7 @@ STATIC mp_obj_t ST7735_drawStr(size_t n_args, const mp_obj_t *pos_args, mp_map_t
 
   uint16_t text_size = args[5].u_int;
   uint16_t color = 0;
+  uint16_t backcolor = lcddev.backcolor;
   //color
   if(args[3].u_obj !=MP_OBJ_NULL) 
   {
@@ -532,16 +554,10 @@ STATIC mp_obj_t ST7735_drawStr(size_t n_args, const mp_obj_t *pos_args, mp_map_t
         else if(text_size == 4) text_size = 48;
 		#endif
 		else text_size = 16;
-		
-        // if(text_size == 1)  text_size = 16;
-        // else if(text_size == 2) text_size = 24;
-        // else if(text_size == 3) text_size = 32;
-        // else if(text_size == 4) text_size = 48;
-        // else mp_raise_ValueError(MP_ERROR_TEXT("lcd size parameter error"));
-				
+
         grap_drawStr(&st7735_glcd, args[1].u_int, args[2].u_int, 
 									text_size* bufinfo.len, text_size , text_size,str ,color, lcddev.backcolor);
-													
+		lcddev.backcolor = backcolor;
     }
   }
 	else{
@@ -661,6 +677,8 @@ STATIC mp_obj_t ST7735_make_new(const mp_obj_type_t *type, size_t n_args, size_t
 	st7735_Fill(0,0,lcddev.width,lcddev.height,lcddev.backcolor);
 
 	lcddev.clercolor = lcddev.backcolor;
+	
+	draw_global = &st7735_glcd;
 	
 	return MP_OBJ_FROM_PTR(self);
 }

@@ -1,4 +1,4 @@
-#define MICROPY_HW_BOARD_NAME               "01Studio pyWiFi-ESP32-S3P"
+#define MICROPY_HW_BOARD_NAME               "01Studio pyWiFi-ESP32-S3P AI"
 #define MICROPY_HW_MCU_NAME                 "ESP32S3"
 
 #define MICROPY_PY_MACHINE_DAC              (0)
@@ -38,6 +38,14 @@
 //sensor
 #define MICROPY_ENABLE_SENSOR			(1)
 #define MICROPY_HW_OV2640				(1)
+
+#define MICROPY_HW_ESPAI				(1)
+#define MICROPY_ENABLE_FACE_DETECTION	(1)
+#define MICROPY_ENABLE_CAT_DETECTION	(1)
+#define MICROPY_ENABLE_COLOR_DETECTION	(1)
+#define MICROPY_ENABLE_CODE_RECOGNITION	(1)
+#define MICROPY_ENABLE_MOTION_DETECTION	(1)
+#define MICROPY_ENABLE_FACE_RECOGNITION (1)
 
 //WEB stream
 #define MICROPY_ENABLE_STREAM			(1) 

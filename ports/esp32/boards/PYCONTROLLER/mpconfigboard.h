@@ -62,18 +62,10 @@
 #define PSX_ADCR_LEFTRIGHT_CH		ADC1_CHANNEL_6
 #define PSX_ADCR_UPDOWN_CH			ADC1_CHANNEL_7
 
-#define PSX_JOY_UP_VALUE				(600)
-#define PSX_JOY_DOWN_VALUE				(200)
-#define PSX_JOY_LEFT_VALUE				(200)
-#define PSX_JOY_RIGHT_VALUE				(600)
-
-
-
-
-
-
-
-
+#define PSX_JOY_UP_VALUE				(600*4)
+#define PSX_JOY_DOWN_VALUE				(200*4)
+#define PSX_JOY_LEFT_VALUE				(200*4)
+#define PSX_JOY_RIGHT_VALUE				(600*4)
 
 
 

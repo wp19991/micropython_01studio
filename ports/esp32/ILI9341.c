@@ -352,16 +352,6 @@ void ili9341_cam_full(uint16_t sx,uint16_t sy,uint16_t ex,uint16_t ey,uint16_t *
 	/*Memory write*/
 	lcd_spibus_send_cmd(p_ili9341, 0x2C);
 
-	// uint32_t size = ex * ey;
-	
-	// if(size > 320*120){
-		// lcd_spibus_send_data(p_ili9341, (uint8_t*)color, size);
-		// color += (size>>1);
-		// lcd_spibus_send_data(p_ili9341, (uint8_t*)color, size);
-	// }else{
-		// lcd_spibus_send_data(p_ili9341, (uint8_t*)color, size * 2);
-	// }
-
 	uint8_t* c_data = (uint8_t*)color;
 	for(uint32_t i=0; i < ey; i++){
 		lcd_spibus_send_data(p_ili9341, (uint8_t*)c_data, ex*2);
@@ -392,7 +382,8 @@ Graphics_Display g_lcd =
 	ili9341_draw_hline,
 	ili9341_draw_vline,
 	ili9341_Fill,
-	ili9341_Full
+	ili9341_Full,
+	ili9341_cam_full
 };
 //==============================================================================================
 //mpy
@@ -591,6 +582,7 @@ STATIC mp_obj_t ILI9341_drawStr(size_t n_args, const mp_obj_t *pos_args, mp_map_
 
   uint16_t text_size = args[5].u_int;
   uint16_t color = 0;
+  uint16_t backcolor = lcddev.backcolor;
   //color
   if(args[3].u_obj !=MP_OBJ_NULL) 
   {
@@ -638,15 +630,9 @@ STATIC mp_obj_t ILI9341_drawStr(size_t n_args, const mp_obj_t *pos_args, mp_map_
 		#endif
 		else text_size = 16;
 		
-        // if(text_size == 1)  text_size = 16;
-        // else if(text_size == 2) text_size = 24;
-        // else if(text_size == 3) text_size = 32;
-        // else if(text_size == 4) text_size = 48;
-        // else mp_raise_ValueError(MP_ERROR_TEXT("lcd size parameter error"));
-				
         grap_drawStr(&g_lcd, args[1].u_int, args[2].u_int, 
 									text_size* bufinfo.len, text_size , text_size,str ,color, lcddev.backcolor);
-													
+		lcddev.backcolor = backcolor;
     }
   }
 	else{
@@ -782,6 +768,8 @@ STATIC mp_obj_t ILI9341_make_new(const mp_obj_type_t *type, size_t n_args, size_
 	ili9341_Fill(0,0,lcddev.width,lcddev.height,lcddev.backcolor);
 
 	lcddev.clercolor = lcddev.backcolor;
+	
+	draw_global = &g_lcd;
 	
 	return MP_OBJ_FROM_PTR(self);
 }

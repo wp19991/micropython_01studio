@@ -94,6 +94,22 @@ if(MICROPY_PORT_NESEMU STREQUAL "y")
 	file (GLOB_RECURSE NESEMU_SRCS "${NESEMU_FILE_DIR}/*.c") 
 	# list(REMOVE_ITEM NESEMU_SRCS "${NESEMU_FILE_DIR}/main/main.c")
 endif()
+#ESP-AI
+if(MICROPY_PORT_ESPAI STREQUAL "y")
+	set(ESPAI_FILE_DIR
+		${PROJECT_DIR}/mpy-ai
+		)
+	set(ESPAI_INC
+		${ESPAI_FILE_DIR}/ai
+		${ESPAI_FILE_DIR}/fb_gfx
+		${ESPAI_FILE_DIR}/fb_gfx/include
+		)
+	file (GLOB_RECURSE ESPAI_SRCS 
+			"${ESPAI_FILE_DIR}/ai/*.cpp"
+			"${ESPAI_FILE_DIR}/fb_gfx/*.c"
+			) 
+	# list(REMOVE_ITEM NESEMU_SRCS "${NESEMU_FILE_DIR}/main/main.c")
+endif()
 
 #uvc cam
 if(MICROPY_PORT_USB_CAM STREQUAL "y")
@@ -239,6 +255,11 @@ set(MICROPY_SOURCE_PORT
 	${PROJECT_DIR}/psxcontroller.c
 	${PROJECT_DIR}/modcontroller.c
 	${PROJECT_DIR}/modgamepad.c
+	${PROJECT_DIR}/modespai.c
+	${PROJECT_DIR}/mod_face_detection.c
+	${PROJECT_DIR}/mod_code_recognition.c
+	${PROJECT_DIR}/mod_face_recognition.c
+	${PROJECT_DIR}/mod_color_detection.c
 )
 
 set(MICROPY_SOURCE_QSTR
@@ -279,6 +300,8 @@ set(IDF_COMPONENTS
     ulp
     vfs
     xtensa
+	esp-dl
+	esp-code-scanner
 )
 
 if(IDF_VERSION_MINOR GREATER_EQUAL 1 OR IDF_VERSION_MAJOR GREATER_EQUAL 5)
@@ -328,6 +351,7 @@ idf_component_register(
 		${UVC_CAM_SRCS}
 		${JPEG9A_SOURCE_LIB}
 		${NESEMU_SRCS}
+		${ESPAI_SRCS}
     INCLUDE_DIRS
         ${MICROPY_INC_CORE}
         ${MICROPY_INC_USERMOD}
@@ -340,6 +364,7 @@ idf_component_register(
 		${UVC_CAM_INC}
 		${JPEG9A_SOURCE_INC}
 		${NESEMU_INC}
+		${ESPAI_INC}
     REQUIRES
         ${IDF_COMPONENTS}
 	EMBED_FILES
@@ -370,6 +395,7 @@ target_compile_options(${MICROPY_TARGET} PUBLIC
     -Wno-missing-field-initializers
 	-Wno-stringop-truncation
 	-Wno-implicit-fallthrough
+	-fdiagnostics-color=always
 )
 
 # Add additional extmod and usermod components.

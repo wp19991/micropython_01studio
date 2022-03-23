@@ -94,21 +94,21 @@ static void joy_gpio_init(void)
 	adc1_config_width(ADC_WIDTH_BIT_12);
 	#endif
 	
-	err = adc1_config_channel_atten(PSX_ADCL_LEFTRIGHT_CH, ADC_ATTEN_DB_11);
+	err = adc1_config_channel_atten(PSX_ADCL_LEFTRIGHT_CH, ADC_EXAMPLE_ATTEN);
     if (err != ESP_OK) {
         printf("PSX_ADCL_LEFTRIGHT_CH init error\r\n");
     }
-	err = adc1_config_channel_atten(PSX_ADCL_UPDOWN_CH, ADC_ATTEN_DB_11);
+	err = adc1_config_channel_atten(PSX_ADCL_UPDOWN_CH, ADC_EXAMPLE_ATTEN);
     if (err != ESP_OK) {
         printf("PSX_ADCL_UPDOWN_CH init error\r\n");
     }
 
-	err = adc1_config_channel_atten(PSX_ADCR_LEFTRIGHT_CH, ADC_ATTEN_DB_11);
+	err = adc1_config_channel_atten(PSX_ADCR_LEFTRIGHT_CH, ADC_EXAMPLE_ATTEN);
     if (err != ESP_OK) {
         printf("PSX_ADCR_LEFTRIGHT_CH init error\r\n");
     }
 	
-	err = adc1_config_channel_atten(PSX_ADCR_UPDOWN_CH, ADC_ATTEN_DB_11);
+	err = adc1_config_channel_atten(PSX_ADCR_UPDOWN_CH, ADC_EXAMPLE_ATTEN);
     if (err != ESP_OK) {
         printf("PSX_ADCR_UPDOWN_CH init error\r\n");
     }

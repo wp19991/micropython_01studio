@@ -85,7 +85,7 @@ TaskHandle_t ov2640_handle = NULL;
 static bool is_display = false; //目前在显示图像
 static bool is_snapshot = false;
 static bool is_init = 0;
-
+static uint16_t fb_buf = 1;
 //------------------------------------------------------------
 static esp_err_t init_camera( pixformat_t pixel_format, framesize_t frame_size)
 {
@@ -117,7 +117,7 @@ static esp_err_t init_camera( pixformat_t pixel_format, framesize_t frame_size)
 		.frame_size = frame_size,    //QQVGA-UXGA Do not use sizes above QVGA when not JPEG
 
 		.jpeg_quality = 12, //0-63 lower number means higher quality
-		.fb_count = 1,       //if more than one, i2s runs in continuous mode. Use only with JPEG
+		.fb_count = fb_buf,       //if more than one, i2s runs in continuous mode. Use only with JPEG
 		.grab_mode = CAMERA_GRAB_WHEN_EMPTY
 	};
 
@@ -207,7 +207,7 @@ STATIC mp_obj_t sensor_ov2640_snapshot(size_t n_args, const mp_obj_t *pos_args, 
 STATIC MP_DEFINE_CONST_FUN_OBJ_KW(sensor_ov2640_snapshot_obj, 1, sensor_ov2640_snapshot);
 //=====================================================================================================
 STATIC mp_obj_t sensor_ov2640_setframesize(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
-	  STATIC const mp_arg_t ov2640_args[] = {
+	STATIC const mp_arg_t ov2640_args[] = {
     { MP_QSTR_framesize,       MP_ARG_REQUIRED | MP_ARG_INT, {.u_int = FRAMESIZE_QQVGA} },
   };
 
@@ -228,7 +228,7 @@ STATIC mp_obj_t sensor_ov2640_setframesize(size_t n_args, const mp_obj_t *pos_ar
 	s->set_framesize(s, framesize);
 	
 	if(is_init){
-		ili9341_Fill(0,0,lcddev.width,lcddev.height,lcddev.backcolor);
+		grap_drawFill(0,0,lcddev.width,lcddev.height,lcddev.backcolor);
 	}
 
 	return mp_obj_new_int(framesize);
@@ -249,7 +249,7 @@ static void display_task(void *pvParameter)
 			pic = esp_camera_fb_get();
 			x = (lcddev.width - pic->width)>>1;
 			y = (lcddev.height - pic->height)>>1;
-			ili9341_cam_full(x,y,pic->width, pic->height,(uint16_t *)pic->buf);
+			grap_drawCam(x,y,pic->width, pic->height,(uint16_t *)pic->buf);
 			esp_camera_fb_return(pic);
 		}
 		else{
@@ -259,10 +259,9 @@ static void display_task(void *pvParameter)
 }
 STATIC mp_obj_t sensor_ov2640_display(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
 	if(!is_init){
-		mp_init_ILI9341();
-		ili9341_set_dir(1);
 		lcddev.backcolor = 0x0000;
-		ili9341_Fill(0,0,lcddev.width,lcddev.height,lcddev.backcolor);
+		
+		grap_drawFill(0,0,lcddev.width,lcddev.height,lcddev.backcolor);
 		lcddev.clercolor = lcddev.backcolor;
 		is_init = 1;
 	}
@@ -279,7 +278,7 @@ STATIC mp_obj_t sensor_ov2640_display_stop(size_t n_args, const mp_obj_t *pos_ar
 	 is_display = false;
 	}
 	mp_hal_delay_ms(10);
-	ili9341_Fill(0,0,lcddev.width,lcddev.height,lcddev.backcolor);
+	grap_drawFill(0,0,lcddev.width,lcddev.height,0x0000);
 	return mp_obj_new_int(is_display);
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_KW(sensor_ov2640_display_stop_obj,0, sensor_ov2640_display_stop);
@@ -355,10 +354,18 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_KW(sensor_ov2640_deinit_obj,0, sensor_ov2640_dein
 
 STATIC mp_obj_t sensor_ov2640_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_kw, const mp_obj_t *all_args) {
 
-	// check arguments
-	mp_arg_check_num(n_args, n_kw, 0, MP_OBJ_FUN_ARGS_MAX, true);
+	static const mp_arg_t allowed_args[] = {
+			{ MP_QSTR_frame, MP_ARG_INT, {.u_int = 1} },
+	};
 
-	 framesize = FRAMESIZE_XGA;
+	mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
+	mp_arg_parse_all_kw_array(n_args, n_kw, all_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
+	fb_buf = args[0].u_int;
+	
+	if(fb_buf >= 2) fb_buf = 2;
+	else fb_buf = 1;
+	
+	framesize = FRAMESIZE_XGA;
 
 	esp_err_t err = init_camera(PIXFORMAT_RGB565, framesize);
 	if (err != ESP_OK) {

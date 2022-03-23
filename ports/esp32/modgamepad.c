@@ -72,8 +72,8 @@ VALUE	KEY
 Byte6:
 button
 BIT		KEY
-bit7	
-bit6	
+bit7	AOK
+bit6	BOK
 bit5	START
 bit4	BACK
 bit3	RT
@@ -81,19 +81,33 @@ bit2	LT
 bit1	RB
 bit0	LB
 ****************************************************************/
+#define COEFF	14
 STATIC mp_obj_t gamepad_read(mp_obj_t self_in)
 {
+
 	uint16_t leftX=0,leftY=0,rightX =0,rightY=0;
 	uint8_t keyByte5=0,keyByte6=0;
+	
 	mp_obj_t tuple[8];
 	tuple[0] = mp_obj_new_int(0x01);  //0x01
 #if MICROPY_ENABLE_PSXCONTROLLER
 	gamepad_get_adc(&leftX,&leftY,&rightX,&rightY);
 	gamepad_get_key(&keyByte5,&keyByte6);
-	tuple[1] = mp_obj_new_int(leftX>>2);
-	tuple[2] = mp_obj_new_int(leftY>>2);
-	tuple[3] = mp_obj_new_int(rightX>>2);
-	tuple[4] = mp_obj_new_int(rightY>>2);
+
+	leftX /= COEFF;
+	leftY  /= COEFF;
+	rightX  /= COEFF;
+	rightY /= COEFF;
+	if(leftX >= 255) leftX = 255;
+	if(leftY >= 255) leftY = 255;
+	if(rightX >= 255) rightX = 255;
+	if(rightY >= 255) rightY = 255;
+	
+	tuple[1] = mp_obj_new_int(leftX);
+	tuple[2] = mp_obj_new_int(leftY);
+	tuple[3] = mp_obj_new_int(rightX);
+	tuple[4] = mp_obj_new_int(rightY);
+	
 	tuple[5] = mp_obj_new_int(keyByte5);
 	tuple[6] = mp_obj_new_int(keyByte6);
 #else
@@ -109,6 +123,7 @@ STATIC mp_obj_t gamepad_read(mp_obj_t self_in)
 }STATIC MP_DEFINE_CONST_FUN_OBJ_1(gamepad_read_obj, gamepad_read);
 
 //----------------------------------------------------------------------------------
+
 STATIC mp_obj_t gamepad_deinit(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
 
 	vTaskDelay(2000 / portTICK_RATE_MS);

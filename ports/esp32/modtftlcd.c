@@ -44,6 +44,7 @@
 
 _lcd_dev lcddev;
 
+Graphics_Display * draw_global = NULL;
 
 void grap_drawLine(const Graphics_Display *display, uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t color)
 {
@@ -226,6 +227,30 @@ void grap_drawStr(const Graphics_Display *display, uint16_t x,uint16_t y,uint16_
 	}  
 }
 
+void grap_drawCam(uint16_t x,uint16_t y,uint16_t width,uint16_t height,uint16_t *color)
+{
+	if(draw_global == NULL){
+		printf("draw_global is null\r\n");
+		return;
+	}
+	draw_global->callDrawCam(x,y,width,height,color);
+}
+void grap_drawFull(uint16_t x,uint16_t y,uint16_t width,uint16_t height,uint16_t *color)
+{
+	if(draw_global == NULL){
+		printf("draw_global is null\r\n");
+		return;
+	}
+	draw_global->callDrawFlush(x,y,width,height,color);
+}
+void grap_drawFill(uint16_t x,uint16_t y,uint16_t width,uint16_t height,uint16_t color)
+{
+	if(draw_global == NULL){
+		printf("draw_global is null\r\n");
+		return;
+	}
+	draw_global->callDrawFill(x,y,width,height,color);
+}
 //------------------------------------------------------------------------------------------------------
 #if MICROPY_PY_PICLIB
 

@@ -100,7 +100,8 @@ STATIC void lcd_spibus_init(lcd_spibus_t *self)
 		.quadwp_io_num=-1,
 		.quadhd_io_num=-1,
 		#if CONFIG_ESP32_SPIRAM_SUPPORT || CONFIG_ESP32S2_SPIRAM_SUPPORT || CONFIG_ESP32S3_SPIRAM_SUPPORT
-		.max_transfer_sz=200*1024,
+		// .max_transfer_sz=200*1024,
+		.max_transfer_sz=2*240*240+10,
 		#else
 		.max_transfer_sz=11*1024,
 		#endif
@@ -200,9 +201,7 @@ void  lcd_bus_init(void)
 		self->dc   		= LCD_PIN_DC;
 		self->rst  		= LCD_PIN_RST;
 		self->spihost	= LCD_HOST;
-
 		lcd_spibus_init(self);
-		
 		lcd_global_init(self->dc,GPIO_MODE_OUTPUT,2);
 		lcd_global_init(self->rst,GPIO_MODE_OUTPUT,2);
 		
