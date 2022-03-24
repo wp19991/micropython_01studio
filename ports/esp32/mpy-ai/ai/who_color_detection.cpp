@@ -32,6 +32,8 @@ static TaskHandle_t process_handler = NULL;
 static TaskHandle_t event_handler = NULL;
 
 static unsigned int color_index = 0;
+camera_fb_t *frame = NULL;
+
 
 vector<color_info_t> std_color_info = {{{156, 10, 70, 255, 90, 255}, 64, "red"},
                                        {{11, 22, 70, 255, 90, 255}, 64, "orange"},
@@ -56,45 +58,49 @@ vector<color_info_t> std_color_info = {{{156, 10, 70, 255, 90, 255}, 64, "red"},
 #define RGB565_LCD_GRAY 0x1084
 #define RGB565_LCD_BLACK 0x0000
 
+#define RGB565_MASK_RED 0xF800
+#define RGB565_MASK_GREEN 0x07E0
+#define RGB565_MASK_BLUE 0x001F
+
 #define FRAME_DELAY_NUM 16
 
 #if MICROPY_HW_ESPAI
 #include "modespai.h"
 #endif
 
-// static void rgb_print(camera_fb_t *fb, uint32_t color, const char *str)
-// {
-    // fb_gfx_print(fb, (fb->width - (strlen(str) * 14)) / 2, 10, color, str);
-// }
+static void rgb_print(camera_fb_t *fb, uint32_t color, const char *str)
+{
+    fb_gfx_print(fb, (fb->width - (strlen(str) * 14)) / 2, 10, color, str);
+}
 
-// static int rgb_printf(camera_fb_t *fb, uint32_t color, const char *format, ...)
-// {
-    // char loc_buf[64];
-    // char *temp = loc_buf;
-    // int len;
-    // va_list arg;
-    // va_list copy;
-    // va_start(arg, format);
-    // va_copy(copy, arg);
-    // len = vsnprintf(loc_buf, sizeof(loc_buf), format, arg);
-    // va_end(copy);
-    // if (len >= sizeof(loc_buf))
-    // {
-        // temp = (char *)m_malloc(len + 1);
-        // if (temp == NULL)
-        // {
-            // return 0;
-        // }
-    // }
-    // vsnprintf(temp, len + 1, format, arg);
-    // va_end(arg);
-    // rgb_print(fb, color, temp);
-    // if (len > 64)
-    // {
-        // free(temp);
-    // }
-    // return len;
-// }
+static int rgb_printf(camera_fb_t *fb, uint32_t color, const char *format, ...)
+{
+    char loc_buf[64];
+    char *temp = loc_buf;
+    int len;
+    va_list arg;
+    va_list copy;
+    va_start(arg, format);
+    va_copy(copy, arg);
+    len = vsnprintf(loc_buf, sizeof(loc_buf), format, arg);
+    va_end(copy);
+    if (len >= sizeof(loc_buf))
+    {
+        temp = (char *)malloc(len + 1);
+        if (temp == NULL)
+        {
+            return 0;
+        }
+    }
+    vsnprintf(temp, len + 1, format, arg);
+    va_end(arg);
+    rgb_print(fb, color, temp);
+    if (len > 64)
+    {
+        free(temp);
+    }
+    return len;
+}
 
 static void draw_color_detection_result(uint16_t *image_ptr, int image_height, int image_width, vector<color_detect_result_t> &results, uint16_t color)
 {
@@ -107,6 +113,10 @@ static void draw_color_detection_result(uint16_t *image_ptr, int image_height, i
                                          results[i].box[2],
                                          results[i].box[3],
                                          color);
+
+		 if(color_index < 9){
+			rgb_printf(frame,RGB565_MASK_RED,(char *)std_color_info[color_index].name.data());
+		 }
 
 	#if MICROPY_HW_ESPAI
 		if(i <= 5)
@@ -124,7 +134,7 @@ static void draw_color_detection_result(uint16_t *image_ptr, int image_height, i
 
 static void task_process_handler(void *arg)
 {
-    camera_fb_t *frame = NULL;
+    
 
     ColorDetector detector;
     detector.set_detection_shape({80, 80, 1});
@@ -142,18 +152,18 @@ static void task_process_handler(void *arg)
     
     detector.set_area_thresh({color_area_threshes[color_area_thresh_index]});
 
+	vector<uint16_t> draw_lcd_colors = {RGB565_LCD_RED, 
+										RGB565_LCD_ORANGE, 
+										RGB565_LCD_YELLOW,
+										RGB565_LCD_GREEN, 
+										RGB565_LCD_CYAN, 
+										RGB565_LCD_BLUE,
+										RGB565_LCD_PURPLE, 
+										RGB565_LCD_WHITE, 
+										RGB565_LCD_GRAY, 
+										// RGB565_LCD_BLACK
+										};
 
-    vector<uint16_t> draw_lcd_colors = {RGB565_LCD_RED, 
-                                        RGB565_LCD_ORANGE, 
-                                        RGB565_LCD_YELLOW,
-                                        RGB565_LCD_GREEN, 
-                                        RGB565_LCD_CYAN, 
-                                        RGB565_LCD_BLUE,
-                                        RGB565_LCD_PURPLE, 
-                                        RGB565_LCD_WHITE, 
-                                        RGB565_LCD_GRAY, 
-                                        // RGB565_LCD_BLACK
-                                        };
     int draw_colors_num = draw_lcd_colors.size();
 
     color_detection_state_t _gEvent;
@@ -249,7 +259,7 @@ static void task_process_handler(void *arg)
                        // for (int i = 0; i < results.size(); ++i)
                         {
                             draw_color_detection_result((uint16_t *)frame->buf, (int)frame->height, (int)frame->width, results[color_index], draw_lcd_colors[color_index % draw_colors_num]);
-						
+							
 						}
                     }
                     else

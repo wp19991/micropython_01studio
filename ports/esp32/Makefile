@@ -4,9 +4,11 @@
 
 # Select the board to build for, defaulting to GENERIC.
 # BOARD ?= PYWIFI_S2P
-BOARD ?= PYWIFI_S3P
+# BOARD ?= PYWIFI_S3P
 # BOARD ?= PYWIFI_S3PR8
+BOARD ?= PYWIFI_S3P_AI
 # BOARD ?= PYCONTROLLER
+# BOARD ?= PYCLOCK
 # If the build directory is not given, make it reflect the board name.
 BUILD ?= build-$(BOARD)
 

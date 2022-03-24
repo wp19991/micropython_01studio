@@ -43,7 +43,7 @@
 #include "ST7789.h"
 
 #include "global.h"
-
+#include "modtftlcd.h"
 #ifdef MICROPY_PY_PICLIB
 #include "piclib.h"
 #define PICLIB_PY_QSTR (1)

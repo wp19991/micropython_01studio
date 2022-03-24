@@ -2,7 +2,7 @@
 
 #include "esp_log.h"
 #include "esp_camera.h"
-
+#include <stdio.h>
 #include "dl_image.hpp"
 #include "fb_gfx.h"
 
@@ -38,6 +38,8 @@ static QueueHandle_t xQueueFrameI = NULL;
 static QueueHandle_t xQueueEvent = NULL;
 static QueueHandle_t xQueueFrameO = NULL;
 static QueueHandle_t xQueueResult = NULL;
+static QueueHandle_t xQueueDeID = NULL;
+
 
 static TaskHandle_t process_handler = NULL;
 static TaskHandle_t event_handler = NULL;
@@ -47,6 +49,7 @@ static bool gReturnFB = true;
 static face_info_t recognize_result;
 
 static uint16_t setMOde_result;
+static uint16_t delte_ID = 0;
 
 SemaphoreHandle_t xMutex;
 
@@ -146,6 +149,7 @@ static void task_process_handler(void *arg)
     recognizer_state_t _gEvent;
     recognizer->set_partition(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_ANY, "fr");
     // int partition_result = recognizer->set_ids_from_flash();
+	recognizer->set_ids_from_flash();
 
     while (true)
     {
@@ -169,11 +173,16 @@ static void task_process_handler(void *arg)
 				if(_gEvent == DELETE){
 
 					vTaskDelay(10);
-					
-					recognizer->delete_id(true);
+
+					xQueueReceive(xQueueDeID, &delte_ID, portMAX_DELAY);
+					if(delte_ID){
+						recognizer->delete_id(delte_ID,true);
+					}else{
+						recognizer->delete_id(true);
+					}
 					
 					ESP_LOGI("DELETE", "% d IDs left", recognizer->get_enrolled_id_num());
-					
+
 					if(xQueueResult){
 						setMOde_result = recognizer->get_enrolled_id_num();
 						xQueueSend(xQueueResult, &setMOde_result, portMAX_DELAY);
@@ -201,7 +210,8 @@ static void task_process_handler(void *arg)
                         recognize_result = recognizer->recognize((uint16_t *)frame->buf, {(int)frame->height, (int)frame->width, 3}, detect_results.front().keypoint);
                         //print_detection_result(detect_results);
 
-                            ESP_LOGI("RECOGNIZE", "Similarity: %f, Match ID: %d", recognize_result.similarity, recognize_result.id);
+                            ESP_LOGI("RECOGNIZE", "Similarity: %f, Match ID: %d,", recognize_result.similarity, recognize_result.id);
+
 						#if MICROPY_HW_ESPAI
 							get_recognition_result(detect_results);
 							if (recognize_result.id > 0){
@@ -252,7 +262,7 @@ static void task_process_handler(void *arg)
 
                     case SHOW_STATE_RECOGNIZE:
                         if (recognize_result.id > 0){
-							rgb_printf(frame, RGB565_MASK_GREEN, "ID %d", recognize_result.id);
+							rgb_printf(frame, RGB565_MASK_GREEN, "ID %d,%0.2f", recognize_result.id, recognize_result.similarity);
 						}
                         else{
 							rgb_print(frame, RGB565_MASK_RED, "who ?");
@@ -288,10 +298,10 @@ static void task_process_handler(void *arg)
 
                 xQueueSend(xQueueFrameO, &frame, portMAX_DELAY);
             }
-            else if (gReturnFB)
-            {
-                esp_camera_fb_return(frame);
-            }
+            // else if (gReturnFB)
+            // {
+                // esp_camera_fb_return(frame);
+            // }
             // else
             // {
                 // free(frame);
@@ -321,13 +331,13 @@ void register_human_face_recognition(const QueueHandle_t frame_i,
                                      const QueueHandle_t event,
                                      const QueueHandle_t result,
                                      const QueueHandle_t frame_o,
-                                     const bool camera_fb_return)
+                                     const QueueHandle_t delteId)
 {
     xQueueFrameI = frame_i;
     xQueueFrameO = frame_o;
     xQueueEvent = event;
     xQueueResult = result;
-    gReturnFB = camera_fb_return;
+    xQueueDeID = delteId;
     xMutex = xSemaphoreCreateMutex();
 
 	xTaskCreate( task_process_handler, TAG, (4 * 1024) / sizeof(StackType_t), NULL, 5, &process_handler );

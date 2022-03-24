@@ -335,6 +335,11 @@ elseif(IDF_TARGET STREQUAL "esp32s3")
 	# list(APPEND IDF_COMPONENTS usb)
 endif()
 
+# if(MICROPY_PORT_ESPAI STREQUAL "y")
+    # list(APPEND IDF_COMPONENTS esp-dl)
+	# list(APPEND IDF_COMPONENTS esp-code-scanner)
+# endif()
+
 # Register the main IDF component.
 idf_component_register(
     SRCS

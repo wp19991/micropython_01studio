@@ -89,12 +89,12 @@ extern void grap_drawChar(const Graphics_Display *display, uint16_t x,uint16_t y
 extern void grap_drawStr(const Graphics_Display *display, uint16_t x,uint16_t y,uint16_t width,uint16_t height,
 									uint8_t size, char *p , uint16_t color,uint16_t backcolor);
 
+extern Graphics_Display * draw_global;
+
 #if MICROPY_PY_PICLIB
 
 #include "extmod/vfs.h"
 #include "extmod/vfs_fat.h"
-
-extern Graphics_Display * draw_global;
 
 extern uint8_t grap_drawCached(const Graphics_Display *display,
 								void *fs, uint16_t x, uint16_t y, const char *filename);

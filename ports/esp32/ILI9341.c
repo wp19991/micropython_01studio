@@ -37,13 +37,13 @@
 
 #if (MICROPY_HW_LCD32 & MICROPY_ENABLE_TFTLCD)
 	
+#include "modtftlcd.h"
+
 #include "lcd_spibus.h"
 
 #include "ILI9341.h"
 
 #include "global.h"
-
-
 
 #ifdef MICROPY_PY_PICLIB
 #include "piclib.h"

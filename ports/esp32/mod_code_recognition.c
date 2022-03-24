@@ -72,6 +72,14 @@ static void deinit_task(void)
 		vTaskDelete(TaskFrame_handle);
 	}
 }
+void display_box(uint16_t *buf,uint16_t lcd_width,uint16_t color)
+{
+	for(uint16_t i=0; i<25; i++){
+		for(uint16_t j=0; j<25; j++){
+			buf[i*lcd_width+j] = color;
+		}
+	}
+}
 static void task_camfb_handler(void *arg)
 {
 	camera_fb_t *frame = NULL;
@@ -94,6 +102,7 @@ static void task_camfb_handler(void *arg)
             result = esp_code_scanner_result(esp_scn);
 			memset(read_buf, '\0', 200);
 			strncpy(read_buf,result.data , result.datalen);
+			display_box((uint16_t *)frame->buf,frame->width,0x001F);
         }else{
 			is_code = 0;
 		}

@@ -39,7 +39,7 @@
 #if (MICROPY_HW_LCD18 & MICROPY_ENABLE_TFTLCD)
 	
 #include "lcd_spibus.h"
-
+#include "modtftlcd.h"
 #include "ST7735.h"
 
 #include "global.h"

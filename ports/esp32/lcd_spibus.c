@@ -48,7 +48,7 @@
 #define SPI_DMA_CH	3
 #elif defined CONFIG_IDF_TARGET_ESP32C3
 #define LCD_HOST    	SPI2_HOST
-#define SPI_DMA_CH    LCD_HOST
+#define SPI_DMA_CH		SPI_DMA_CH_AUTO
 #elif defined CONFIG_IDF_TARGET_ESP32S3
 #define LCD_HOST    SPI2_HOST
 #define SPI_DMA_CH	SPI_DMA_CH_AUTO
@@ -64,7 +64,7 @@ static void lcd_global_init(gpio_num_t gpio,gpio_mode_t io_mode,uint8_t mode)
 {
 	if (rtc_gpio_is_valid_gpio(gpio)) {
 		#if CONFIG_IDF_TARGET_ESP32C3
-		gpio_reset_pin(gpio);
+		// gpio_reset_pin(gpio);
 		#else
 		rtc_gpio_deinit(gpio);
 		#endif
@@ -202,6 +202,7 @@ void  lcd_bus_init(void)
 		self->rst  		= LCD_PIN_RST;
 		self->spihost	= LCD_HOST;
 		lcd_spibus_init(self);
+		
 		lcd_global_init(self->dc,GPIO_MODE_OUTPUT,2);
 		lcd_global_init(self->rst,GPIO_MODE_OUTPUT,2);
 		

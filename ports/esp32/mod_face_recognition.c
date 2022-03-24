@@ -64,6 +64,7 @@ static QueueHandle_t xQueueLCDFrame = NULL;
 static QueueHandle_t xQueueEventLogic = NULL;
 
 static QueueHandle_t xQueueSetMOde = NULL;
+static QueueHandle_t xQueueDeteleID = NULL;
 
 STATIC camera_fb_t *get_frame = NULL;
 
@@ -92,7 +93,9 @@ static void deinit_task(void)
 	if (xQueueSetMOde) {
         vQueueDelete(xQueueSetMOde);
     }
-	
+	if (xQueueDeteleID) {
+        vQueueDelete(xQueueDeteleID);
+    }
 }
 static void task_camfb_handler(void *arg)
 {
@@ -128,12 +131,12 @@ STATIC mp_obj_t face_recognition_start(size_t n_args, const mp_obj_t *pos_args, 
     xQueueAIFrame = xQueueCreate(2, sizeof(camera_fb_t *));
     xQueueLCDFrame = xQueueCreate(2, sizeof(camera_fb_t *));
     xQueueEventLogic = xQueueCreate(1, sizeof(int *));
-	
 	xQueueSetMOde = xQueueCreate(1, sizeof(uint8_t *));
+	xQueueDeteleID = xQueueCreate(1, sizeof(uint16_t *));
 	
 	xTaskCreate( task_camfb_handler, "cam_fb", AI_TASK_STACK_SIZE / sizeof(StackType_t), NULL, AI_TASK_PRIORITY+1, &TaskFrame_handle );	
 
-	register_human_face_recognition(xQueueAIFrame, xQueueEventLogic, xQueueSetMOde, xQueueLCDFrame, false);
+	register_human_face_recognition(xQueueAIFrame, xQueueEventLogic, xQueueSetMOde, xQueueLCDFrame, xQueueDeteleID);
 
 	xTaskCreatePinnedToCore(task_lcd_handler, "cam_lcd", 10 * 1024, NULL, 5, &TaskLCD_handle, 1);
 
@@ -194,8 +197,18 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_KW(face_recognition_recognize_obj,0, face_recogni
 //删除
 STATIC mp_obj_t face_recognition_delete(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
 
+	STATIC const mp_arg_t de_args[] = {
+		{ MP_QSTR_id,       MP_ARG_INT, {.u_int = 0} },
+	};
+
+	mp_arg_val_t args[MP_ARRAY_SIZE(de_args)];
+	mp_arg_parse_all(n_args-1, pos_args+1, kw_args, MP_ARRAY_SIZE(de_args), de_args, args);
+
+	uint16_t deid = args[0].u_int;
 	recognizer_state = DELETE;
 	xQueueSend(xQueueEventLogic, &recognizer_state, portMAX_DELAY);
+	
+	xQueueSend(xQueueDeteleID, &deid, portMAX_DELAY);
 	
 	if(xQueueReceive(xQueueSetMOde, &setMode, 300)){
 		#if MICROPY_HW_ESPAI
