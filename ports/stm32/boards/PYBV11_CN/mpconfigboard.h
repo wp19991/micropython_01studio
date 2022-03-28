@@ -110,8 +110,8 @@
 #define MBOOT_I2C_SDA (pin_B9)
 #define MBOOT_I2C_ALTFUNC (4)
 
-#define MICROPY_PY_THREAD_GIL				(1)
-#define MICROPY_PY_THREAD					(1)
+// #define MICROPY_PY_THREAD_GIL				(1)
+// #define MICROPY_PY_THREAD					(1)
 
 #define MICROPY_PY_PICLIB					(1) //图片解码
 #define MICROPY_ENABLE_SPILCD				(1)

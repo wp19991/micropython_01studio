@@ -4,15 +4,15 @@
 #define MICROPY_HW_HAS_SWITCH       (1)
 #define MICROPY_HW_HAS_FLASH        (1)
 #define MICROPY_HW_HAS_MMA7660      (0)
-#define MICROPY_HW_HAS_LCD          (1)
+// #define MICROPY_HW_HAS_LCD          (1)
 #define MICROPY_HW_ENABLE_RTC       (1)
 #define MICROPY_HW_ENABLE_USB       (1)
 #define MICROPY_HW_ENABLE_SERVO     (1)
 #define MICROPY_HW_ENABLE_SDCARD    (0)
 
 // thread
-#define MICROPY_PY_THREAD_GIL					(1)
-#define MICROPY_PY_THREAD						(1)
+// #define MICROPY_PY_THREAD_GIL					(1)
+// #define MICROPY_PY_THREAD						(1)
 
 // HSE is 12MHz
 #define MICROPY_HW_CLK_PLLM (12)
@@ -86,30 +86,29 @@
 
 // MMA accelerometer config
 //#define MICROPY_HW_MMA_AVDD_PIN     (pin_A10)
-#define MICROPY_PY_THREAD_GIL					(1)
-#define MICROPY_PY_THREAD							(1)
+// #define MICROPY_PY_THREAD_GIL					(1)
+// #define MICROPY_PY_THREAD							(1)
 
-#define LCD_PIN_DC    	(pin_B10)
-#define LCD_PIN_RST    	(pin_B9)
-#define LCD_PIN_CS    	(pin_B12)
 
-#define XPT_PIN_IRQ    						(pin_A8)
-#define XPT_PIN_CS    						(pin_B8)
+#define LCD_PIN_DC					(pin_B10)
+#define LCD_PIN_RST					(pin_B9)
+#define LCD_PIN_CS					(pin_B12)
 
-#define MICROPY_PY_PICLIB							(1) //图片解码
+#define XPT_PIN_IRQ					(pin_A8)
+#define XPT_PIN_CS					(pin_B8)
+
+#define MICROPY_PY_PICLIB				(1) //图片解码
 #define MICROPY_ENABLE_SPILCD			(1)
 #define MICROPY_ENABLE_TFTLCD			(1)
-#define MICROPY_HW_LCD32					(1)	
-#define MICROPY_HW_LCD18					(1)	
-#define MICROPY_HW_LCD15					(1)
+#define MICROPY_HW_LCD32				(1)	
 
 #define	MICROPY_ENABLE_TOUCH			(1)
 #define	MICROPY_HW_XPT2046				(1)
-
+// #define	MICROPY_ENABLE_IIC_DEV			(1)
 #define MICROPY_ENABLE_GUI				(1)
 #define MICROPY_GUI_BUTTON				(1)
-#define GUI_BTN_NUM_MAX 					(20)
-#define GUI_BTN_STR_LEN 					(20)
+#define GUI_BTN_NUM_MAX					(20)
+#define GUI_BTN_STR_LEN					(20)
 
 
 

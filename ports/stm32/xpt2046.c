@@ -56,7 +56,6 @@ typedef struct _xpt2046_obj_t
 	uint8_t avg_last;
 } xpt2046_obj_t;
 
-
 typedef struct _xpt_cail_t
 {
 	short xoff;

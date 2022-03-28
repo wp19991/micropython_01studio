@@ -50,6 +50,7 @@
 #define	MICROPY_HW_LCD7R						(1)
 //touch
 #define	MICROPY_ENABLE_TOUCH					(1)
+#define	MICROPY_ENABLE_IIC_DEV					(1)
 #define	MICROPY_HW_GT1151						(1)
 #define MICROPY_HW_FT54X6						(1)
 #define MICROPY_HW_GT911						(1)

@@ -473,7 +473,7 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_KW(ILI9341_drawLin_obj, 4, ILI9341_drawLin);
 STATIC mp_obj_t ILI9341_drawRect(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
 
   STATIC const mp_arg_t Rect_args[] = {
-		{ MP_QSTR_x,        		MP_ARG_INT, {.u_int = 0} },
+	{ MP_QSTR_x,        		MP_ARG_INT, {.u_int = 0} },
     { MP_QSTR_y,        		MP_ARG_INT, {.u_int = 0} },
     { MP_QSTR_width,     		MP_ARG_INT, {.u_int = 0} },
     { MP_QSTR_height,    		MP_ARG_INT, {.u_int = 0} },
@@ -571,6 +571,32 @@ STATIC mp_obj_t ILI9341_drawCircle(size_t n_args, const mp_obj_t *pos_args, mp_m
   return mp_const_none;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_KW(ILI9341_drawCircle_obj, 1, ILI9341_drawCircle);
+
+//---------------------------华丽的分割线-------------------------------------------------------------------
+STATIC mp_obj_t ILI9341_write_buf(size_t n_args, const mp_obj_t *args) {
+	if(6 != n_args) {
+		mp_raise_ValueError(MP_ERROR_TEXT("lcd write_buf parameter error \n"));
+	}
+	unsigned short start_x = mp_obj_get_int(args[2]);
+	unsigned short start_y = mp_obj_get_int(args[3]);
+	unsigned short width = mp_obj_get_int(args[4]);
+	unsigned short height = mp_obj_get_int(args[5]);
+
+	mp_buffer_info_t lcd_write_data = {0};
+
+	
+	mp_get_buffer_raise(args[1], &lcd_write_data, MP_BUFFER_READ);
+	
+	if(lcd_write_data.buf == NULL || lcd_write_data.len == 0) {
+		return mp_obj_new_int(-3);
+	}
+
+	grap_drawFull(start_x, start_y,width,height,(uint16_t *)lcd_write_data.buf);
+
+    return mp_obj_new_int(1);
+}
+STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(ILI9341_write_buf_obj, 1, 6, ILI9341_write_buf);
+
 //---------------------------华丽的分割线-------------------------------------------------------------------
 STATIC mp_obj_t ILI9341_drawStr(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
 
@@ -875,20 +901,22 @@ STATIC mp_obj_t ILI9341_make_new(const mp_obj_type_t *type, size_t n_args, size_
 	ili9341_Fill(0,0,lcddev.width,lcddev.height,lcddev.backcolor);
 
 	lcddev.clercolor = lcddev.backcolor;
-
+	draw_global = &ili_glcd;
 	return MP_OBJ_FROM_PTR(self);
 }
 //---------------------------华丽的分割线-------------------------------------------------------------------
 STATIC const mp_rom_map_elem_t ILI9341_locals_dict_table[] = {
 	// instance methods
 	{ MP_ROM_QSTR(MP_QSTR___del__), MP_ROM_PTR(&ILI9341_deinit_obj) },
-  { MP_ROM_QSTR(MP_QSTR_deinit), MP_ROM_PTR(&ILI9341_deinit_obj) },
+	{ MP_ROM_QSTR(MP_QSTR_deinit), MP_ROM_PTR(&ILI9341_deinit_obj) },
 	{ MP_ROM_QSTR(MP_QSTR_fill), MP_ROM_PTR(&ILI9341_drawpFull_obj) },
 	{ MP_ROM_QSTR(MP_QSTR_drawPixel), MP_ROM_PTR(&ILI9341_drawpPixel_obj) },
 	{ MP_ROM_QSTR(MP_QSTR_drawLine), MP_ROM_PTR(&ILI9341_drawLin_obj) },
 	{ MP_ROM_QSTR(MP_QSTR_drawRect), MP_ROM_PTR(&ILI9341_drawRect_obj) },
 	{ MP_ROM_QSTR(MP_QSTR_drawCircle), MP_ROM_PTR(&ILI9341_drawCircle_obj) },
 	{ MP_ROM_QSTR(MP_QSTR_printStr), MP_ROM_PTR(&ILI9341_drawStr_obj) },
+	{ MP_ROM_QSTR(MP_QSTR_write_buf), MP_ROM_PTR(&ILI9341_write_buf_obj) },
+	
 	#if MICROPY_PY_PICLIB
 	{ MP_ROM_QSTR(MP_QSTR_Picture), MP_ROM_PTR(&ILI9341_drawPicture_obj) },
 	{ MP_ROM_QSTR(MP_QSTR_CachePicture), MP_ROM_PTR(&ILI9341_CachePicture_obj) },

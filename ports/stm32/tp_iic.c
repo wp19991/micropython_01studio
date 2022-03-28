@@ -24,7 +24,7 @@
 #include "systick.h"
 #include "extint.h"
 
-#if (MICROPY_ENABLE_TOUCH)
+#if (MICROPY_ENABLE_IIC_DEV)
 
 #include "tp_iic.h"
 

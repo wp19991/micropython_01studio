@@ -961,6 +961,8 @@ STATIC mp_obj_t tftlcd_lcd43m_make_new(const mp_obj_type_t *type, size_t n_args,
 
 	tftlcd_lcd43m_obj.base.type = &tftlcd_lcd43m_type;
 
+	draw_global = &lcd43_glcd;
+
 	return MP_OBJ_FROM_PTR(&tftlcd_lcd43m_obj);
 }
 
@@ -1094,6 +1096,31 @@ STATIC mp_obj_t tftlcd_lcd43m_drawRect(size_t n_args, const mp_obj_t *pos_args, 
   return mp_const_none;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_KW(tftlcd_lcd43m_drawRect_obj, 1, tftlcd_lcd43m_drawRect);
+
+//---------------------------华丽的分割线-------------------------------------------------------------------
+STATIC mp_obj_t tftlcd_lcd43m_write_buf(size_t n_args, const mp_obj_t *args) {
+	if(6 != n_args) {
+		mp_raise_ValueError(MP_ERROR_TEXT("lcd write_buf parameter error \n"));
+	}
+	unsigned short start_x = mp_obj_get_int(args[2]);
+	unsigned short start_y = mp_obj_get_int(args[3]);
+	unsigned short width = mp_obj_get_int(args[4]);
+	unsigned short height = mp_obj_get_int(args[5]);
+
+	mp_buffer_info_t lcd_write_data = {0};
+
+	
+	mp_get_buffer_raise(args[1], &lcd_write_data, MP_BUFFER_READ);
+	
+	if(lcd_write_data.buf == NULL || lcd_write_data.len == 0) {
+		return mp_obj_new_int(-3);
+	}
+
+	grap_drawFull(start_x, start_y,width,height,(uint16_t *)lcd_write_data.buf);
+
+    return mp_obj_new_int(1);
+}
+STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(tftlcd_lcd43m_write_buf_obj, 1, 6, tftlcd_lcd43m_write_buf);
 
 //------------------------------------------------------------------------------------------------------
 
@@ -1237,71 +1264,58 @@ STATIC mp_obj_t tftlcd_lcd43m_Picture(size_t n_args, const mp_obj_t *pos_args, m
     mp_buffer_info_t bufinfo;
     if (mp_obj_is_int(args[2].u_obj)) {
       mp_raise_ValueError(MP_ERROR_TEXT("picture parameter error"));
-    } 
-		else 
-		{
-        mp_get_buffer_raise(args[2].u_obj, &bufinfo, MP_BUFFER_READ);
+    }else {
+		mp_get_buffer_raise(args[2].u_obj, &bufinfo, MP_BUFFER_READ);
+		
+		uint8_t res=0;
+		mp_obj_t tuple[2];
+		const char *file_path = mp_obj_str_get_str(get_path(bufinfo.buf ,&res));
+		const char *ftype = mp_obj_str_get_str(file_type(file_path));
+		mp_vfs_mount_t *vfs = MP_STATE_VM(vfs_mount_table);
+		if(res == 1){
+			vfs = vfs->next;
+			is_sdcard = 1;
+		}else{
+			is_sdcard = 0;
+		}
+		
+		fs_user_mount_t *vfs_fat = MP_OBJ_TO_PTR(vfs->obj);
+		//---------------------------------------------------------------
+		if(args[3].u_bool == true){
+			uint8_t file_len = strlen(file_path);
+			char *file_buf = (char *)m_malloc(file_len+7);  
 
-				uint8_t res=0;
-				
-				mp_obj_t tuple[2];
-				
-				const char *file_path = mp_obj_str_get_str(get_path(bufinfo.buf ,&res));
-				const char *ftype = mp_obj_str_get_str(file_type(file_path));
-				 
-				 mp_vfs_mount_t *vfs = MP_STATE_VM(vfs_mount_table);
-				 if(res == 1){
-					 vfs = vfs->next;
-					 is_sdcard = 1;
-				 }else{
-					 is_sdcard = 0;
-				 }
-				 fs_user_mount_t *vfs_fat = MP_OBJ_TO_PTR(vfs->obj);
-				 //---------------------------------------------------------------
-					 if(args[3].u_bool == true){
-						 uint8_t file_len = strlen(file_path);
-						 char *file_buf = (char *)m_malloc(file_len+7);  
-		 
-						 memset(file_buf, '\0', file_len+7);
-						 sprintf(file_buf,"%s%s",file_path,".cache");
-						 res = grap_drawCached(&lcd43_glcd,&vfs_fat->fatfs, args[0].u_int, args[1].u_int, (const char *)file_buf);
-						 m_free(file_buf);
-						 if(!res) return mp_const_none;
-					 }
-				 //---------------------------------------------------------------
+			memset(file_buf, '\0', file_len+7);
+			sprintf(file_buf,"%s%s",file_path,".cache");
+			res = grap_drawCached(&lcd43_glcd,&vfs_fat->fatfs, args[0].u_int, args[1].u_int, (const char *)file_buf);
+			m_free(file_buf);
+			if(!res) return mp_const_none;
+		}
+		//---------------------------------------------------------------
+		piclib_init();
+		if(strncmp(ftype,"jpg",3) == 0 || strncmp(ftype,"jpeg",4) == 0){
+			#if MICROPY_PY_HJPEG_DECODE
+			if(hjpgd_decode(&vfs_fat->fatfs,file_path, args[0].u_int,args[1].u_int)){
+				printf("hjpgd_decode error\r\n");
+			}
+			#else
+			jpg_decode(&vfs_fat->fatfs,file_path, args[0].u_int,args[1].u_int ,1);
+			#endif
+		}else if(strncmp(ftype , "bmp" , 3) == 0){
+			stdbmp_decode(&vfs_fat->fatfs ,file_path, args[0].u_int, args[1].u_int) ;
+		}else{
+			mp_raise_ValueError(MP_ERROR_TEXT("picture file type error"));
+			return mp_const_none;
+		}
 
-				 piclib_init();
-				 
-				if(strncmp(ftype,"jpg",3) == 0 || strncmp(ftype,"jpeg",4) == 0)
-					{
-						
-						#if MICROPY_PY_HJPEG_DECODE
-						if(hjpgd_decode(&vfs_fat->fatfs,file_path, args[0].u_int,args[1].u_int)){
-							printf("hjpgd_decode error\r\n");
-						}
-						#else
-							jpg_decode(&vfs_fat->fatfs,file_path, args[0].u_int,args[1].u_int ,1);
-						#endif
-					}
-				else if(strncmp(ftype , "bmp" , 3) == 0)
-					{
-						stdbmp_decode(&vfs_fat->fatfs ,file_path, args[0].u_int, args[1].u_int) ;
-					}
-				else
-					{
-						mp_raise_ValueError(MP_ERROR_TEXT("picture file type error"));
-						return mp_const_none;
-					}
-
-				tuple[0] = mp_obj_new_int(picinfo.S_Height);
-				tuple[1] = mp_obj_new_int(picinfo.S_Width);
-				return mp_obj_new_tuple(2, tuple);
-    }
+		tuple[0] = mp_obj_new_int(picinfo.S_Height);
+		tuple[1] = mp_obj_new_int(picinfo.S_Width);
+		return mp_obj_new_tuple(2, tuple);
+	}
+  }else{
+	mp_raise_ValueError(MP_ERROR_TEXT("picture parameter is empty"));
   }
-	else{
-      mp_raise_ValueError(MP_ERROR_TEXT("picture parameter is empty"));
-  }
-    return mp_const_none;
+	return mp_const_none;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_KW(tftlcd_lcd43m_Picture_obj, 1, tftlcd_lcd43m_Picture);
 
@@ -1311,16 +1325,16 @@ extern volatile uint8_t Is_FileReadOk;
 // cached file
 STATIC mp_obj_t tftlcd_lcd43g_CachePicture(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
 
-  STATIC const mp_arg_t tft_allowed_args[] = { 
-    { MP_QSTR_file,     MP_ARG_REQUIRED | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL} },
+	STATIC const mp_arg_t tft_allowed_args[] = { 
+		{ MP_QSTR_file,     MP_ARG_REQUIRED | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL} },
 		{ MP_QSTR_path,     MP_ARG_KW_ONLY 	| MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL} },
 		{ MP_QSTR_replace, 	MP_ARG_KW_ONLY 	| MP_ARG_BOOL,{.u_bool = false} },
-  };
+	};
 
-  uint8_t arg_num = MP_ARRAY_SIZE(tft_allowed_args);
-  mp_arg_val_t args[arg_num];
-  mp_arg_parse_all(n_args-1, pos_args+1, kw_args, arg_num, tft_allowed_args, args);
-	
+	uint8_t arg_num = MP_ARRAY_SIZE(tft_allowed_args);
+	mp_arg_val_t args[arg_num];
+	mp_arg_parse_all(n_args-1, pos_args+1, kw_args, arg_num, tft_allowed_args, args);
+
 	uint8_t res=0;
 	#if defined(STM32F4)
 	while(Is_FileReadOk){
@@ -1328,36 +1342,33 @@ STATIC mp_obj_t tftlcd_lcd43g_CachePicture(size_t n_args, const mp_obj_t *pos_ar
 		mp_hal_delay_ms(1000);
 	}
 	#else
-		mp_hal_delay_ms(1000);
+	mp_hal_delay_ms(1000);
 	#endif
-	
+
 	char *path_buf = (char *)m_malloc(50);  //最大支持50字符
 	memset(path_buf, '\0', 50);
-	
-  if(args[0].u_obj !=MP_OBJ_NULL) 
-  {
-    mp_buffer_info_t bufinfo;
-    if (mp_obj_is_int(args[0].u_obj)) {
-      mp_raise_ValueError(MP_ERROR_TEXT("CachePicture parameter error,should is .cache"));
-    } 
-		else 
-		{
+
+	if(args[0].u_obj !=MP_OBJ_NULL) {
+		mp_buffer_info_t bufinfo;
+		if (mp_obj_is_int(args[0].u_obj)) {
+			mp_raise_ValueError(MP_ERROR_TEXT("CachePicture parameter error,should is .cache"));
+		} else{
 			mp_get_buffer_raise(args[0].u_obj, &bufinfo, MP_BUFFER_READ);
 
 			const char *file_path = mp_obj_str_get_str(get_path(bufinfo.buf ,&res));
 			const char *ftype = mp_obj_str_get_str(file_type(file_path));
-			 mp_vfs_mount_t *vfs = MP_STATE_VM(vfs_mount_table);
-			 
-			 if(res == 1){
-				 vfs = vfs->next;
-				 is_sdcard = 1;
-			 }else{
-			 	is_sdcard = 0;
-			 }
+			mp_vfs_mount_t *vfs = MP_STATE_VM(vfs_mount_table);
+
+			if(res == 1){
+				vfs = vfs->next;
+				is_sdcard = 1;
+			}else{
+				is_sdcard = 0;
+			}
 			fs_user_mount_t *vfs_fat = MP_OBJ_TO_PTR(vfs->obj);
 
 			//test file
-			FIL		*f_file;
+			FIL	*f_file;
 			f_file=(FIL *)m_malloc(sizeof(FIL));
 			if(f_file == NULL){
 				mp_raise_ValueError(MP_ERROR_TEXT("malloc f_file error"));
@@ -1373,64 +1384,54 @@ STATIC mp_obj_t tftlcd_lcd43g_CachePicture(size_t n_args, const mp_obj_t *pos_ar
 			}
 
 			memset(path_buf, '\0', 50);
-printf("start loading->%s\r\n",file_path);
+			printf("start loading->%s\r\n",file_path);
 
 			piclib_init();
-			if(strncmp(ftype,"jpg",3) == 0 || strncmp(ftype,"jpeg",4) == 0)
-			{
+			if(strncmp(ftype,"jpg",3) == 0 || strncmp(ftype,"jpeg",4) == 0){
 				res = jpg_decode(&vfs_fat->fatfs,file_path, 0, 0 ,1);
 				if(res){
 					printf("jpg_decode err:%d\r\n",res);
 					return mp_const_none;
 				}
-			}
-			else if(strncmp(ftype , "bmp" , 3) == 0)
-			{
+			}else if(strncmp(ftype , "bmp" , 3) == 0){
 				res = stdbmp_decode(&vfs_fat->fatfs ,file_path, 0, 0) ;
 				printf("bmp_decode err:%d\r\n",res);
 				if(res)return mp_const_none;
-			}
-			else
-			{
+			}else{
 				mp_raise_ValueError(MP_ERROR_TEXT("picture file type error"));
 				return mp_const_none;
 			}
-//-----------------------------------------------------------
-			if(args[1].u_obj !=MP_OBJ_NULL)
-			{
+			//-----------------------------------------------------------
+			if(args[1].u_obj !=MP_OBJ_NULL){
 				mp_get_buffer_raise(args[1].u_obj, &bufinfo, MP_BUFFER_READ);
 				const char *path = mp_obj_str_get_str(get_path(bufinfo.buf ,&res));
 				const char *path_ftype = mp_obj_str_get_str(file_type(path));
 
-				if(strncmp(path_ftype , "cache" , 5))
-				{
+				if(strncmp(path_ftype , "cache" , 5)){
 					mp_raise_ValueError(MP_ERROR_TEXT("CachePicture path file type error"));
 					return mp_const_none;
 				}
 				sprintf(path_buf,"%s",path);
-			}else
-			{
+			}else{
 				sprintf(path_buf,"%s%s",file_path,".cache");
 			}
-//------------------------------------------------
+			//------------------------------------------------
 			res = f_open(&vfs_fat->fatfs,f_file,path_buf,FA_READ);
 			f_close(f_file);
 			f_sync(f_file);
-			
-			if(args[2].u_bool == true || res != 0)
-			{
+
+			if(args[2].u_bool == true || res != 0){
 				grap_newCached(&lcd43_glcd, is_sdcard,&vfs_fat->fatfs, path_buf,picinfo.S_Width, picinfo.S_Height);	
 			}
-			
+
 			f_sync(f_file);
 			m_free(f_file);
-    }
-  }
-	else{
-      mp_raise_ValueError(MP_ERROR_TEXT("CachePicture parameter is empty"));
-  }
+		}
+	}else{
+		mp_raise_ValueError(MP_ERROR_TEXT("CachePicture parameter is empty"));
+	}
 	m_free(path_buf);
-  return mp_const_none;
+	return mp_const_none;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_KW(tftlcd_lcd43g_CachePicture_obj, 1, tftlcd_lcd43g_CachePicture);
 
@@ -1439,12 +1440,14 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_KW(tftlcd_lcd43g_CachePicture_obj, 1, tftlcd_lcd4
 //=======================================================================================================
 STATIC const mp_rom_map_elem_t tftlcd_lcd43m_locals_dict_table[] = {
     // instance methods
-		{ MP_ROM_QSTR(MP_QSTR_fill), MP_ROM_PTR(&tftlcd_lcd43m_clear_obj) },
+	{ MP_ROM_QSTR(MP_QSTR_fill), MP_ROM_PTR(&tftlcd_lcd43m_clear_obj) },
     { MP_ROM_QSTR(MP_QSTR_drawPixel), MP_ROM_PTR(&tftlcd_lcd43m_drawp_obj) },
     { MP_ROM_QSTR(MP_QSTR_drawLine), MP_ROM_PTR(&tftlcd_lcd43m_drawL_obj) },
     { MP_ROM_QSTR(MP_QSTR_drawRect), MP_ROM_PTR(&tftlcd_lcd43m_drawRect_obj) },
     { MP_ROM_QSTR(MP_QSTR_drawCircle), MP_ROM_PTR(&tftlcd_lcd43m_drawCircle_obj) },
     { MP_ROM_QSTR(MP_QSTR_printStr), MP_ROM_PTR(&tftlcd_lcd43m_printStr_obj) },
+	{ MP_ROM_QSTR(MP_QSTR_write_buf), MP_ROM_PTR(&tftlcd_lcd43m_write_buf_obj) },
+	
     #if MICROPY_PY_PICLIB
     { MP_ROM_QSTR(MP_QSTR_Picture), MP_ROM_PTR(&tftlcd_lcd43m_Picture_obj) },
     { MP_ROM_QSTR(MP_QSTR_CachePicture), MP_ROM_PTR(&tftlcd_lcd43g_CachePicture_obj) },

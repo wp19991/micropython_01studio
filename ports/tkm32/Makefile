@@ -340,6 +340,7 @@ SRC_C += \
 	machine_Soft_i2c.c \
 	machine_neopixel.c \
 	dht.c \
+	modtftlcd.c \
 	$(wildcard $(BOARD_DIR)/*.c)
 	
 #pic

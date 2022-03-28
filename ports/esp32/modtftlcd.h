@@ -1,14 +1,12 @@
-/**
-	******************************************************************************
-	* This file is part of the MicroPython project, http://micropython.org/
-	* Copyright (C), 2021 -2023, 01studio Tech. Co., Ltd.http://bbs.01studio.org/
-	* File Name 				 :	lcd43g.h
-	* Author						 :	Folktale
-	* Version 					 :	v1.0
-	* date							 :	2021/3/18
-	* Description 			 :	
-	******************************************************************************
-**/
+/********************************************************************************
+	* Copyright (C), 2022 -2023, 01studio Tech. Co., Ltd.https://www.01studio.cc/
+	* File Name				:	modtftlcd.h
+	* Author				:	Folktale
+	* Version				:	v1.0
+	* date					:	2022/3/25
+	* Description			:	
+******************************************************************************/
+
 /* Define to prevent recursive inclusion -------------------------------------*/
 #ifndef __MODTFTLCD_H
 #define __MODTFTLCD_H
@@ -66,7 +64,7 @@ typedef struct
 	uint8_t color_depth; //8,16,32
 	volatile uint16_t width;
 	volatile uint16_t height;
-  void (*callDrawPoint)(uint16_t x, uint16_t y,uint16_t color);
+	void (*callDrawPoint)(uint16_t x, uint16_t y,uint16_t color);
 	uint16_t (*callReadPoint)(uint16_t x, uint16_t y);
 	void (*callDrawhline)(uint16_t x,uint16_t y,uint16_t len,uint16_t color);
 	void (*callDrawvline)(uint16_t x,uint16_t y,uint16_t len,uint16_t color);
@@ -90,6 +88,9 @@ extern void grap_drawStr(const Graphics_Display *display, uint16_t x,uint16_t y,
 									uint8_t size, char *p , uint16_t color,uint16_t backcolor);
 
 extern Graphics_Display * draw_global;
+extern void grap_drawCam(uint16_t x,uint16_t y,uint16_t width,uint16_t height,uint16_t *color);
+void grap_drawFull(uint16_t x,uint16_t y,uint16_t width,uint16_t height,uint16_t *color);
+void grap_drawFill(uint16_t x,uint16_t y,uint16_t width,uint16_t height,uint16_t color);
 
 #if MICROPY_PY_PICLIB
 
@@ -102,10 +103,6 @@ extern uint8_t grap_drawCached(const Graphics_Display *display,
 extern uint8_t grap_newCached(const Graphics_Display *display, 
 								mp_obj_t stream ,const char *filename, uint16_t width, uint16_t height);
 								
-extern void grap_drawCam(uint16_t x,uint16_t y,uint16_t width,uint16_t height,uint16_t *color);
-void grap_drawFull(uint16_t x,uint16_t y,uint16_t width,uint16_t height,uint16_t *color);
-void grap_drawFill(uint16_t x,uint16_t y,uint16_t width,uint16_t height,uint16_t color);
-
 #endif
 /**
   * @}

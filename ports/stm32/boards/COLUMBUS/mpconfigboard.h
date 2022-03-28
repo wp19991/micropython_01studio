@@ -28,6 +28,7 @@
 
 //touch
 #define	MICROPY_ENABLE_TOUCH			(1)   //enable mode
+#define	MICROPY_ENABLE_IIC_DEV			(1)
 #define	MICROPY_HW_GT1151				(1)   //使用触摸芯片型号
 
 //------------------------------------------------------------------------------------
@@ -65,8 +66,8 @@
 #define MICROPY_HW_DCMI_D7       		(pin_E6)
 #endif
 //===================================================================================
-#define MICROPY_PY_THREAD_GIL			(1)
-#define MICROPY_PY_THREAD				(1)
+// #define MICROPY_PY_THREAD_GIL			(1)
+// #define MICROPY_PY_THREAD				(1)
 
 #define MICROPY_HW_CLK_USE_HSE
 

@@ -14,8 +14,11 @@
 #include "systick.h"
 
 #include "py/objstr.h"
-#include "py/objlist.h"    
-
+#include "py/objlist.h"   
+ 
+#if MICROPY_ENABLE_TFTLCD
+#include "modtftlcd.h"
+#endif
 
 uint8_t stdbmp_decode(FATFS *fs ,const char *filename,uint16_t sx,uint16_t sy) 
 {
@@ -392,7 +395,7 @@ uint8_t bmp_encode(FATFS *fs,char *filename,uint16_t x,uint16_t y,uint16_t width
 			pixcnt=0;
  			for(tx=x;pixcnt!=(bi4width/2);)
 			{
-				if(pixcnt<hbmp.bmiHeader.biWidth)databuf[pixcnt]=LCD_ReadPoint(tx,ty);//读取坐标点的值 
+				if(pixcnt<hbmp.bmiHeader.biWidth)databuf[pixcnt]=pic_phy.read_point(tx,ty);//读取坐标点的值 
 				else databuf[pixcnt]=0Xffff;//补充白色的像素.  
 				pixcnt++;
 				tx++;

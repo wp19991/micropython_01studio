@@ -578,8 +578,34 @@ STATIC mp_obj_t ST7789_drawStr(size_t n_args, const mp_obj_t *pos_args, mp_map_t
   return mp_const_none;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_KW(ST7789_drawStr_obj, 1, ST7789_drawStr);
-//---------------------------华丽的分割线-------------------------------------------------------------------
 
+
+//---------------------------华丽的分割线-------------------------------------------------------------------
+STATIC mp_obj_t ST7789_write_buf(size_t n_args, const mp_obj_t *args) {
+	if(6 != n_args) {
+		mp_raise_ValueError(MP_ERROR_TEXT("lcd write_buf parameter error \n"));
+	}
+	unsigned short start_x = mp_obj_get_int(args[2]);
+	unsigned short start_y = mp_obj_get_int(args[3]);
+	unsigned short width = mp_obj_get_int(args[4]);
+	unsigned short height = mp_obj_get_int(args[5]);
+
+	mp_buffer_info_t lcd_write_data = {0};
+
+	
+	mp_get_buffer_raise(args[1], &lcd_write_data, MP_BUFFER_READ);
+	
+	if(lcd_write_data.buf == NULL || lcd_write_data.len == 0) {
+		return mp_obj_new_int(-3);
+	}
+
+	grap_drawFull(start_x, start_y,width,height,(uint16_t *)lcd_write_data.buf);
+
+    return mp_obj_new_int(1);
+}
+STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(ST7789_write_buf_obj, 1, 6, ST7789_write_buf);
+
+//---------------------------华丽的分割线-------------------------------------------------------------------
 #if MICROPY_PY_PICLIB
 
 //---------------------------华丽的分割线-------------------------------------------------------------------
@@ -708,6 +734,11 @@ STATIC const mp_rom_map_elem_t ST7789_locals_dict_table[] = {
 	{ MP_ROM_QSTR(MP_QSTR_drawRect), MP_ROM_PTR(&ST7789_drawRect_obj) },
 	{ MP_ROM_QSTR(MP_QSTR_drawCircle), MP_ROM_PTR(&ST7789_drawCircle_obj) },
 	{ MP_ROM_QSTR(MP_QSTR_printStr), MP_ROM_PTR(&ST7789_drawStr_obj) },
+	{ MP_ROM_QSTR(MP_QSTR_write_buf), MP_ROM_PTR(&ST7789_write_buf_obj) },
+	
+	
+	
+	
 	#if MICROPY_PY_PICLIB
 	{ MP_ROM_QSTR(MP_QSTR_Picture), MP_ROM_PTR(&ST7789_drawPicture_obj) },
 	#endif

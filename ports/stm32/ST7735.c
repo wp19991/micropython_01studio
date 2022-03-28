@@ -443,6 +443,32 @@ STATIC mp_obj_t ST7735_drawCircle(size_t n_args, const mp_obj_t *pos_args, mp_ma
   return mp_const_none;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_KW(ST7735_drawCircle_obj, 1, ST7735_drawCircle);
+
+//---------------------------华丽的分割线-------------------------------------------------------------------
+STATIC mp_obj_t ST7735_write_buf(size_t n_args, const mp_obj_t *args) {
+	if(6 != n_args) {
+		mp_raise_ValueError(MP_ERROR_TEXT("lcd write_buf parameter error \n"));
+	}
+	unsigned short start_x = mp_obj_get_int(args[2]);
+	unsigned short start_y = mp_obj_get_int(args[3]);
+	unsigned short width = mp_obj_get_int(args[4]);
+	unsigned short height = mp_obj_get_int(args[5]);
+
+	mp_buffer_info_t lcd_write_data = {0};
+
+	
+	mp_get_buffer_raise(args[1], &lcd_write_data, MP_BUFFER_READ);
+	
+	if(lcd_write_data.buf == NULL || lcd_write_data.len == 0) {
+		return mp_obj_new_int(-3);
+	}
+
+	grap_drawFull(start_x, start_y,width,height,(uint16_t *)lcd_write_data.buf);
+
+    return mp_obj_new_int(1);
+}
+STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(ST7735_write_buf_obj, 1, 6, ST7735_write_buf);
+
 //---------------------------华丽的分割线-------------------------------------------------------------------
 STATIC mp_obj_t ST7735_drawStr(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
 
@@ -720,6 +746,8 @@ STATIC mp_obj_t ST7789_deinit(mp_obj_t self_in) {
 	return mp_const_none;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_1(ST7789_deinit_obj, ST7789_deinit);
+
+
 //---------------------------华丽的分割线-------------------------------------------------------------------
 
 STATIC mp_obj_t ST7735_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_kw, const mp_obj_t *all_args) {
@@ -747,20 +775,23 @@ STATIC mp_obj_t ST7735_make_new(const mp_obj_type_t *type, size_t n_args, size_t
 	st7735_Fill(0,0,lcddev.width,lcddev.height,lcddev.backcolor);
 
 	lcddev.clercolor = lcddev.backcolor;
-	
+	draw_global = &st7735_glcd;
 	return MP_OBJ_FROM_PTR(self);
 }
 //---------------------------华丽的分割线-------------------------------------------------------------------
 STATIC const mp_rom_map_elem_t ST7735_locals_dict_table[] = {
 	// instance methods
 	{ MP_ROM_QSTR(MP_QSTR___del__), MP_ROM_PTR(&ST7789_deinit_obj) },
-  { MP_ROM_QSTR(MP_QSTR_deinit), MP_ROM_PTR(&ST7789_deinit_obj) },
+	{ MP_ROM_QSTR(MP_QSTR_deinit), MP_ROM_PTR(&ST7789_deinit_obj) },
 	{ MP_ROM_QSTR(MP_QSTR_fill), MP_ROM_PTR(&ST7735_drawpFull_obj) },
 	{ MP_ROM_QSTR(MP_QSTR_drawPixel), MP_ROM_PTR(&ST7735_drawpPixel_obj) },
 	{ MP_ROM_QSTR(MP_QSTR_drawLine), MP_ROM_PTR(&ST7735_drawLin_obj) },
 	{ MP_ROM_QSTR(MP_QSTR_drawRect), MP_ROM_PTR(&ST7735_drawRect_obj) },
 	{ MP_ROM_QSTR(MP_QSTR_drawCircle), MP_ROM_PTR(&ST7735_drawCircle_obj) },
 	{ MP_ROM_QSTR(MP_QSTR_printStr), MP_ROM_PTR(&ST7735_drawStr_obj) },
+	{ MP_ROM_QSTR(MP_QSTR_write_buf), MP_ROM_PTR(&ST7735_write_buf_obj) },
+	
+	
 	#if MICROPY_PY_PICLIB
 	{ MP_ROM_QSTR(MP_QSTR_Picture), MP_ROM_PTR(&ST7735_drawPicture_obj) },
 	{ MP_ROM_QSTR(MP_QSTR_CachePicture), MP_ROM_PTR(&ST7735_CachePicture_obj) },

@@ -37,6 +37,21 @@
 #include "py/stream.h"
 #include "shared/runtime/pyexec.h"
 
+#include "driver/gpio.h"
+#include "driver/rtc_io.h"
+
+#include "mphalport.h"
+
+#include "extmod/virtpin.h"
+#include "machine_rtc.h"
+#include "modesp32.h"
+
+#if CONFIG_IDF_TARGET_ESP32C3
+#include "hal/gpio_ll.h"
+#endif
+
+
+
 #if (MICROPY_ENABLE_TFTLCD)
 #include "lcd_spibus.h"
 
@@ -69,6 +84,13 @@ static void lcd_global_init(gpio_num_t gpio,gpio_mode_t io_mode,uint8_t mode)
 		rtc_gpio_deinit(gpio);
 		#endif
 	}
+	
+    #if CONFIG_IDF_TARGET_ESP32C3
+    if (gpio == 18 || gpio == 19) {
+        CLEAR_PERI_REG_MASK(USB_DEVICE_CONF0_REG, USB_DEVICE_USB_PAD_ENABLE);
+    }
+    #endif
+
 	gpio_pad_select_gpio(gpio);
 	gpio_set_direction(gpio, io_mode);
 	
@@ -100,7 +122,6 @@ STATIC void lcd_spibus_init(lcd_spibus_t *self)
 		.quadwp_io_num=-1,
 		.quadhd_io_num=-1,
 		#if CONFIG_ESP32_SPIRAM_SUPPORT || CONFIG_ESP32S2_SPIRAM_SUPPORT || CONFIG_ESP32S3_SPIRAM_SUPPORT
-		// .max_transfer_sz=200*1024,
 		.max_transfer_sz=2*240*240+10,
 		#else
 		.max_transfer_sz=11*1024,

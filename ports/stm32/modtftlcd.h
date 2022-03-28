@@ -106,6 +106,13 @@ uint16_t rgb565tobgr565(uint16_t color);
 
 void lcd7r_init(void);
 void test_lcd();
+
+
+extern Graphics_Display * draw_global;
+// extern void grap_drawCam(uint16_t x,uint16_t y,uint16_t width,uint16_t height,uint16_t *color);
+extern void grap_drawFull(uint16_t x,uint16_t y,uint16_t width,uint16_t height,uint16_t *color);
+extern void grap_drawFill(uint16_t x,uint16_t y,uint16_t width,uint16_t height,uint16_t color);
+
 #if MICROPY_PY_PICLIB
 
 extern uint8_t is_sdcard;

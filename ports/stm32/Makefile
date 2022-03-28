@@ -1,10 +1,13 @@
 # Select the board to build for: if not given on the command line,
 # then default to PYBV10.
+# BOARD ?= PYBV11_CN
+# BOARD ?= PYBMINI
+BOARD ?= PYBPLUS
 # BOARD ?= COLUMBUS
-BOARD ?= MAGELLAN-H743
+# BOARD ?= MAGELLAN-H743
 # BOARD ?= MAGELLAN-F429
 # BOARD ?= MAGELLAN-F767
-# BOARD ?= MAGELLAN-yh
+
 # If the build directory is not given, make it reflect the board name.
 BUILD ?= build-$(BOARD)
 

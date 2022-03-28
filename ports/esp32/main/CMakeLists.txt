@@ -95,7 +95,7 @@ if(MICROPY_PORT_NESEMU STREQUAL "y")
 	# list(REMOVE_ITEM NESEMU_SRCS "${NESEMU_FILE_DIR}/main/main.c")
 endif()
 #ESP-AI
-if(MICROPY_PORT_ESPAI STREQUAL "y")
+if(MICROPY_PORT_EN_ESPAI STREQUAL "y")
 	set(ESPAI_FILE_DIR
 		${PROJECT_DIR}/mpy-ai
 		)
@@ -274,35 +274,66 @@ set(MICROPY_SOURCE_QSTR
 
 set(IDF_COMPONENTS
 	esp_http_server
-    app_update
-    bootloader_support
-    bt
-    driver
+	app_update
+	bootloader_support
+	bt
+	driver
 	esp_adc_cal
-    esp_common
-    esp_eth
-    esp_event
-    esp_ringbuf
-    esp_rom
-    esp_wifi
-    freertos
-    heap
-    log
-    lwip
-    mbedtls
-    mdns
-    newlib
-    nvs_flash
-    sdmmc
-    soc
-    spi_flash
-    tcpip_adapter
-    ulp
-    vfs
-    xtensa
-	esp-dl
-	esp-code-scanner
+	esp_common
+	esp_eth
+	esp_event
+	esp_ringbuf
+	esp_rom
+	esp_wifi
+	freertos
+	heap
+	log
+	lwip
+	mbedtls
+	mdns
+	newlib
+	nvs_flash
+	sdmmc
+	soc
+	spi_flash
+	tcpip_adapter
+	ulp
+	vfs
+	xtensa
 )
+# if(MICROPY_PORT_EN_ESPAI STREQUAL "y")
+	# set(IDF_COMPONENTS
+		# esp_http_server
+		# app_update
+		# bootloader_support
+		# bt
+		# driver
+		# esp_adc_cal
+		# esp_common
+		# esp_eth
+		# esp_event
+		# esp_ringbuf
+		# esp_rom
+		# esp_wifi
+		# freertos
+		# heap
+		# log
+		# lwip
+		# mbedtls
+		# mdns
+		# newlib
+		# nvs_flash
+		# sdmmc
+		# soc
+		# spi_flash
+		# tcpip_adapter
+		# ulp
+		# vfs
+		# xtensa
+		# esp-dl
+		# esp-code-scanner
+	# )
+# endif()
 
 if(IDF_VERSION_MINOR GREATER_EQUAL 1 OR IDF_VERSION_MAJOR GREATER_EQUAL 5)
     list(APPEND IDF_COMPONENTS esp_netif)
@@ -332,10 +363,13 @@ elseif(IDF_TARGET STREQUAL "esp32s2")
 elseif(IDF_TARGET STREQUAL "esp32s3")
     list(APPEND IDF_COMPONENTS esp32s3)
     list(APPEND IDF_COMPONENTS tinyusb)
+    list(APPEND IDF_COMPONENTS esp-dl)
+	list(APPEND IDF_COMPONENTS esp-code-scanner)
 	# list(APPEND IDF_COMPONENTS usb)
+
 endif()
 
-# if(MICROPY_PORT_ESPAI STREQUAL "y")
+# if(MICROPY_PORT_EN_ESPAI STREQUAL "y")
     # list(APPEND IDF_COMPONENTS esp-dl)
 	# list(APPEND IDF_COMPONENTS esp-code-scanner)
 # endif()

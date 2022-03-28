@@ -3,6 +3,9 @@
 # This is a simple, convenience wrapper around idf.py (which uses cmake).
 
 # Select the board to build for, defaulting to GENERIC.
+# BOARD ?= PYWIFI_C3
+# BOARD ?= PYWIFI
+# BOARD ?= PYWIFI_P
 # BOARD ?= PYWIFI_S2P
 # BOARD ?= PYWIFI_S3P
 # BOARD ?= PYWIFI_S3PR8

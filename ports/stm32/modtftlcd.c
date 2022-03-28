@@ -51,6 +51,9 @@ _lcd_dev lcddev;
 #if MICROPY_PY_PICLIB
 uint8_t is_sdcard = 0;
 #endif
+
+Graphics_Display * draw_global = NULL;
+
 uint16_t get_rgb565(uint8_t r_color, uint8_t g_color , uint8_t b_color)
 {
     r_color = ((r_color & 0xF8));
@@ -320,7 +323,30 @@ void grap_drawStr(const Graphics_Display *display, uint16_t x,uint16_t y,uint16_
 		p++;
 	}  
 }
-
+// void grap_drawCam(uint16_t x,uint16_t y,uint16_t width,uint16_t height,uint16_t *color)
+// {
+	// if(draw_global == NULL){
+		// printf("draw_global is null\r\n");
+		// return;
+	// }
+	// draw_global->callDrawCam(x,y,width,height,color);
+// }
+void grap_drawFull(uint16_t x,uint16_t y,uint16_t width,uint16_t height,uint16_t *color)
+{
+	if(draw_global == NULL){
+		printf("draw_global is null\r\n");
+		return;
+	}
+	draw_global->callDrawFlush(x,y,width,height,color);
+}
+void grap_drawFill(uint16_t x,uint16_t y,uint16_t width,uint16_t height,uint16_t color)
+{
+	if(draw_global == NULL){
+		printf("draw_global is null\r\n");
+		return;
+	}
+	draw_global->callDrawFill(x,y,width,height,color);
+}
 //------------------------------------------------------------------------------------------------------
 #if MICROPY_PY_PICLIB
 

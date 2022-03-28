@@ -42,8 +42,6 @@
 
 //图片显示物理层接口  
 //在移植的时候,必须由用户自己实现这几个函数
-
-#if MICROPY_HW_LCD43M
 typedef struct 
 {
 	uint16_t(*read_point)(uint16_t,uint16_t);//uint32_t read_point(uint16_t x,uint16_t y)						读点函数
@@ -52,18 +50,7 @@ typedef struct
 	void(*draw_hline)(uint16_t,uint16_t,uint16_t,uint16_t);		//void draw_hline(uint16_t x0,uint16_t y0,uint16_t len,uint16_t color)  画水平线函数	 
 	void(*fillcolor)(uint16_t,uint16_t,uint16_t,uint16_t,uint16_t*);	//void piclib_fill_color(uint16_t x,uint16_t y,uint16_t width,uint16_t height,uint16_t *color) 颜色填充
 }_pic_phy; 
-#elif MICROPY_HW_LCD43G
-typedef struct 
-{
-	uint32_t(*read_point)(uint16_t,uint16_t);
-	void(*draw_point)(uint16_t,uint16_t,uint32_t);
-	void(*fill)(uint16_t,uint16_t,uint16_t,uint16_t,uint32_t);
-	void(*draw_hline)(uint16_t,uint16_t,uint16_t,uint32_t);	 
-	void(*fillcolor)(uint16_t,uint16_t,uint16_t,uint16_t,uint16_t*);
-}_pic_phy; 
-#else
- 
-#endif
+
 extern _pic_phy pic_phy;
 //----------------------------------------------------------------------------------------------------
 
@@ -81,7 +68,7 @@ typedef struct
 	uint32_t S_Width;
 	
 	uint32_t	S_XOFF;	  	//x轴和y轴的偏移量
-	uint32_t S_YOFF;
+	uint32_t	S_YOFF;
 
 	uint32_t staticx; 	//当前显示到的ｘｙ坐标
 	uint32_t staticy;																 	

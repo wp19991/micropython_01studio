@@ -1,15 +1,13 @@
 
-/**
-	******************************************************************************
-	* This file is part of the MicroPython project, http://micropython.org/
-	* Copyright (C), 2021 -2022, 01studio Tech. Co., Ltd.http://bbs.01studio.org/
-	* File Name 				 :	FT54x6.c
-	* Author						 :	Folktale
-	* Version 					 :	v1.0
-	* date							 :	2021/3/18
-	* Description 			 :	
-	******************************************************************************
-**/
+/********************************************************************************
+	* Copyright (C), 2022 -2023, 01studio Tech. Co., Ltd.https://www.01studio.cc/
+	* File Name				:	FT54x6.c
+	* Author				:	Folktale
+	* Version				:	v1.0
+	* date					:	2022/3/25
+	* Description			:	
+******************************************************************************/
+
 #include "py/runtime.h"
 #include "py/mphal.h"
 
@@ -189,13 +187,13 @@ static uint8_t gt_iic_read_byte(uint8_t ack)
 static uint8_t gt_iic_wait_ack(void)
 {
 	uint32_t ucErrTime=0;
-mp_hal_pin_input(GT911_PIN_SDA);
-mp_hal_pin_high(GT911_PIN_SDA);
-mp_hal_delay_us(1);
+	mp_hal_pin_input(GT911_PIN_SDA);
+	mp_hal_pin_high(GT911_PIN_SDA);
+	mp_hal_delay_us(1);
 	mp_hal_pin_high(GT911_PIN_SCL);
-		  	
+
 	mp_hal_delay_us(2);
-	
+
 	while(mp_hal_pin_read(GT911_PIN_SDA))
 	{
 		ucErrTime++;
@@ -215,8 +213,8 @@ static uint8_t gt911_write_reg(uint16_t reg, uint8_t *buf, uint16_t len)
 	uint16_t i;
 	uint8_t ret=0;
 	gt_iic_start();	
-	
- 	gt_iic_send_byte(GT_CMD_WR);   	//发送写命令 	
+
+	gt_iic_send_byte(GT_CMD_WR);   	//发送写命令 	
 	gt_iic_wait_ack();
 	gt_iic_send_byte(reg>>8);   	//发送高8位地址
 	gt_iic_wait_ack(); 	 										  		   
@@ -224,32 +222,32 @@ static uint8_t gt911_write_reg(uint16_t reg, uint8_t *buf, uint16_t len)
 	gt_iic_wait_ack();  
 	for(i=0;i<len;i++)
 	{	   
-    gt_iic_send_byte(buf[i]);  	//发数据
+		gt_iic_send_byte(buf[i]);  	//发数据
 		ret=gt_iic_wait_ack();
 		if(ret)break;  
 	}
-  gt_iic_stop();					//产生一个停止条件	    
+	gt_iic_stop();					//产生一个停止条件	    
 	return ret; 
 }
 
 STATIC void gt911_read_reg(uint16_t reg,uint8_t *buf,uint16_t len)
 {
 	uint16_t i; 
- 	gt_iic_start();
- 	gt_iic_send_byte(GT_CMD_WR);   //发送写命令 	
+	gt_iic_start();
+	gt_iic_send_byte(GT_CMD_WR);   //发送写命令 	
 	gt_iic_wait_ack();
- 	gt_iic_send_byte(reg>>8);   	//发送高8位地址
+	gt_iic_send_byte(reg>>8);   	//发送高8位地址
 	gt_iic_wait_ack();
- 	gt_iic_send_byte(reg&0XFF);   	//发送低8位地址
+	gt_iic_send_byte(reg&0XFF);   	//发送低8位地址
 	gt_iic_wait_ack();  
- 	gt_iic_start();  	 	   
+	gt_iic_start();  	 	   
 	gt_iic_send_byte(GT_CMD_RD);   //发送读命令		   
 	gt_iic_wait_ack();
 	for(i=0;i<len;i++)
 	{	   
-    buf[i]=gt_iic_read_byte(i==(len-1)?0:1); //发数据	  
+		buf[i]=gt_iic_read_byte(i==(len-1)?0:1); //发数据	  
 	} 
-  gt_iic_stop();//产生一个停止条件    
+	gt_iic_stop();//产生一个停止条件    
 } 
 
 
@@ -310,11 +308,6 @@ mp_hal_pin_open_drain(GT911_PIN_SDA);
 	
 	id_buf[3] = '\0';
 	gt911_read_reg(GT911_PRODUCT_ID,id_buf,3);
-
-	//printf("id:GT%s\r\n",id_buf);
-	
-	//uint8_t status_buf[0] = {0x00};
-	//gt911_write_reg(GT911_READ_STATUS, status_buf,1);
 }
 
 void gt911_get_x_y_point(void)
@@ -351,39 +344,38 @@ void gt911_read_point(void)
 //printf("touch_num:%d\r\n",touch_num);
 	if (touch_num){	
 		switch (tp_dev.dir)
-			{
-				case 2:
-					input_y = (uint16_t)(touch_h - ((read[3] << 8) + read[2]));
-					input_x = (uint16_t)(((read[5] <<8) + read[4]));
-				break;
-				case 3:
-					input_x = (uint16_t)(touch_w - ((read[3] << 8) + read[2]));
-					input_y = (uint16_t)(touch_h - ((read[5] << 8) + read[4]));
-				break;
-				case 4:
-					input_y = (uint16_t)( (read[3] << 8) + read[2]);
-					input_x = (uint16_t)(touch_w -  ((read[5] <<8) + read[4]));
-				break;
-				default:
-					input_x = (uint16_t)( (read[3] << 8) + read[2]);
-					input_y = (uint16_t)( ((read[5] <<8) + read[4]));
-				break;
-			}
+		{
+			case 2:
+			input_y = (uint16_t)(touch_h - ((read[3] << 8) + read[2]));
+			input_x = (uint16_t)(((read[5] <<8) + read[4]));
+			break;
+			case 3:
+			input_x = (uint16_t)(touch_w - ((read[3] << 8) + read[2]));
+			input_y = (uint16_t)(touch_h - ((read[5] << 8) + read[4]));
+			break;
+			case 4:
+			input_y = (uint16_t)( (read[3] << 8) + read[2]);
+			input_x = (uint16_t)(touch_w -  ((read[5] <<8) + read[4]));
+			break;
+			default:
+			input_x = (uint16_t)( (read[3] << 8) + read[2]);
+			input_y = (uint16_t)( ((read[5] <<8) + read[4]));
+			break;
+		}
 
-			if(input_x >= touch_w || input_y >= touch_h){
-				goto exit;
-			}
-			//printf("lcddev.dir:%d,x:%d,y:%d,num:%d\r\n",lcddev.dir,input_x,input_y,touch_num);
-			gtxx_touch_down(read_id, input_x, input_y, input_w);
+		if(input_x >= touch_w || input_y >= touch_h){
+			goto exit;
+		}
+		//printf("lcddev.dir:%d,x:%d,y:%d,num:%d\r\n",lcddev.dir,input_x,input_y,touch_num);
+		gtxx_touch_down(read_id, input_x, input_y, input_w);
 	}else if (pre_touch){
-		 gtxx_touch_up(read_id);
+		gtxx_touch_up(read_id);
 	}
 	pre_touch = touch_num;
 	
 exit:
 	write_buf[0] = 0x00;
 	gt911_write_reg(GT911_READ_STATUS, write_buf,1);
-
 }
 
 //===============================================================================
@@ -402,11 +394,6 @@ STATIC touch_gt911_obj_t gt911_obj;
 //------------------------------------------------------------------------------------------------------
 STATIC mp_obj_t touch_gt911_scan(void)
 {
-	// while(1)
-	// {
-	// gt911_read_point();
-	// mp_hal_delay_ms(10);
-	// }
 	gt911_read_point();
 	return mp_const_none;
 }STATIC MP_DEFINE_CONST_FUN_OBJ_0(touch_gt911_scan_obj, touch_gt911_scan);
@@ -438,10 +425,8 @@ STATIC mp_obj_t touch_gt911_make_new(const mp_obj_type_t *type, size_t n_args, s
 	mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
 	mp_arg_parse_all_kw_array(n_args, n_kw, all_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
 	
-	//if(args[0].u_int != 0){
-		tp_dev.dir = args[0].u_int;
-	//}
-	
+	tp_dev.dir = args[0].u_int;
+
 	switch (tp_dev.dir){
 
 		case 2:

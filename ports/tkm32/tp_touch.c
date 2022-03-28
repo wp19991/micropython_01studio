@@ -21,14 +21,15 @@
 #include "py/obj.h"
 #include "tp_touch.h"
 
-
 TP_DEV tp_dev;
 
+#if MICROPY_ENABLE_TOUCH
 
 static uint16_t pre_x[TOUCH_MAX_TOUCH] = {0, 0, 0, 0, 0};
 static uint16_t pre_y[TOUCH_MAX_TOUCH] = {0, 0, 0, 0, 0};
 static uint16_t pre_w[TOUCH_MAX_TOUCH] = {0, 0, 0, 0, 0};
 static uint8_t s_tp_dowm[TOUCH_MAX_TOUCH] ={0};
+
 void gtxx_touch_up(int8_t id)
 {
     if(s_tp_dowm[id] == 1) //EVENT_UP
@@ -67,5 +68,5 @@ void gtxx_touch_down(int8_t id, uint16_t x, uint16_t y, uint8_t w)
     pre_y[id] = y;
     pre_w[id] = w;
 }
-
+#endif
 /**********************************************************************************************************/

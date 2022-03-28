@@ -1,49 +1,54 @@
 #include "piclib.h"
 
-
+#if MICROPY_ENABLE_TFTLCD
+#include "modtftlcd.h"
+#endif
 
 _pic_info picinfo;	 	//图片信息
 _pic_phy pic_phy;		//图片显示物理接口	
 
-#if MICROPY_HW_LCD43M
-//lcd.h没有提供划横线函数,需要自己实现
-void piclib_draw_hline(uint16_t x0,uint16_t y0,uint16_t len,uint16_t color)
+static void piclib_draw_hline(uint16_t x0,uint16_t y0,uint16_t len,uint16_t color)
 {
-	if((len==0)||(x0>lcddev.width)||(y0>lcddev.height))return;
-	LCD_Fill(x0,y0,x0+len-1,y0,color);	
+	#if MICROPY_ENABLE_TFTLCD
+	grap_drawHline(x0,y0,len,color);	
+	#endif
 }
 
-//填充颜色
-//x,y:起始坐标
-//width，height：宽度和高度。
-//*color：颜色数组
-void piclib_fill_color(uint16_t x,uint16_t y,uint16_t width,uint16_t height,uint16_t *color)
-{  
-
-	LCD_Color_Fill(x,y,x+width-1,y+height-1,color);
-
-}
-#elif MICROPY_HW_LCD43G
-void piclib_draw_hline(uint16_t x0,uint16_t y0,uint16_t len,uint32_t color)
+static uint16_t piclib_read_point(uint16_t x,uint16_t y)
 {
-	if((len==0)||(x0>lcddev.width)||(y0>lcddev.height))return;
-	LCD_Fill(x0,y0,x0+len-1,y0,color);	
+	#if MICROPY_ENABLE_TFTLCD
+	return grap_ReadPoint(x,y);	
+	#endif
 }
 
-#else
+static void piclib_draw_point(uint16_t x,uint16_t y,uint16_t color)
+{
+	#if MICROPY_ENABLE_TFTLCD
+	grap_drawPoint(x,y,color);	
+	#endif
+}
 
-
-#endif
-
+static void piclib_fill(uint16_t x,uint16_t y,uint16_t width,uint16_t height,uint16_t color)
+{
+	#if MICROPY_ENABLE_TFTLCD
+	grap_drawFill(x,y,width,height,color);	
+	#endif
+}
+	
+static void piclib_fillcolor(uint16_t x,uint16_t y,uint16_t width,uint16_t height,uint16_t *color)
+{
+	#if MICROPY_ENABLE_TFTLCD
+	grap_drawFull(x,y,width,height,color);	
+	#endif
+}
 //画图初始化,在画图之前,必须先调用此函数
-//指定画点/读点
 void piclib_init(void)
 {
-	pic_phy.read_point=LCD_ReadPoint;  		//读点函数实现
-	pic_phy.draw_point=LCD_Fast_DrawPoint;	//画点函数实现
-	pic_phy.fill=LCD_Fill;					//填充函数实现
+	pic_phy.read_point=piclib_read_point;  		//读点函数实现
+	pic_phy.draw_point=piclib_draw_point;	//画点函数实现
+	pic_phy.fill=piclib_fill;					//填充函数实现
 	pic_phy.draw_hline=piclib_draw_hline;  	//画线函数实现
-	pic_phy.fillcolor=LCD_Color_Fill;  	//颜色填充函数实现 
+	pic_phy.fillcolor=piclib_fillcolor;  	//颜色填充函数实现 
 
 	picinfo.lcdwidth=lcddev.width;	//得到LCD的宽度像素
 	picinfo.lcdheight=lcddev.height;//得到LCD的高度像素
@@ -60,10 +65,6 @@ void piclib_init(void)
 }
 
 //快速ALPHA BLENDING算法.
-//src:源颜色
-//dst:目标颜色
-//alpha:透明程度(0~32)
-//返回值:混合后的颜色.
 uint16_t piclib_alpha_blend(uint16_t src,uint16_t dst,uint8_t alpha)
 {
 	uint32_t src2;
@@ -74,8 +75,7 @@ uint16_t piclib_alpha_blend(uint16_t src,uint16_t dst,uint8_t alpha)
 	dst2=((((dst2-src2)*alpha)>>5)+src2)&0x07E0F81F;
 	return (dst2>>16)|dst2;  
 }
-//初始化智能画点
-//内部调用
+//初始化画点
 void draw_init(void)
 {
 	float temp,temp1;	   
@@ -92,9 +92,6 @@ void draw_init(void)
 	picinfo.staticy=0xffff;//放到一个不可能的值上面			 										    
 }   
 //判断这个像素是否可以显示
-//(x,y) :像素原始坐标
-//chg   :功能变量. 
-//返回值:0,不需要显示.1,需要显示
 uint8_t is_element_ok(uint16_t x,uint16_t y,uint8_t chg)
 {				  
 	if(x!=picinfo.staticx||y!=picinfo.staticy)

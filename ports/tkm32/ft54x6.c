@@ -37,11 +37,11 @@
 #include "lcd43g.h"
 
 //I2C读写命令	
-#define FT_ADDR 			0X38
+#define FT_ADDR			0X38
 #define FT_PIN_REST 	pin_B3
 #define FT_PIN_INT	 	pin_D7
 
-#define FT_I2C				I2C1
+#define FT_I2C			I2C1
 
 static bool is_init = 0;
 
@@ -67,57 +67,56 @@ STATIC void ft_Init(void)
 static uint16_t touch_w,touch_h;
 void touch_read_point(void)
 {
-    uint8_t touch_num = 0;
-    uint8_t read_buf[7] = {0};
-    uint16_t input_x = 0;
-    uint16_t input_y = 0;
-    int16_t input_w = 0;
-		int8_t read_id = 0;
-    static uint8_t pre_touch = 0;
-		
+	uint8_t touch_num = 0;
+	uint8_t read_buf[7] = {0};
+	uint16_t input_x = 0;
+	uint16_t input_y = 0;
+	int16_t input_w = 0;
+	int8_t read_id = 0;
+	static uint8_t pre_touch = 0;
+
 	i2c_readfrom(FT_I2C, FT_ADDR,1, read_buf, 6, 1);
 
-    touch_num = read_buf[1] % 6; 
+	touch_num = read_buf[1] % 6; 
 
-    if (pre_touch > touch_num){
-     gtxx_touch_up(read_id);
-    }
-		if (touch_num == 0){
-			pre_touch = touch_num;
+	if (pre_touch > touch_num){
+		gtxx_touch_up(read_id);
+	}
+	if (touch_num == 0){
+		pre_touch = touch_num;
+		return;
+	}
+
+	if (touch_num){	
+		switch (tp_dev.dir)
+		{
+			case 2:
+			input_y = (uint16_t)(TOUCH_Y_PIXEL-( ((read_buf[4] & 0x0F)<<8) + read_buf[5]));
+			input_x = (uint16_t)(TOUCH_X_PIXEL-( ((read_buf[2] & 0x0F)<<8) + read_buf[3]));
+			break;
+			case 3:
+			input_x = (uint16_t)(TOUCH_Y_PIXEL-( ((read_buf[4] & 0x0F)<<8) + read_buf[5]));
+			input_y = (uint16_t)( ((read_buf[2] & 0x0F)<<8) + read_buf[3]);
+			break;
+			case 4:
+			input_y = (uint16_t)( ((read_buf[4] & 0x0F)<<8) + read_buf[5]);
+			input_x = (uint16_t)( ((read_buf[2] & 0x0F)<<8) + read_buf[3]);
+			break;
+			default:
+			input_x = (uint16_t)( ((read_buf[4] & 0x0F)<<8) + read_buf[5]);
+			input_y = (uint16_t)(TOUCH_X_PIXEL - (((read_buf[2] & 0x0F)<<8) + read_buf[3]));
+			break;
+		}
+
+		//printf("lcddev.dir:%d,x:%d,,y:%d\r\n",lcddev.dir,input_x,input_y);
+		if(input_x >= touch_w || input_y >= touch_h){
 			return;
-    }
-
-    if (touch_num){	
-      switch (tp_dev.dir)
-        {
-          case 2:
-						input_y = (uint16_t)(Y_PIXEL-( ((read_buf[4] & 0x0F)<<8) + read_buf[5]));
-						input_x = (uint16_t)(X_PIXEL-( ((read_buf[2] & 0x0F)<<8) + read_buf[3]));
-          break;
-          case 3:
-						input_x = (uint16_t)(Y_PIXEL-( ((read_buf[4] & 0x0F)<<8) + read_buf[5]));
-						input_y = (uint16_t)( ((read_buf[2] & 0x0F)<<8) + read_buf[3]);
-          break;
-          case 4:
-						input_y = (uint16_t)( ((read_buf[4] & 0x0F)<<8) + read_buf[5]);
-						input_x = (uint16_t)( ((read_buf[2] & 0x0F)<<8) + read_buf[3]);
-          break;
-          default:
-						input_x = (uint16_t)( ((read_buf[4] & 0x0F)<<8) + read_buf[5]);
-						input_y = (uint16_t)(X_PIXEL - (((read_buf[2] & 0x0F)<<8) + read_buf[3]));
-          break;
-        }
-
-				//printf("lcddev.dir:%d,x:%d,,y:%d\r\n",lcddev.dir,input_x,input_y);
-				if(input_x >= touch_w || input_y >= touch_h){
-					return;
-				}
-				
-       	gtxx_touch_down(read_id, input_x, input_y, input_w);
-    }else if (pre_touch){
-       gtxx_touch_up(read_id);
-    }
-    pre_touch = touch_num;
+		}
+		gtxx_touch_down(read_id, input_x, input_y, input_w);
+	}else if (pre_touch){
+		gtxx_touch_up(read_id);
+	}
+	pre_touch = touch_num;
 }
 /**********************************************************************************************************/
 void TIM8_Config(uint32_t freq)
@@ -125,27 +124,26 @@ void TIM8_Config(uint32_t freq)
 	RCC->APB1RSTR |= (1 << 5);
 	RCC->APB1RSTR &= ~(1 << 5);
 	RCC->APB1ENR |= (1 << 5);
-	
+
 	uint32_t source_freq = timer_get_source_freq(8);
 	uint32_t prescaler = 1;
 	uint32_t period;
-	
+
 	period = source_freq / freq;//hz
 	period = MAX(1, period);
 	while (period > 0xffffffff) {
 		// if we can divide exactly, do that first
 		if (period % 5 == 0) {
-				prescaler *= 5;
-				period /= 5;
+			prescaler *= 5;
+			period /= 5;
 		} else if (period % 3 == 0) {
-				prescaler *= 3;
-				period /= 3;
+			prescaler *= 3;
+			period /= 3;
 		} else {
-				// may not divide exactly, but loses minimal precision
-				prescaler <<= 1;
-				period >>= 1;
+		// may not divide exactly, but loses minimal precision
+			prescaler <<= 1;
+			period >>= 1;
 		}
-
 	}
 
 	TIM8->PSC = (prescaler - 1) & 0xffff;
@@ -156,20 +154,18 @@ void TIM8_Config(uint32_t freq)
 	TIM8->DIER |= (TIM_IT_Update);
 	TIM8->CR1 |= TIM_CR1_CEN;
 	NVIC_EnableIRQ(TIM8_IRQn);
-	
+
 	TIM8->CR1 |= (0x1U<<7U);
-				
 }
 
 __weak void TIM8_IRQHandler(void)
 {
 	if (TIM_GetITStatus(TIM8, TIM_IT_Update) != RESET) {
 		uint32_t irq_state = disable_irq();
-			touch_read_point();
-			 enable_irq(irq_state);
-		}
-		TIM8->SR = ~TIM_IT_Update;
-		
+		touch_read_point();
+		enable_irq(irq_state);
+	}
+	TIM8->SR = ~TIM_IT_Update;
 }
 //----------------------------------------------------------------------------------------------------------
 typedef struct _touch_ft_obj_t {
@@ -206,13 +202,12 @@ STATIC void touch_ft54x6_print(const mp_print_t *print, mp_obj_t self_in, mp_pri
 //------------------------------------------------------------------------------------------------------
 STATIC mp_obj_t touch_tf54x6_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_kw, const mp_obj_t *all_args) {
 	static const mp_arg_t allowed_args[] = {
-			{ MP_QSTR_portrait, MP_ARG_INT, {.u_int = 1} },
+		{ MP_QSTR_portrait, MP_ARG_INT, {.u_int = 1} },
 	};
 	
 	mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
 	mp_arg_parse_all_kw_array(n_args, n_kw, all_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
-	
-	
+
 	if(args[0].u_int != 0)
 	{
 		tp_dev.dir = args[0].u_int;

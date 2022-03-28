@@ -5,7 +5,7 @@ set(MICROPY_PORT_PICLIB y) #
 set(MICROPY_PORT_CAMLIB y) #CAM
 set(MICROPY_PORT_USB_CAM y) #UVCCAM
 set(MICROPY_PORT_WEB_STREAM y) #WEB stream
-set(MICROPY_PORT_ESPAI y) #WEB stream
+set(MICROPY_PORT_EN_ESPAI y) #WEB stream
 
 set(SDKCONFIG_DEFAULTS
     boards/sdkconfig.base
