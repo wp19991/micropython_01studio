@@ -56,16 +56,14 @@
 #define CAM_PIN_HREF					(16)
 #define CAM_PIN_PCLK					(11)
 
-#ifndef CONFIG_OV2640_SUPPORT
-#define CONFIG_OV2640_SUPPORT			(1)
-#endif
+// #ifndef CONFIG_OV2640_SUPPORT
+// #define CONFIG_OV2640_SUPPORT			(1)
+// #endif
 
-// #ifndef CONFIG_SCCB_HARDWARE_I2C_PORT1
-// #define CONFIG_SCCB_HARDWARE_I2C_PORT1	(1)
-// #endif
-// #ifndef CONFIG_CAMERA_CORE0
-// #define CONFIG_CAMERA_CORE0				(1)
-// #endif
+#define CONFIG_OV2640_SUPPORT			(1)
+#define CONFIG_SCCB_HARDWARE_I2C_PORT1	(1)
+#define CONFIG_CAMERA_CORE0				(1)
+#define CONFIG_CAMERA_DMA_BUFFER_SIZE_MAX	8192
 
 //usb cam
 #define MICROPY_ENABLE_ESP_USB			(1)

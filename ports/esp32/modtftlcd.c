@@ -242,10 +242,10 @@ void grap_drawFull(uint16_t x,uint16_t y,uint16_t width,uint16_t height,uint16_t
 }
 void grap_drawFill(uint16_t x,uint16_t y,uint16_t width,uint16_t height,uint16_t color)
 {
-	if(draw_global == NULL){
-		printf("draw_global is null\r\n");
-		return;
-	}
+	// if(draw_global == NULL){
+		// printf("draw_global is null\r\n");
+		// return;
+	// }
 	draw_global->callDrawFill(x,y,width,height,color);
 }
 //------------------------------------------------------------------------------------------------------

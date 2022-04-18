@@ -389,9 +389,9 @@ Graphics_Display g_lcd =
 //mpy
 STATIC mp_obj_t ILI9341_drawpPixel(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
 	static const mp_arg_t drawp_args[] = {
-			{ MP_QSTR_x,       MP_ARG_INT, {.u_int = 0} },
-			{ MP_QSTR_y,       MP_ARG_INT, {.u_int = 0} },
-			{ MP_QSTR_color,    MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL} },
+		{ MP_QSTR_x,       MP_ARG_INT, {.u_int = 0} },
+		{ MP_QSTR_y,       MP_ARG_INT, {.u_int = 0} },
+		{ MP_QSTR_color,    MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL} },
 	};
 	mp_arg_val_t args[MP_ARRAY_SIZE(drawp_args)];
 	mp_arg_parse_all(n_args - 1, pos_args + 1, kw_args, MP_ARRAY_SIZE(drawp_args), drawp_args, args);
@@ -414,7 +414,7 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_KW(ILI9341_drawpPixel_obj, 1, ILI9341_drawpPixel)
 //---------------------------华丽的分割线-------------------------------------------------------------------
 STATIC mp_obj_t ILI9341_drawpFull(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args)  {
 	static const mp_arg_t clear_args[] = {
-			{ MP_QSTR_fillcolor,    MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL} },
+	{ MP_QSTR_fillcolor,    MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL} },
 	};
 	mp_arg_val_t args[MP_ARRAY_SIZE(clear_args)];
 	mp_arg_parse_all(n_args - 1, pos_args + 1, kw_args, MP_ARRAY_SIZE(clear_args), clear_args, args);
@@ -454,7 +454,7 @@ STATIC mp_obj_t ILI9341_drawLin(size_t n_args, const mp_obj_t *pos_args, mp_map_
           mp_obj_t *params;
           mp_obj_get_array(args[4].u_obj, &len, &params);
           if(len == 3){
-						grap_drawLine(&g_lcd,args[0].u_int ,args[1].u_int,args[2].u_int,args[3].u_int ,
+			grap_drawLine(&g_lcd,args[0].u_int ,args[1].u_int,args[2].u_int,args[3].u_int ,
              get_rgb565(mp_obj_get_int(params[0]), mp_obj_get_int(params[1]), mp_obj_get_int(params[2])));
           }else{
             mp_raise_ValueError(MP_ERROR_TEXT("lcd drawL parameter error \nCorrect call:drawPixel(x,y,(r,g,b)"));

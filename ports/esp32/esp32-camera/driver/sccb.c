@@ -46,6 +46,7 @@ int SCCB_Init(int pin_sda, int pin_scl)
     conf.mode = I2C_MODE_MASTER;
     conf.sda_io_num = pin_sda;
     conf.sda_pullup_en = GPIO_PULLUP_ENABLE;
+	// conf.sda_pullup_en = GPIO_PULLUP_DISABLE;
     conf.scl_io_num = pin_scl;
     conf.scl_pullup_en = GPIO_PULLUP_ENABLE;
     conf.master.clk_speed = SCCB_FREQ;
@@ -89,6 +90,7 @@ uint8_t SCCB_Probe(void)
             return slave_addr;
         }
     }
+
     return 0;
 }
 

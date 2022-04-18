@@ -53,7 +53,7 @@
 #define CAM_PIN_D3						(6)
 #define CAM_PIN_D2						(4)
 #define CAM_PIN_D1						(5)
-#define CAM_PIN_D0						(7)
+#define CAM_PIN_D0						(17)
 #define CAM_PIN_VSYNC					(13)
 #define CAM_PIN_HREF					(12)
 #define CAM_PIN_PCLK					(18)

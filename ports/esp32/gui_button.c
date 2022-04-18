@@ -59,11 +59,11 @@
 static Graphics_Display *btn_fun = NULL;
 //===================================================================================================================
 typedef struct _gui_button_obj_t {
-    mp_obj_base_t base;
-    mp_obj_t callback;
-		_btn_obj *gui_btn;  //按钮指针
-		bool is_enabled : 1;
-		mp_uint_t btn_id : 8;
+	mp_obj_base_t base;
+	mp_obj_t callback;
+	_btn_obj *gui_btn;  //按钮指针
+	bool is_enabled : 1;
+	mp_uint_t btn_id : 8;
 } gui_button_obj_t;
 
 STATIC uint8_t btn_num = 0;
@@ -93,7 +93,7 @@ STATIC void gui_show_strmid(uint16_t x,uint16_t y,uint16_t width,uint16_t height
 	uint16_t strwidth =0;
 
 	if(str==NULL)return;
-  strlenth=strlen((const char*)str);	
+	strlenth=strlen((const char*)str);	
 	strwidth=strlenth*(size>>1);	
 	if(strwidth > width-x){
 		strlenth = ((width-x)/(size>>1)-1);
@@ -198,54 +198,54 @@ void btn_draw_arcbtn(_btn_obj * btnx,uint8_t sta)
 	uint32_t buf_len = fill_w * fill_h;
 
 	if(sta == BTN_PRES || sta==BTN_RELEASE)
+	{
+		uint16_t *fill_buf = (uint16_t *)m_malloc(buf_len);
+		if(fill_buf == NULL){
+			mp_raise_ValueError(MP_ERROR_TEXT("btn buf malloc error"));
+		}
+		switch(sta)
 		{
-			uint16_t *fill_buf = (uint16_t *)m_malloc(buf_len);
-			if(fill_buf == NULL){
-				mp_raise_ValueError(MP_ERROR_TEXT("btn buf malloc error"));
-			}
-			switch(sta)
-			{
-				case BTN_RELEASE://正常(松开)
-					color = btnx->upcolor;
-					lcddev.backcolor = btnx->upcolor;
-					break;
-				case BTN_PRES://按下   
-					lcddev.backcolor = btnx->downcolor;
-					color = btnx->downcolor;
-					break;
-			} 
-			for(uint32_t i=0; i<buf_len ;i++){
-				fill_buf[i] = color;
-			}
-			
-			uint16_t r2 = r*r; //r的平方
-			uint16_t r0x = x+r; //x圆心坐标
-			uint16_t r0y = y+r;
-			uint32_t x2 = 0;
-			uint32_t y2 = 0;
+			case BTN_RELEASE://正常(松开)
+			color = btnx->upcolor;
+			lcddev.backcolor = btnx->upcolor;
+			break;
+			case BTN_PRES://按下   
+			lcddev.backcolor = btnx->downcolor;
+			color = btnx->downcolor;
+			break;
+		} 
+		for(uint32_t i=0; i<buf_len ;i++){
+			fill_buf[i] = color;
+		}
 
-			for(uint16_t j=0; j<r; j++){
-				y2 = abs(y+j - r0x);
-				y2 *= y2;
-				for(uint16_t k=0; k<r; k++){
-					x2 = abs(x+k - r0y);
-					x2 *= x2;
-					if( x2 + y2 > r2 ){
-						fill_buf[fill_w*j+k] = backcolor; //左上
-						fill_buf[(fill_w*j) + (fill_w - k - 1)] = backcolor; //右上
-						fill_buf[(fill_w*(fill_h-j)) + k] = backcolor;
-						fill_buf[(fill_w*(fill_h-j)) + (fill_w-1-k)] = backcolor; 
-					}
+		uint16_t r2 = r*r; //r的平方
+		uint16_t r0x = x+r; //x圆心坐标
+		uint16_t r0y = y+r;
+		uint32_t x2 = 0;
+		uint32_t y2 = 0;
+
+		for(uint16_t j=0; j<r; j++){
+			y2 = abs(y+j - r0x);
+			y2 *= y2;
+			for(uint16_t k=0; k<r; k++){
+				x2 = abs(x+k - r0y);
+				x2 *= x2;
+				if( x2 + y2 > r2 ){
+					fill_buf[fill_w*j+k] = backcolor; //左上
+					fill_buf[(fill_w*j) + (fill_w - k - 1)] = backcolor; //右上
+					fill_buf[(fill_w*(fill_h-j)) + k] = backcolor;
+					fill_buf[(fill_w*(fill_h-j)) + (fill_w-1-k)] = backcolor; 
 				}
 			}
-
-			btn_fun->callDrawFlush(btnx->x, btnx->y, fill_w, fill_h,fill_buf);
-			m_free(fill_buf);
-			gui_show_strmid(btnx->x,btnx->y,btnx->width,btnx->height,
-																btnx->fcolor,btnx->font,btnx->label);
-																
-			lcddev.backcolor = backcolor;
 		}
+
+		btn_fun->callDrawFlush(btnx->x, btnx->y, fill_w, fill_h,fill_buf);
+		m_free(fill_buf);
+		gui_show_strmid(btnx->x,btnx->y,btnx->width,btnx->height,
+				btnx->fcolor,btnx->font,btnx->label);
+	
+		lcddev.backcolor = backcolor;
+	}
 }
 
 //---------------------------------------------------------------------------------
@@ -281,10 +281,10 @@ STATIC int btn_indev(uint16_t sx,uint16_t sy)
 	for(i = 0; i < btn_num; i++){
 		self = btn_obj_all[i];
 		if((sx >= self->gui_btn->x && sx <= self->gui_btn->width) && 
-				(sy >= self->gui_btn->y &&  sy <= self->gui_btn->height)){
-				event_id = self->gui_btn->id;
-				break;
-			}
+		(sy >= self->gui_btn->y &&  sy <= self->gui_btn->height)){
+			event_id = self->gui_btn->id;
+			break;
+		}
 	}
 
 	return event_id;
@@ -310,61 +310,60 @@ STATIC void btn_callback(gui_button_obj_t *self) {
 
 void button_task(void)
 {
-			STATIC bool btn_flag = false;
-			STATIC uint16_t lastX = 0;
-			STATIC uint16_t lastY = 0;
-			STATIC int get_id = -1;
-			STATIC int last_id = -1;
-			gui_button_obj_t *self;
-			
-			if (tp_dev.sta==TP_PRES_DOWN) {
-						lastX = tp_dev.x[0];
-						lastY = tp_dev.y[0];
-						if(btn_flag==0){
-							get_id = btn_indev(lastX,lastY);
-							if(get_id >= 0){
-								btn_flag = true;
-								self = btn_obj_all[get_id];
-								btn_draw_arcbtn(self->gui_btn,BTN_PRES);
-							}
-						}
-			} else if (tp_dev.sta==TP_CATH_UP) {
-				if(btn_flag){
-					btn_flag = false;
-					lastX = tp_dev.x[0];
-					lastY = tp_dev.y[0];
-					last_id = btn_indev(lastX,lastY);
-					self = btn_obj_all[get_id];
-					
-					btn_draw_arcbtn(self->gui_btn,BTN_RELEASE);
-					if(get_id == last_id && get_id >= 0){
-						btn_callback(self);
-					}
-				}
-				tp_dev.sta=TP_INACTIVE;
+	STATIC bool btn_flag = false;
+	STATIC uint16_t lastX = 0;
+	STATIC uint16_t lastY = 0;
+	STATIC int get_id = -1;
+	STATIC int last_id = -1;
+	gui_button_obj_t *self;
 
-			} 
+	if (tp_dev.sta==TP_PRES_DOWN) {
+		lastX = tp_dev.x[0];
+		lastY = tp_dev.y[0];
+		if(btn_flag==0){
+			get_id = btn_indev(lastX,lastY);
+			if(get_id >= 0){
+				btn_flag = true;
+				self = btn_obj_all[get_id];
+				btn_draw_arcbtn(self->gui_btn,BTN_PRES);
+			}
+		}
+	} else if (tp_dev.sta==TP_CATH_UP) {
+		if(btn_flag){
+			btn_flag = false;
+			lastX = tp_dev.x[0];
+			lastY = tp_dev.y[0];
+			last_id = btn_indev(lastX,lastY);
+			self = btn_obj_all[get_id];
+
+			btn_draw_arcbtn(self->gui_btn,BTN_RELEASE);
+			if(get_id == last_id && get_id >= 0){
+				btn_callback(self);
+			}
+		}
+		tp_dev.sta=TP_INACTIVE;
+	} 
 }
 
 STATIC mp_obj_t gui_button_task_handler(size_t n_args, const mp_obj_t *args) {
-		button_task();
-		return mp_const_none;
+	button_task();
+	return mp_const_none;
 }
 MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(gui_button_task_handler_obj, 0, 1, gui_button_task_handler);
 
 //-------------------------------------------------------------------------------------
 STATIC mp_obj_t gui_button_info(mp_obj_t self_in) {
-		gui_button_obj_t *self = MP_OBJ_TO_PTR(self_in);
-		printf("<id:%d,name:%s,x:%d,y:%d,width:%d,height:%d>\n",self->btn_id,self->gui_btn->label,self->gui_btn->x,self->gui_btn->y,
-			self->gui_btn->width-self->gui_btn->x,self->gui_btn->height-self->gui_btn->y);
-		return mp_const_none;
+	gui_button_obj_t *self = MP_OBJ_TO_PTR(self_in);
+	printf("<id:%d,name:%s,x:%d,y:%d,width:%d,height:%d>\n",self->btn_id,self->gui_btn->label,self->gui_btn->x,self->gui_btn->y,
+	self->gui_btn->width-self->gui_btn->x,self->gui_btn->height-self->gui_btn->y);
+	return mp_const_none;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_1(gui_button_info_obj, gui_button_info);
 
 //-------------------------------------------------------------------------------------
 STATIC mp_obj_t gui_button_id(mp_obj_t self_in) {
-		gui_button_obj_t *self = MP_OBJ_TO_PTR(self_in);
-		return mp_obj_new_int(self->btn_id);
+	gui_button_obj_t *self = MP_OBJ_TO_PTR(self_in);
+	return mp_obj_new_int(self->btn_id);
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_1(gui_button_id_obj, gui_button_id);
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -381,10 +380,10 @@ STATIC mp_obj_t gui_button_deinit(mp_obj_t self_in) {
 			self = btn_obj_all[i];
 			self->callback = mp_const_none;
 			btn_deinit_arcbtn(self->gui_btn);
-		
-			m_free(self->gui_btn);
-			m_free(self->gui_btn->label);
-			m_free(self);
+			is_init = 0;
+		// m_free(self->gui_btn);
+		// m_free(self->gui_btn->label);
+		// m_free(self);
 		}
 		btn_num = 0;
 	}
@@ -394,111 +393,110 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_1(gui_button_deinit_obj, gui_button_deinit);
 //----------------------------------------------------------------------------------
 STATIC mp_obj_t gui_button_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_kw, const mp_obj_t *all_args) {
 
-		STATIC const mp_arg_t allowed_args[] = {
-				{ MP_QSTR_x0,       MP_ARG_REQUIRED | MP_ARG_INT, {.u_int = 0} },
-				{ MP_QSTR_y0,       MP_ARG_REQUIRED | MP_ARG_INT, {.u_int = 0} },
-				{ MP_QSTR_width,    MP_ARG_REQUIRED | MP_ARG_INT, {.u_int = 0} },
-				{ MP_QSTR_height,   MP_ARG_REQUIRED | MP_ARG_INT, {.u_int = 0} },
-				{ MP_QSTR_btcolor,   	MP_ARG_REQUIRED | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL} },
-				{ MP_QSTR_text, 		MP_ARG_REQUIRED | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL} },
-				{ MP_QSTR_label_color,   	MP_ARG_REQUIRED | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL} },
-				{ MP_QSTR_callback, MP_ARG_REQUIRED | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL} },
-		};
-		
-		mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
-		mp_arg_parse_all_kw_array(n_args, n_kw, all_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
-	
-		if(btn_num >= GUI_BTN_NUM_MAX){
-			mp_raise_msg_varg(&mp_type_ValueError, MP_ERROR_TEXT("Button(%d) doesn't exist"), btn_num + 1);
-		}
-		color_t bt_color=0,label_color=0;
-		size_t len;
-		mp_obj_t *params;
-		
-		mp_buffer_info_t bufinfo;
-		
-		if(args[4].u_obj !=MP_OBJ_NULL) 
-		{
-			mp_obj_get_array(args[4].u_obj, &len, &params);
-			if(len == 3){
-				#if MICROPY_HW_LCD43G
-					bt_color = (mp_obj_get_int(params[0])<<16) | (mp_obj_get_int(params[1])<<8) | mp_obj_get_int(params[2]);
-				#else
-					bt_color = rgb888to565(mp_obj_get_int(params[0]), mp_obj_get_int(params[1]), mp_obj_get_int(params[2]));
-				#endif
-			}else{
-				mp_raise_ValueError(MP_ERROR_TEXT("Button color parameter error \n"));
-			}
-		}
-		if(args[6].u_obj !=MP_OBJ_NULL) 
-		{
-			mp_obj_get_array(args[6].u_obj, &len, &params);
-			if(len == 3){
-				#if MICROPY_HW_LCD43G
-				label_color = (mp_obj_get_int(params[0])<<16) | (mp_obj_get_int(params[1])<<8) | mp_obj_get_int(params[2]);
-				#else
-				label_color = rgb888to565(mp_obj_get_int(params[0]), mp_obj_get_int(params[1]), mp_obj_get_int(params[2]));
-				#endif
-				
-			}else{
-				mp_raise_ValueError(MP_ERROR_TEXT("Button label color parameter error \n"));
-			}
-		}
+	STATIC const mp_arg_t allowed_args[] = {
+		{ MP_QSTR_x0,       MP_ARG_REQUIRED | MP_ARG_INT, {.u_int = 0} },
+		{ MP_QSTR_y0,       MP_ARG_REQUIRED | MP_ARG_INT, {.u_int = 0} },
+		{ MP_QSTR_width,    MP_ARG_REQUIRED | MP_ARG_INT, {.u_int = 0} },
+		{ MP_QSTR_height,   MP_ARG_REQUIRED | MP_ARG_INT, {.u_int = 0} },
+		{ MP_QSTR_btcolor,   	MP_ARG_REQUIRED | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL} },
+		{ MP_QSTR_text, 		MP_ARG_REQUIRED | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL} },
+		{ MP_QSTR_label_color,   	MP_ARG_REQUIRED | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL} },
+		{ MP_QSTR_callback, MP_ARG_REQUIRED | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL} },
+	};
 
-		if(args[5].u_obj !=MP_OBJ_NULL) 
-	  {
-	    if (mp_obj_is_int(args[5].u_obj)) {
-	      mp_raise_ValueError(MP_ERROR_TEXT("button text parameter error"));
-	    } else {
-	      mp_get_buffer_raise(args[5].u_obj, &bufinfo, MP_BUFFER_READ);
-	    }
-	  }
-		else{
-	     mp_raise_ValueError(MP_ERROR_TEXT("button text parameter is empty"));
-	  }
+	mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
+	mp_arg_parse_all_kw_array(n_args, n_kw, all_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
 
-		char *label = bufinfo.buf;
-		btn_fun = &g_lcd;
-		uint8_t font_size = find_font(args[2].u_int,args[3].u_int,label);
-		
-			gui_btn_init();//////
-			gui_button_obj_t *btn;
+	if(btn_num >= GUI_BTN_NUM_MAX){
+		mp_raise_msg_varg(&mp_type_ValueError, MP_ERROR_TEXT("Button(%d) doesn't exist"), btn_num + 1);
+	}
+	color_t bt_color=0,label_color=0;
+	size_t len;
+	mp_obj_t *params;
+
+	mp_buffer_info_t bufinfo;
+
+	if(args[4].u_obj !=MP_OBJ_NULL) 
+	{
+		mp_obj_get_array(args[4].u_obj, &len, &params);
+		if(len == 3){
+		#if MICROPY_HW_LCD43G
+			bt_color = (mp_obj_get_int(params[0])<<16) | (mp_obj_get_int(params[1])<<8) | mp_obj_get_int(params[2]);
+		#else
+			bt_color = rgb888to565(mp_obj_get_int(params[0]), mp_obj_get_int(params[1]), mp_obj_get_int(params[2]));
+		#endif
+		}else{
+			mp_raise_ValueError(MP_ERROR_TEXT("Button color parameter error \n"));
+		}
+	}
+	if(args[6].u_obj !=MP_OBJ_NULL) 
+	{
+		mp_obj_get_array(args[6].u_obj, &len, &params);
+		if(len == 3){
+			#if MICROPY_HW_LCD43G
+			label_color = (mp_obj_get_int(params[0])<<16) | (mp_obj_get_int(params[1])<<8) | mp_obj_get_int(params[2]);
+			#else
+			label_color = rgb888to565(mp_obj_get_int(params[0]), mp_obj_get_int(params[1]), mp_obj_get_int(params[2]));
+			#endif
+
+		}else{
+			mp_raise_ValueError(MP_ERROR_TEXT("Button label color parameter error \n"));
+		}
+	}
+
+	if(args[5].u_obj !=MP_OBJ_NULL) {
+		if (mp_obj_is_int(args[5].u_obj)) {
+			mp_raise_ValueError(MP_ERROR_TEXT("button text parameter error"));
+		} else {
+			mp_get_buffer_raise(args[5].u_obj, &bufinfo, MP_BUFFER_READ);
+		}
+	}
+	else{
+		mp_raise_ValueError(MP_ERROR_TEXT("button text parameter is empty"));
+	}
+
+	char *label = bufinfo.buf;
+	btn_fun = &g_lcd;
+	uint8_t font_size = find_font(args[2].u_int,args[3].u_int,label);
+
+	gui_btn_init();//////
+	gui_button_obj_t *btn;
 
     if (btn_obj_all[btn_num]->is_enabled == 0)
-			{
-        btn = m_new_obj(gui_button_obj_t);
-				btn = btn_obj_all[btn_num];
-				
-        btn->base.type = &gui_button_type;
-				btn->btn_id = btn_num;
-				btn->is_enabled = true;
-				btn->gui_btn->x = args[0].u_int;
-				btn->gui_btn->y = args[1].u_int;
-				btn->gui_btn->width = args[2].u_int+args[0].u_int;
-				btn->gui_btn->height = args[3].u_int+args[1].u_int;
+	{
+		btn = m_new_obj(gui_button_obj_t);
+		btn = btn_obj_all[btn_num];
 
-				btn->gui_btn->id = btn_num;
-				btn->gui_btn->font = font_size;
-				btn->gui_btn->fcolor = label_color;
-				btn->gui_btn->upcolor = bt_color;
-				btn->gui_btn->downcolor = bt_color>>1;
-				btn->gui_btn->label =label;
+		btn->base.type = &gui_button_type;
+		btn->btn_id = btn_num;
+		btn->is_enabled = true;
+		btn->gui_btn->x = args[0].u_int;
+		btn->gui_btn->y = args[1].u_int;
+		btn->gui_btn->width = args[2].u_int+args[0].u_int;
+		btn->gui_btn->height = args[3].u_int+args[1].u_int;
 
-				if (args[7].u_obj == mp_const_none || args[7].u_obj ==MP_OBJ_NULL) {
-						btn->callback = mp_const_none;
-				} else if (mp_obj_is_callable(args[7].u_obj)) {
-						btn->callback = args[7].u_obj;
-				} else {
-						nlr_raise(mp_obj_new_exception_msg(&mp_type_ValueError,MP_ERROR_TEXT("callback must be None or a callable object")));
-				}
+		btn->gui_btn->id = btn_num;
+		btn->gui_btn->font = font_size;
+		btn->gui_btn->fcolor = label_color;
+		btn->gui_btn->upcolor = bt_color;
+		btn->gui_btn->downcolor = bt_color>>1;
+		btn->gui_btn->label =label;
 
-				btn_draw_arcbtn(btn->gui_btn,BTN_RELEASE);
+		if (args[7].u_obj == mp_const_none || args[7].u_obj ==MP_OBJ_NULL) {
+			btn->callback = mp_const_none;
+		} else if (mp_obj_is_callable(args[7].u_obj)) {
+			btn->callback = args[7].u_obj;
+		} else {
+			nlr_raise(mp_obj_new_exception_msg(&mp_type_ValueError,MP_ERROR_TEXT("callback must be None or a callable object")));
+		}
 
-    }else {
-        btn = btn_obj_all[btn_num];
-    }
+		btn_draw_arcbtn(btn->gui_btn,BTN_RELEASE);
 
-		btn_num++;
+	}else {
+		btn = btn_obj_all[btn_num];
+	}
+
+	btn_num++;
 
    return MP_OBJ_FROM_PTR(btn);
 }

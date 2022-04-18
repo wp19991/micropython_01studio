@@ -90,8 +90,12 @@ static uint16_t fb_buf = 1;
 static esp_err_t init_camera( pixformat_t pixel_format, framesize_t frame_size)
 {
 	camera_config_t camera_config = {
-		.pin_pwdn  = -1,
-		.pin_reset = -1,
+		#if CAM_PIN_RESET
+		.pin_reset  = CAM_PIN_RESET,
+		#else
+		.pin_reset  = -1,
+		#endif
+		.pin_pwdn = -1,
 		.pin_xclk = CAM_PIN_XCLK,
 		.pin_sscb_sda = CAM_PIN_SIOD,
 		.pin_sscb_scl = CAM_PIN_SIOC,
@@ -116,7 +120,7 @@ static esp_err_t init_camera( pixformat_t pixel_format, framesize_t frame_size)
 		.pixel_format = pixel_format, //YUV422,GRAYSCALE,RGB565,JPEG
 		.frame_size = frame_size,    //QQVGA-UXGA Do not use sizes above QVGA when not JPEG
 
-		.jpeg_quality = 12, //0-63 lower number means higher quality
+		.jpeg_quality = 12, //0-63 12lower number means higher quality
 		.fb_count = fb_buf,       //if more than one, i2s runs in continuous mode. Use only with JPEG
 		.grab_mode = CAMERA_GRAB_WHEN_EMPTY
 	};
@@ -124,7 +128,8 @@ static esp_err_t init_camera( pixformat_t pixel_format, framesize_t frame_size)
 	//initialize the camera
 	esp_err_t ret = esp_camera_init(&camera_config);
 	if (ret != ESP_OK) {
-		mp_raise_ValueError(MP_ERROR_TEXT("Camera Init Failed"));
+		esp_camera_deinit();
+		mp_raise_ValueError(MP_ERROR_TEXT("camera init Failed"));
 	}
 	sensor_t *s = esp_camera_sensor_get();
 	s->set_framesize(s, frame_size);
@@ -136,13 +141,13 @@ static esp_err_t init_camera( pixformat_t pixel_format, framesize_t frame_size)
 //=======================================================================================================
 STATIC mp_obj_t sensor_ov2640_reset(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
 
-	sensor_t * s = esp_camera_sensor_get();
-	if (!s) {
-			mp_raise_ValueError(MP_ERROR_TEXT("ov2640 reset Failed"));
-		}
+	// sensor_t * s = esp_camera_sensor_get();
+	// if (!s) {
+		// mp_raise_ValueError(MP_ERROR_TEXT("ov2640 reset Failed"));
+	// }
 
-	s->reset(s); 
-	
+	// s->reset(s); 
+
 	return mp_obj_new_int(0);
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_KW(sensor_ov2640_reset_obj, 0, sensor_ov2640_reset);
@@ -222,7 +227,7 @@ STATIC mp_obj_t sensor_ov2640_setframesize(size_t n_args, const mp_obj_t *pos_ar
 
 	sensor_t * s = esp_camera_sensor_get();
 	if (!s) {
-			mp_raise_ValueError(MP_ERROR_TEXT("Framesize Failed"));
+		mp_raise_ValueError(MP_ERROR_TEXT("Framesize Failed"));
 	}
 
 	s->set_framesize(s, framesize);
@@ -277,7 +282,7 @@ STATIC mp_obj_t sensor_ov2640_display_stop(size_t n_args, const mp_obj_t *pos_ar
 	 vTaskDelete( ov2640_handle );
 	 is_display = false;
 	}
-	mp_hal_delay_ms(10);
+	mp_hal_delay_ms(100);
 	grap_drawFill(0,0,lcddev.width,lcddev.height,0x0000);
 	return mp_obj_new_int(is_display);
 }
@@ -293,7 +298,7 @@ STATIC mp_obj_t sensor_ov2640_hmirror(size_t n_args, const mp_obj_t *pos_args, m
 	uint8_t direction = args[0].u_int;
 	sensor_t * s = esp_camera_sensor_get();
 	if (!s) {
-			mp_raise_ValueError(MP_ERROR_TEXT("set hmirror Failed"));
+		mp_raise_ValueError(MP_ERROR_TEXT("set hmirror Failed"));
 	}
 	if(direction){
 		s->set_hmirror(s, 0);
@@ -307,7 +312,7 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_KW(sensor_ov2640_hmirror_obj,0, sensor_ov2640_hmi
 //----------------------------------------------------------------------------------------------------------
 STATIC mp_obj_t sensor_ov2640_vflip(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
 	static const mp_arg_t vfilp_args[] = {
-			{ MP_QSTR_value,MP_ARG_REQUIRED | MP_ARG_INT, {.u_int = 0} },
+		{ MP_QSTR_value,MP_ARG_REQUIRED | MP_ARG_INT, {.u_int = 0} },
 	};
 	mp_arg_val_t args[MP_ARRAY_SIZE(vfilp_args)];
 	mp_arg_parse_all(n_args-1, pos_args+1, kw_args, MP_ARRAY_SIZE(vfilp_args), vfilp_args, args);
@@ -325,10 +330,11 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_KW(sensor_ov2640_vflip_obj,0, sensor_ov2640_vflip
 #endif
 //---------------------------------------------------------------------------------
 #if MICROPY_ENABLE_STREAM
+
 STATIC mp_obj_t sensor_ov2640_stream(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
 
 	if(framesize >= FRAMESIZE_VGA){
-		mp_raise_ValueError(MP_ERROR_TEXT("Camera framesize !> VGA"));
+		mp_raise_ValueError(MP_ERROR_TEXT("Camera framesize !> QVGA"));
 	}
 	init_httpd_app(80, 0);
 	
@@ -355,7 +361,7 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_KW(sensor_ov2640_deinit_obj,0, sensor_ov2640_dein
 STATIC mp_obj_t sensor_ov2640_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_kw, const mp_obj_t *all_args) {
 
 	static const mp_arg_t allowed_args[] = {
-			{ MP_QSTR_frame, MP_ARG_INT, {.u_int = 1} },
+		{ MP_QSTR_frame, MP_ARG_INT, {.u_int = 1} },
 	};
 
 	mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
@@ -364,13 +370,10 @@ STATIC mp_obj_t sensor_ov2640_make_new(const mp_obj_type_t *type, size_t n_args,
 	
 	if(fb_buf >= 2) fb_buf = 2;
 	else fb_buf = 1;
-	
-	framesize = FRAMESIZE_XGA;
 
-	esp_err_t err = init_camera(PIXFORMAT_RGB565, framesize);
-	if (err != ESP_OK) {
-		mp_raise_ValueError(MP_ERROR_TEXT("Camera Init Failed"));
-	}
+	// framesize = FRAMESIZE_XGA;
+	framesize = FRAMESIZE_WVGA;
+	init_camera(PIXFORMAT_RGB565, framesize);
 
 	ov2640_obj_t *ov2640_obj;
 	ov2640_obj = m_new_obj(ov2640_obj_t);

@@ -115,6 +115,7 @@ static void frame_cb(uvc_frame_t *frame, void *ptr)
             ESP_LOGV(TAG, "send frame = %u",frame->sequence);
             xEventGroupWaitBits(s_evt_handle, BIT2_NEW_FRAME_END, true, true, portMAX_DELAY);
             ESP_LOGV(TAG, "send frame done = %u",frame->sequence);
+
             break;
         default:
             ESP_LOGW(TAG, "Format not supported");

@@ -16,8 +16,11 @@
 #include <stdlib.h>
 #include <math.h>
 #include "mpconfigboard.h"
+
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "esp_task.h"
+
 #include "py/obj.h"
 #include "py/runtime.h"
 #include "esp_system.h"
@@ -40,7 +43,8 @@
 #include "usb_uvc_port.h"
 #endif
 
-#define PART_BOUNDARY "123456789000000000000987654321"
+// #define PART_BOUNDARY "123456789000000000000987654321"
+#define PART_BOUNDARY "1221"
 static const char *_STREAM_CONTENT_TYPE = "multipart/x-mixed-replace;boundary=" PART_BOUNDARY;
 static const char *_STREAM_BOUNDARY = "\r\n--" PART_BOUNDARY "\r\n";
 static const char *_STREAM_PART = "Content-Type: image/jpeg\r\nContent-Length: %u\r\nX-Timestamp: %d.%06d\r\n\r\n";
@@ -50,7 +54,7 @@ static uint8_t stream_type = 0; //0：sensor数据流，1:uvc cam 数据流
 httpd_handle_t stream_httpd = NULL;
 httpd_handle_t camera_httpd = NULL;
 
-static uint64_t jpg_len = 35*1024;
+static uint32_t jpg_len = 50*1024;
 static uint8_t *_jpg_buf = NULL;
 static char *part_buf=NULL;
 
@@ -60,6 +64,7 @@ STATIC camera_fb_t *ov2640_fb = NULL;
 
 #if MICROPY_HW_USB_CAM
 STATIC uvcam_fb_t *uvc_fb = NULL;
+STATIC int64_t last_frame_us = 0;
 #endif
 
 typedef struct {
@@ -75,6 +80,47 @@ typedef struct {
     int *values; //array to be filled with values
 } ra_filter_t;
 
+
+// static void print_err(esp_err_t error)
+// {
+	// switch(error)
+	// {
+		// case ESP_ERR_INVALID_ARG:
+		// printf("ESP_ERR_INVALID_ARG\r\n");
+		// break;
+		// case HTTPD_RESP_USE_STRLEN:
+		// printf("HTTPD_RESP_USE_STRLEN\r\n");
+		// break;
+		
+		// case ESP_ERR_HTTPD_BASE:
+		// printf("ESP_ERR_HTTPD_BASE\r\n");
+		// break;
+		// case ESP_ERR_HTTPD_HANDLERS_FULL:
+		// printf("ESP_ERR_HTTPD_HANDLERS_FULL\r\n");
+		// break;
+		// case ESP_ERR_HTTPD_HANDLER_EXISTS:
+		// printf("ESP_ERR_HTTPD_HANDLER_EXISTS\r\n");
+		// break;
+		// case ESP_ERR_HTTPD_INVALID_REQ:
+		// printf("ESP_ERR_HTTPD_INVALID_REQ\r\n");
+		// break;
+		// case ESP_ERR_HTTPD_RESULT_TRUNC:
+		// printf("ESP_ERR_HTTPD_RESULT_TRUNC\r\n");
+		// break;
+		// case ESP_ERR_HTTPD_RESP_HDR:
+		// printf("ESP_ERR_HTTPD_RESP_HDR\r\n");
+		// break;
+		// case ESP_ERR_HTTPD_RESP_SEND:
+		// printf("ESP_ERR_HTTPD_RESP_SEND\r\n");
+		// break;
+		// case ESP_ERR_HTTPD_ALLOC_MEM:
+		// printf("ESP_ERR_HTTPD_ALLOC_MEM\r\n");
+		// break;
+		// case ESP_ERR_HTTPD_TASK:
+		// printf("ESP_ERR_HTTPD_TASK\r\n");
+		// break;
+	// }
+// }
 #if 0
 static ra_filter_t ra_filter;
 
@@ -132,7 +178,7 @@ static esp_err_t capture_handler(httpd_req_t *req)
 {
 	esp_err_t res = ESP_OK;
 	int64_t fr_start = esp_timer_get_time();
-	
+
 	#if MICROPY_HW_USB_CAM
 	if(stream_type){
 		uvc_fb = uvc_camera_fb_get();
@@ -194,18 +240,16 @@ static esp_err_t capture_handler(httpd_req_t *req)
 	printf("JPG: %uB %ums\r\n", (uint32_t)(fb_len), (uint32_t)((fr_end - fr_start) / 1000));
 	return res;
 }
+static esp_err_t stop_handler(httpd_req_t *req)
+{
+	return 0 ;
+}
 
 static esp_err_t stream_handler(httpd_req_t *req)
 {
-
 	struct timeval _timestamp;
 	esp_err_t res = ESP_OK;
-	size_t _jpg_buf_len = 0;
-	
-	// static int64_t last_frame = 0;
-	// if (!last_frame) {
-			// last_frame = esp_timer_get_time();
-	// }
+	uint32_t _jpg_buf_len = 0;
 
 	if(_jpg_buf == NULL && stream_type==0){
 		mp_raise_ValueError(MP_ERROR_TEXT("stream_handler malloc _jpg_buf failed"));
@@ -220,50 +264,67 @@ static esp_err_t stream_handler(httpd_req_t *req)
 	
 	httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
 	httpd_resp_set_hdr(req, "X-Framerate", "60");
-	
+	_timestamp.tv_sec = 0;
+	_timestamp.tv_usec = 0;	
+
 	while (true)
 	{
+		res = HTTPD_RESP_USE_STRLEN;
 	#if MICROPY_HW_USB_CAM
 		if(stream_type){
+			#if CONFIG_IDF_TARGET_ESP32S2
+			mp_hal_delay_ms(100);
+			#endif
 			uvc_fb = uvc_camera_fb_get();
-			if (!uvc_fb) {
-				mp_raise_ValueError(MP_ERROR_TEXT("UVC Camera capture failed"));
-				res = ESP_FAIL;
-			} else {
-				_timestamp.tv_sec = uvc_fb->timestamp.tv_sec;
-				_timestamp.tv_usec = uvc_fb->timestamp.tv_usec;
+			if (uvc_fb) {
+				last_frame_us = (uint64_t)esp_timer_get_time();
+				_timestamp.tv_sec = last_frame_us / 1000000UL;
+				_timestamp.tv_usec = last_frame_us % 1000000UL;
+
 				_jpg_buf_len = uvc_fb->len;
 				_jpg_buf = uvc_fb->buf;
+				res = ESP_OK;
+				// printf("len:%d,%ld,%ld\r\n",uvc_fb->len,_timestamp.tv_sec,_timestamp.tv_usec);
+			}else{
+				uvc_camera_fb_return(uvc_fb);
+				uvc_fb = NULL;
 			}
-		}
-		else
+		}else
 	#endif
 		{
 		#if MICROPY_ENABLE_SENSOR
 			ov2640_fb = esp_camera_fb_get();
-
-			_timestamp.tv_sec = ov2640_fb->timestamp.tv_sec;
-			_timestamp.tv_usec = ov2640_fb->timestamp.tv_usec;
-			if (ov2640_fb->format != PIXFORMAT_JPEG)
-			{
-				bool jpeg_converted = rgb565_2jpg(ov2640_fb, 50, jpg_len, _jpg_buf, &_jpg_buf_len);
-				esp_camera_fb_return(ov2640_fb);
-				if (!jpeg_converted)
-				{
-					mp_raise_ValueError(MP_ERROR_TEXT("stream_handler JPEG compression failed"));
-					res = ESP_FAIL;
+			if(ov2640_fb != NULL){
+				res = ESP_OK;
+				_timestamp.tv_sec = ov2640_fb->timestamp.tv_sec;
+				_timestamp.tv_usec = ov2640_fb->timestamp.tv_usec;
+				if (ov2640_fb->format != PIXFORMAT_JPEG){
+					bool jpeg_converted = rgb565_2jpg(ov2640_fb, 50, jpg_len, _jpg_buf, &_jpg_buf_len);
+					esp_camera_fb_return(ov2640_fb);
+					if (!jpeg_converted){
+						res = ESP_FAIL;
+					}
 				}
+				// printf("len:%d,%ld,%ld\r\n",_jpg_buf_len,_timestamp.tv_sec,_timestamp.tv_usec);
 			}
 		#endif
 		}
 
-		if (res == ESP_OK)
-		{
+		if (res == ESP_OK){
+			#if CONFIG_IDF_TARGET_ESP32S2
+			if(stream_type){
+				mp_hal_delay_ms(10);
+			}
+			#endif
 			res = httpd_resp_send_chunk(req, _STREAM_BOUNDARY, strlen(_STREAM_BOUNDARY));
 		}
 
-		if (res == ESP_OK)
-		{
+		if (res == ESP_OK){
+			#if CONFIG_IDF_TARGET_ESP32S2
+			if(stream_type){
+				mp_hal_delay_ms(10);
+			}
+			#endif
 			size_t hlen = snprintf((char *)part_buf, 128, _STREAM_PART, _jpg_buf_len, _timestamp.tv_sec, _timestamp.tv_usec);
 			res = httpd_resp_send_chunk(req, (const char *)part_buf, hlen);
 		}
@@ -271,32 +332,24 @@ static esp_err_t stream_handler(httpd_req_t *req)
 		if (res == ESP_OK){
 			res = httpd_resp_send_chunk(req, (const char *)_jpg_buf, _jpg_buf_len);
 		}
+
 		#if MICROPY_HW_USB_CAM
-		if(stream_type)
-		{
-			if (uvc_fb) {
-					uvc_camera_fb_return(uvc_fb);
-					uvc_fb = NULL;
+		if(stream_type){
+			if (uvc_fb != NULL) {
+				uvc_camera_fb_return(uvc_fb);
+				uvc_fb = NULL;
 			} 
 		}
-		if (res != ESP_OK) {
+		#endif
+		if(res == ESP_ERR_HTTPD_RESP_SEND){
+			printf("web cam stream error --->stop!\r\n");
 			break;
 		}
-		#endif
-		// int64_t fr_end = esp_timer_get_time();
-		// int64_t frame_time = fr_end - last_frame;
-		// last_frame = fr_end;
-		// frame_time /= 1000;
-		// uint32_t avg_frame_time = ra_filter_run(&ra_filter, frame_time);
-		// printf("MJPG: %uB %ums (%.1ffps), AVG: %ums (%.1ffps)\r\n",
-					 // (uint32_t)(_jpg_buf_len),
-					 // (uint32_t)frame_time, 1000.0 / (uint32_t)frame_time,
-					 // avg_frame_time, 1000.0 / avg_frame_time
-					// );
 	}
 
   return res;
 }
+
 static esp_err_t index_handler(httpd_req_t *req)
 {
     extern const unsigned char index_uvc_html_gz_start[] asm("_binary_index_uvc_html_gz_start");
@@ -313,20 +366,20 @@ void init_httpd_app(uint16_t server_port, uint8_t stream_t)
 	httpd_config_t config = HTTPD_DEFAULT_CONFIG();
 	config.max_uri_handlers = 16;
 	
-stream_type = stream_t;
+	stream_type = stream_t;
 
 	httpd_uri_t index_uri = {
-			.uri = "/",
-			.method = HTTP_GET,
-			.handler = index_handler,
-			.user_ctx = NULL
+		.uri = "/",
+		.method = HTTP_GET,
+		.handler = index_handler,
+		.user_ctx = NULL
 	};
 
 	httpd_uri_t capture_uri = {
-			.uri = "/capture",
-			.method = HTTP_GET,
-			.handler = capture_handler,
-			.user_ctx = NULL
+		.uri = "/capture",
+		.method = HTTP_GET,
+		.handler = capture_handler,
+		.user_ctx = NULL
 	};
 	if(!stream_type){
 		_jpg_buf=(uint8_t *)m_malloc(jpg_len);
@@ -335,12 +388,19 @@ stream_type = stream_t;
 	part_buf=(char *)m_malloc(128);
 
 	httpd_uri_t stream_uri = {
-			.uri = "/stream",
-			.method = HTTP_GET,
-			.handler = stream_handler,
-			.user_ctx = NULL
+		.uri = "/stream",
+		.method = HTTP_GET,
+		.handler = stream_handler,
+		.user_ctx = NULL
 	};
-
+	
+	httpd_uri_t stop_uri = {
+		.uri = "/stop",
+		.method = HTTP_GET,
+		.handler = stop_handler,
+		.user_ctx = NULL
+	};
+	
 	config.server_port = server_port;
 
 	//ra_filter_init(&ra_filter, 20);
@@ -352,10 +412,11 @@ stream_type = stream_t;
 	
 	config.server_port += 1;
 	config.ctrl_port += 1;
-	if (httpd_start(&stream_httpd, &config) == ESP_OK)
-	{
+	if (httpd_start(&stream_httpd, &config) == ESP_OK){
 		httpd_register_uri_handler(stream_httpd, &stream_uri);
+		httpd_register_uri_handler(stream_httpd, &stop_uri);
 	}
+
 }
 
 #endif

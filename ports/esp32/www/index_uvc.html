@@ -443,6 +443,7 @@ document.addEventListener('DOMContentLoaded', function (event) {
   const saveButton = document.getElementById('save-still')
 
   const stopStream = () => {
+	view.src = `${streamUrl}/stop`
     window.stop();
     streamButton.innerHTML = 'Start Stream'
   }

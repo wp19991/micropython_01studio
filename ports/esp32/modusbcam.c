@@ -156,8 +156,8 @@ static void display_task(void *pvParameter)
 				color_u8[i + 1] = color_u8[i];
 				color_u8[i] = color_tmp;
 			}
-			ili9341_cam_full(x,y,pic->width,pic->height,outbuf);
- 
+			// ili9341_cam_full(x,y,pic->width,pic->height,outbuf);
+			grap_drawCam(x,y,pic->width,pic->height,outbuf);
 			if (pic) {
 				uvc_camera_fb_return(pic);
 				pic = NULL;
@@ -204,8 +204,8 @@ STATIC mp_obj_t usbcam_display_stop(size_t n_args, const mp_obj_t *pos_args, mp_
 		m_free(outbuf);
 	}
 	
-	ili9341_Fill(0,0,lcddev.width,lcddev.height,lcddev.backcolor);
-
+	// ili9341_Fill(0,0,lcddev.width,lcddev.height,lcddev.backcolor);
+	grap_drawFill(0,0,lcddev.width,lcddev.height,lcddev.backcolor);
 	return mp_obj_new_int(is_display);
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_KW(usbcam_display_stop_obj,0, usbcam_display_stop);
@@ -250,7 +250,7 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_KW(usbcam_deinit_obj,0, usbcam_deinit);
 STATIC mp_obj_t usbcam_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_kw, const mp_obj_t *all_args) {
 
 	static const mp_arg_t allowed_args[] = {
-			{ MP_QSTR_framesize, MP_ARG_INT, {.u_int = FRAMESIZE_320X240} },
+		{ MP_QSTR_framesize, MP_ARG_INT, {.u_int = FRAMESIZE_320X240} },
 	};
 	
 	mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
@@ -258,11 +258,11 @@ STATIC mp_obj_t usbcam_make_new(const mp_obj_type_t *type, size_t n_args, size_t
 
 	uvc_framesize = args[0].u_int;
 #if MICROPY_ENABLE_TFTLCD
-	mp_init_ILI9341();
-	ili9341_set_dir(4);
-	lcddev.backcolor = 0x0000;
-	ili9341_Fill(0,0,lcddev.width,lcddev.height,lcddev.backcolor);
-	lcddev.clercolor = lcddev.backcolor;
+	// mp_init_ILI9341();
+	// ili9341_set_dir(4);
+	// lcddev.backcolor = 0x0000;
+	// ili9341_Fill(0,0,lcddev.width,lcddev.height,lcddev.backcolor);
+	// lcddev.clercolor = lcddev.backcolor;
 #endif
 	esp_err_t err = 0;
 
