@@ -27,7 +27,6 @@ if(MICROPY_PORT_PICLIB STREQUAL "y")
 	${PROJECT_DIR}/picture/piclib.c
 	${PROJECT_DIR}/picture/tjpgd.c
 	)
-
 endif()
 
 # cam
@@ -169,6 +168,31 @@ if(MICROPY_PORT_WEB_STREAM STREQUAL "y")
 			${PROJECT_DIR}/www/index_uvc.html.gz
 		)
 endif()
+
+#drone
+if(MICROPY_PORT_DRONE STREQUAL "y")
+	set(DRONE_FILE_DIR
+		${PROJECT_DIR}/py-drone
+		)
+	set(DRONE_INC
+		${DRONE_FILE_DIR}
+		${DRONE_FILE_DIR}/drivers/i2c_bus/include
+		${DRONE_FILE_DIR}/drivers/i2c_devices/mpu6050/include
+		${DRONE_FILE_DIR}/drivers/i2c_devices/spl06/include
+		${DRONE_FILE_DIR}/mpmodules
+		${DRONE_FILE_DIR}/utils/interface
+		${DRONE_FILE_DIR}/utils/interface/kve
+		${DRONE_FILE_DIR}/utils/interface/lighthouse
+		${DRONE_FILE_DIR}/utils/interface/tdoa
+		${DRONE_FILE_DIR}/dsp_lib/include
+		)
+
+	file (GLOB_RECURSE DRONE_SRCS 
+		"${DRONE_FILE_DIR}/*.c"
+		) 
+
+	# list(REMOVE_ITEM NESEMU_SRCS "${NESEMU_FILE_DIR}/main/main.c")
+endif()
 #-----------------------------------------------------------
 
 set(MICROPY_SOURCE_SHARED
@@ -270,6 +294,7 @@ set(MICROPY_SOURCE_QSTR
     ${MICROPY_SOURCE_LIB}
     ${MICROPY_SOURCE_PORT}
     ${MICROPY_SOURCE_BOARD}
+	${DRONE_SRCS}
 )
 
 set(IDF_COMPONENTS
@@ -301,39 +326,6 @@ set(IDF_COMPONENTS
 	vfs
 	xtensa
 )
-# if(MICROPY_PORT_EN_ESPAI STREQUAL "y")
-	# set(IDF_COMPONENTS
-		# esp_http_server
-		# app_update
-		# bootloader_support
-		# bt
-		# driver
-		# esp_adc_cal
-		# esp_common
-		# esp_eth
-		# esp_event
-		# esp_ringbuf
-		# esp_rom
-		# esp_wifi
-		# freertos
-		# heap
-		# log
-		# lwip
-		# mbedtls
-		# mdns
-		# newlib
-		# nvs_flash
-		# sdmmc
-		# soc
-		# spi_flash
-		# tcpip_adapter
-		# ulp
-		# vfs
-		# xtensa
-		# esp-dl
-		# esp-code-scanner
-	# )
-# endif()
 
 if(IDF_VERSION_MINOR GREATER_EQUAL 1 OR IDF_VERSION_MAJOR GREATER_EQUAL 5)
     list(APPEND IDF_COMPONENTS esp_netif)
@@ -383,6 +375,7 @@ idf_component_register(
         ${MICROPY_SOURCE_LIB}
         ${MICROPY_SOURCE_DRIVERS}
         ${MICROPY_SOURCE_PORT}
+		${DRONE_SRCS}
 		${MICROPY_SOURCE_BOARD}
 		${MICROPY_SOURCE_PICTURE}
 		${CAM_SRCS}
@@ -402,6 +395,7 @@ idf_component_register(
 		${WEB_SRCS_INC}
 		${UVC_CAM_INC}
 		${JPEG9A_SOURCE_INC}
+		${DRONE_INC}
 		${NESEMU_INC}
 		${ESPAI_INC}
     REQUIRES

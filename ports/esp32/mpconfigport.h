@@ -237,6 +237,7 @@ extern const struct _mp_obj_module_t gui_module;
 extern const struct _mp_obj_module_t game_module;
 extern const struct _mp_obj_module_t controller_module;
 extern const struct _mp_obj_module_t espai_module;
+extern const struct _mp_obj_module_t espdrone_module;
 
 #if MICROPY_ENABLE_TOUCH
 #define TOUCH_MODULE              { MP_ROM_QSTR(MP_QSTR_touch), MP_ROM_PTR(&touch_module) },
@@ -288,6 +289,12 @@ extern const struct _mp_obj_module_t espai_module;
 #define CONTROLLER_MODULE
 #endif
 
+#if MICROPY_ENABLE_ESP_DRONE
+#define ESP_DRONE_MODULE              { MP_ROM_QSTR(MP_QSTR_esp_drone), MP_ROM_PTR(&espdrone_module) },
+#else
+#define ESP_DRONE_MODULE
+#endif
+
 //end
 #define MICROPY_PORT_BUILTIN_MODULES \
     { MP_OBJ_NEW_QSTR(MP_QSTR_esp), (mp_obj_t)&esp_module }, \
@@ -306,6 +313,7 @@ extern const struct _mp_obj_module_t espai_module;
 	GAME_MODULE \
 	CONTROLLER_MODULE \
 	USB_ESPAI_MODULE \
+	ESP_DRONE_MODULE \
 
 #define MP_STATE_PORT MP_STATE_VM
 

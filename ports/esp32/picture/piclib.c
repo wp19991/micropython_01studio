@@ -9,6 +9,7 @@ _pic_phy pic_phy;		//图片显示物理接口
 //指定画点/读点
 void piclib_init(void)
 {
+	#if MICROPY_ENABLE_TFTLCD
 	switch (lcddev.type)
 		{
 			case 1:
@@ -51,7 +52,16 @@ void piclib_init(void)
 
 	picinfo.lcdwidth=lcddev.width;	//得到LCD的宽度像素
 	picinfo.lcdheight=lcddev.height;//得到LCD的高度像素
-
+	#else
+	picinfo.lcdwidth=320;
+	picinfo.lcdheight=240;
+	pic_phy.read_point=NULL;
+	pic_phy.draw_point=NULL;
+	pic_phy.fill=NULL;
+	pic_phy.draw_hline=NULL;
+	pic_phy.fillcolor=NULL;
+	#endif
+	
 	picinfo.ImgWidth=0;	//初始化宽度为0
 	picinfo.ImgHeight=0;//初始化高度为0
 	picinfo.Div_Fac=0;	//初始化缩放系数为0

@@ -6,12 +6,13 @@
 # BOARD ?= PYWIFI_C3
 # BOARD ?= PYWIFI
 # BOARD ?= PYWIFI_P
-BOARD ?= PYWIFI_S2P
+# BOARD ?= PYWIFI_S2P
 # BOARD ?= PYWIFI_S3P
 # BOARD ?= PYWIFI_S3PR8
 # BOARD ?= PYWIFI_S3P_AI
 # BOARD ?= PYCONTROLLER
 # BOARD ?= PYCLOCK
+BOARD ?= PYDRONE
 # If the build directory is not given, make it reflect the board name.
 BUILD ?= build-$(BOARD)
 

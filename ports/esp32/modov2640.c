@@ -1,13 +1,13 @@
-/**
-	******************************************************************************
-	* Copyright (C), 2021 -2023, 01studio Tech. Co., Ltd.http://bbs.01studio.org/
-	* File Name 				 :	modov2640.c
-	* Author						 :	Folktale
-	* Version 					 :	v1.0
-	* date							 :	2021/7/22
-	* Description 			 :	
-	******************************************************************************
-**/
+
+/********************************************************************************
+	* Copyright (C), 2022 -2023, 01studio Tech. Co., Ltd.https://www.01studio.cc/
+	* File Name				:	modov2640.c
+	* Author				:	Folktale
+	* Version				:	v1.0
+	* date					:	2021/7/22
+	* Description			:	
+******************************************************************************/
+
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -84,7 +84,9 @@ TaskHandle_t ov2640_handle = NULL;
 
 static bool is_display = false; //目前在显示图像
 static bool is_snapshot = false;
+#if MICROPY_ENABLE_TFTLCD
 static bool is_init = 0;
+#endif
 static uint16_t fb_buf = 1;
 //------------------------------------------------------------
 static esp_err_t init_camera( pixformat_t pixel_format, framesize_t frame_size)
@@ -231,11 +233,11 @@ STATIC mp_obj_t sensor_ov2640_setframesize(size_t n_args, const mp_obj_t *pos_ar
 	}
 
 	s->set_framesize(s, framesize);
-	
+	#if MICROPY_ENABLE_TFTLCD
 	if(is_init){
 		grap_drawFill(0,0,lcddev.width,lcddev.height,lcddev.backcolor);
 	}
-
+	#endif
 	return mp_obj_new_int(framesize);
 
 }
@@ -350,7 +352,9 @@ STATIC mp_obj_t sensor_ov2640_deinit(size_t n_args, const mp_obj_t *pos_args, mp
 		mp_raise_ValueError(MP_ERROR_TEXT("Camera deinit Failed"));
 		return mp_const_false;
 	}
+	#if MICROPY_ENABLE_TFTLCD
 	lcd_spibus_deinit();
+	#endif
 	is_display = false;
   return mp_const_true;
 }
