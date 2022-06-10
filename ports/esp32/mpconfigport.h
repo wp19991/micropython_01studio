@@ -290,7 +290,7 @@ extern const struct _mp_obj_module_t espdrone_module;
 #endif
 
 #if MICROPY_ENABLE_ESP_DRONE
-#define ESP_DRONE_MODULE              { MP_ROM_QSTR(MP_QSTR_esp_drone), MP_ROM_PTR(&espdrone_module) },
+#define ESP_DRONE_MODULE              { MP_ROM_QSTR(MP_QSTR_drone), MP_ROM_PTR(&espdrone_module) },
 #else
 #define ESP_DRONE_MODULE
 #endif

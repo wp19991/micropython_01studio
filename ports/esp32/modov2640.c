@@ -58,7 +58,6 @@
 #include "lcd_spibus.h"
 #endif
 
-
 // MicroPython runs as a task under FreeRTOS
 #define OV_TASK_PRIORITY        (ESP_TASK_PRIO_MIN + 3)
 #define OV_TASK_STACK_SIZE      (16 * 1024)
@@ -118,10 +117,8 @@ static esp_err_t init_camera( pixformat_t pixel_format, framesize_t frame_size)
 		.xclk_freq_hz = 16000000,
 		.ledc_timer = LEDC_TIMER_0,
 		.ledc_channel = LEDC_CHANNEL_0,
-
 		.pixel_format = pixel_format, //YUV422,GRAYSCALE,RGB565,JPEG
 		.frame_size = frame_size,    //QQVGA-UXGA Do not use sizes above QVGA when not JPEG
-
 		.jpeg_quality = 12, //0-63 12lower number means higher quality
 		.fb_count = fb_buf,       //if more than one, i2s runs in continuous mode. Use only with JPEG
 		.grab_mode = CAMERA_GRAB_WHEN_EMPTY
@@ -250,7 +247,7 @@ static void display_task(void *pvParameter)
 {
 	static uint16_t x=0,y=0;
 
-	while (1)
+	while (is_display)
 	{
 		if(!is_snapshot){
 			pic = esp_camera_fb_get();
@@ -263,6 +260,7 @@ static void display_task(void *pvParameter)
 			vTaskDelay(1000 / portTICK_RATE_MS);
 		}
 	}
+	vTaskDelete(NULL);
 }
 STATIC mp_obj_t sensor_ov2640_display(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
 	if(!is_init){
@@ -272,18 +270,19 @@ STATIC mp_obj_t sensor_ov2640_display(size_t n_args, const mp_obj_t *pos_args, m
 		lcddev.clercolor = lcddev.backcolor;
 		is_init = 1;
 	}
-	xTaskCreate( display_task, "display_task", OV_TASK_STACK_SIZE / sizeof(StackType_t), NULL, OV_TASK_PRIORITY, &ov2640_handle );		
 	is_display = true;
+	xTaskCreate( display_task, "display_task", OV_TASK_STACK_SIZE / sizeof(StackType_t), NULL, OV_TASK_PRIORITY, &ov2640_handle );		
+	
 	return mp_const_none;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_KW(sensor_ov2640_display_obj,0, sensor_ov2640_display);
 //----------------------------------------------------------------------------------
 STATIC mp_obj_t sensor_ov2640_display_stop(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
-	if( ov2640_handle != NULL )
-	{
-	 vTaskDelete( ov2640_handle );
-	 is_display = false;
-	}
+	is_display = false;
+	// if( ov2640_handle != NULL )
+	// {
+	 // vTaskDelete( ov2640_handle );
+	// }
 	mp_hal_delay_ms(100);
 	grap_drawFill(0,0,lcddev.width,lcddev.height,0x0000);
 	return mp_obj_new_int(is_display);

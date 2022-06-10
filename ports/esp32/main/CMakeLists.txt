@@ -179,19 +179,19 @@ if(MICROPY_PORT_DRONE STREQUAL "y")
 		${DRONE_FILE_DIR}/drivers/i2c_bus/include
 		${DRONE_FILE_DIR}/drivers/i2c_devices/mpu6050/include
 		${DRONE_FILE_DIR}/drivers/i2c_devices/spl06/include
+		${DRONE_FILE_DIR}/drivers/i2c_devices/hmc5883l/include
+		${DRONE_FILE_DIR}/drivers/motors/include
+		${DRONE_FILE_DIR}/drivers/pm/include
+		${DRONE_FILE_DIR}/drivers/led/include
 		${DRONE_FILE_DIR}/mpmodules
-		${DRONE_FILE_DIR}/utils/interface
-		${DRONE_FILE_DIR}/utils/interface/kve
-		${DRONE_FILE_DIR}/utils/interface/lighthouse
-		${DRONE_FILE_DIR}/utils/interface/tdoa
+		${DRONE_FILE_DIR}/port
 		${DRONE_FILE_DIR}/dsp_lib/include
+		${DRONE_FILE_DIR}/utils/interface
 		)
 
 	file (GLOB_RECURSE DRONE_SRCS 
 		"${DRONE_FILE_DIR}/*.c"
 		) 
-
-	# list(REMOVE_ITEM NESEMU_SRCS "${NESEMU_FILE_DIR}/main/main.c")
 endif()
 #-----------------------------------------------------------
 
@@ -429,6 +429,7 @@ target_compile_options(${MICROPY_TARGET} PUBLIC
 	-Wno-stringop-truncation
 	-Wno-implicit-fallthrough
 	-fdiagnostics-color=always
+	-fno-strict-aliasing
 )
 
 # Add additional extmod and usermod components.

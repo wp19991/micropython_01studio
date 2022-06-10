@@ -1,14 +1,12 @@
-/**
-	******************************************************************************
-	* This file is part of the MicroPython project, http://micropython.org/
-	* Copyright (C), 2021 -2023, 01studio Tech. Co., Ltd.https://www.01studio.cc/
-	* File Name 				 :	ST7789.c
-	* Author						 :	Folktale
-	* Version 					 :	v1.0
-	* date							 :	2021/9/18
-	* Description 			 :	
-	******************************************************************************
-**/
+
+/********************************************************************************
+	* Copyright (C), 2022 -2023, 01studio Tech. Co., Ltd.https://www.01studio.cc/
+	* File Name				:	ST7789.c
+	* Author				:	Folktale
+	* Version				:	v1.0
+	* date					:	2021/9/18
+	* Description			:	
+******************************************************************************/
 
 #include "mpconfigboard.h"
 #include "freertos/FreeRTOS.h"

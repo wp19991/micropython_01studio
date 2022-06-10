@@ -1,14 +1,13 @@
 
-/**
-	******************************************************************************
-	* Copyright (C), 2021 -2023, 01studio Tech. Co., Ltd.http://bbs.01studio.org/
-	* File Name 				 :	modespusb.c
-	* Author						 :	Folktale
-	* Version 					 :	v1.0
-	* date							 :	2021/8/05
-	* Description 			 :	
-	******************************************************************************
-**/
+/********************************************************************************
+	* Copyright (C), 2022 -2023, 01studio Tech. Co., Ltd.https://www.01studio.cc/
+	* File Name				:	modespusb.c
+	* Author				:	Folktale
+	* Version				:	v1.0
+	* date					:	2021/8/05
+	* Description			:	
+******************************************************************************/
+
 #include <stdint.h>
 #include <stdio.h>
 

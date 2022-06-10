@@ -1,14 +1,12 @@
-/**
-	******************************************************************************
-	* This file is part of the MicroPython project, http://micropython.org/
-	* Copyright (C), 2021 -2023, 01studio Tech. Co., Ltd.http://bbs.01studio.org/
-	* File Name 				 :	ST7789.h
-	* Author						 :	Folktale
-	* Version 					 :	v1.0
-	* date							 :	2021/9/18
-	* Description 			 :	
-	******************************************************************************
-**/
+
+/********************************************************************************
+	* Copyright (C), 2022 -2023, 01studio Tech. Co., Ltd.https://www.01studio.cc/
+	* File Name				:	ST7789.h
+	* Author				:	Folktale
+	* Version				:	v1.0
+	* date					:	2021/9/18
+	* Description			:	
+******************************************************************************/
 
 #ifndef MICROPY_INCLUDED_ESP32_ST7789_H
 #define MICROPY_INCLUDED_ESP32_ST7789_H

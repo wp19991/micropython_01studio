@@ -69,7 +69,7 @@
 #ifndef CONFIG_OV2640_SUPPORT
 #define CONFIG_OV2640_SUPPORT			(1)
 #endif
-
+#define CONFIG_SCCB_HARDWARE_I2C_PORT1	(1)
 //usb cam
 #define MICROPY_ENABLE_ESP_USB			(1)
 #define MICROPY_HW_USB_CAM				(1)

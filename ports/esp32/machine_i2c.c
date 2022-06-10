@@ -159,11 +159,11 @@ mp_obj_t machine_hw_i2c_make_new(const mp_obj_type_t *type, size_t n_args, size_
         if (self->port == I2C_NUM_0) {
             self->scl = MICROPY_HW_I2C0_SCL;
             self->sda = MICROPY_HW_I2C0_SDA;
-				#ifndef CONFIG_IDF_TARGET_ESP32C3
+			#ifndef CONFIG_IDF_TARGET_ESP32C3
         } else {
             self->scl = MICROPY_HW_I2C1_SCL;
             self->sda = MICROPY_HW_I2C1_SDA;
-				#endif
+			#endif
         }
         first_init = true;
     }

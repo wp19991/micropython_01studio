@@ -135,7 +135,7 @@ static void display_task(void *pvParameter)
 	static uint16_t x=0,y=0;
 	// uint32_t lcd_size = lcddev.width*lcddev.height;
 
-	while (1)
+	while (is_display)
 	{
 		if(!is_snapshot&&is_display){
 			pic = uvc_camera_fb_get();
@@ -167,6 +167,7 @@ static void display_task(void *pvParameter)
 			vTaskDelay(1000 / portTICK_RATE_MS);
 		}
 	}
+	vTaskDelete(NULL);
 }
 
 STATIC mp_obj_t usbcam_display(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
@@ -178,13 +179,14 @@ STATIC mp_obj_t usbcam_display(size_t n_args, const mp_obj_t *pos_args, mp_map_t
 	if(outbuf == NULL){
 		mp_raise_ValueError(MP_ERROR_TEXT("uvc outbuf display malloc failed"));
 	}
-
+	
+	is_display = true;
 	if(xTaskCreate( display_task, "display_task", UVC_TASK_STACK_SIZE / sizeof(StackType_t), 
 				NULL, UVC_TASK_PRIORITY, &uvc_display_handle ) != pdPASS)		{
 		mp_raise_ValueError(MP_ERROR_TEXT("display xTaskCreate failed"));
 	}
 	
-	is_display = true;
+	
 	is_init = 1;
 	return mp_const_none;
 }
@@ -195,16 +197,14 @@ STATIC mp_obj_t usbcam_display_stop(size_t n_args, const mp_obj_t *pos_args, mp_
 	is_display = false;
 	vTaskDelay(200 / portTICK_RATE_MS);
 
-	if( uvc_display_handle != NULL )
-	{
-	 vTaskDelete( uvc_display_handle );
-	}
+	// if( uvc_display_handle != NULL )
+	// {
+	 // vTaskDelete( uvc_display_handle );
+	// }
 
 	if(outbuf){
 		m_free(outbuf);
 	}
-	
-	// ili9341_Fill(0,0,lcddev.width,lcddev.height,lcddev.backcolor);
 	grap_drawFill(0,0,lcddev.width,lcddev.height,lcddev.backcolor);
 	return mp_obj_new_int(is_display);
 }
@@ -234,9 +234,9 @@ STATIC mp_obj_t usbcam_deinit(size_t n_args, const mp_obj_t *pos_args, mp_map_t 
 		mp_raise_ValueError(MP_ERROR_TEXT("UVC Camera deinit Failed"));
 	}
 
-	if( uvc_display_handle != NULL ){
-	 vTaskDelete( uvc_display_handle );
-	}
+	// if( uvc_display_handle != NULL ){
+	 // vTaskDelete( uvc_display_handle );
+	// }
 
 	if(outbuf){
 		m_free(outbuf);

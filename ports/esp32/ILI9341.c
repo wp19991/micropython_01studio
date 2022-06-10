@@ -673,9 +673,9 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_KW(ILI9341_drawStr_obj, 1, ILI9341_drawStr);
 mp_obj_t ILI9341_CachePicture(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
 
   STATIC const mp_arg_t tft_allowed_args[] = { 
-    { MP_QSTR_file,     MP_ARG_REQUIRED | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL} },
-		{ MP_QSTR_path,     MP_ARG_KW_ONLY 	| MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL} },
-		{ MP_QSTR_replace, 	MP_ARG_KW_ONLY 	| MP_ARG_BOOL,{.u_bool = false} },
+	{ MP_QSTR_file,     MP_ARG_REQUIRED | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL} },
+	{ MP_QSTR_path,     MP_ARG_KW_ONLY 	| MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL} },
+	{ MP_QSTR_replace, 	MP_ARG_KW_ONLY 	| MP_ARG_BOOL,{.u_bool = false} },
   };
 
   uint8_t arg_num = MP_ARRAY_SIZE(tft_allowed_args);

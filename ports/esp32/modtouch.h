@@ -1,14 +1,13 @@
-/**
-	******************************************************************************
-	* This file is part of the MicroPython project, http://micropython.org/
-	* Copyright (C), 2021 -2022, 01studio Tech. Co., Ltd.http://bbs.01studio.org/
-	* File Name 				 :	tp_touch.h
-	* Author						 :	Folktale
-	* Version 					 :	v1.0
-	* date							 :	2021/5/11
-	* Description 			 :	
-	******************************************************************************
-**/
+
+/********************************************************************************
+	* Copyright (C), 2022 -2023, 01studio Tech. Co., Ltd.https://www.01studio.cc/
+	* File Name				:	tp_touch.h
+	* Author				:	Folktale
+	* Version				:	v1.0
+	* date					:	2021/5/11
+	* Description			:	
+******************************************************************************/
+
 #ifndef __MODTOUCH_H
 #define __MODTOUCH_H
 

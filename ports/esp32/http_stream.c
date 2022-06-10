@@ -1,14 +1,13 @@
-/**
-	******************************************************************************
-	* This file is part of the MicroPython project, http://micropython.org/
-	* Copyright (C), 2021 -2023, 01studio Tech. Co., Ltd.http://bbs.01studio.org/
-	* File Name 				 :	http_stream.c
-	* Author						 :	Folktale
-	* Version 					 :	v1.0
-	* date							 :	2021/8/02
-	* Description 			 :	
-	******************************************************************************
-**/
+
+/********************************************************************************
+	* Copyright (C), 2021 -2022, 01studio Tech. Co., Ltd.https://www.01studio.cc/
+	* File Name				:	http_stream.c
+	* Author				:	Folktale
+	* Version				:	v1.0
+	* date					:	2021/8/02
+	* Description			:	
+******************************************************************************/
+
 #include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>
@@ -263,7 +262,8 @@ static esp_err_t stream_handler(httpd_req_t *req)
 	}
 	
 	httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
-	httpd_resp_set_hdr(req, "X-Framerate", "60");
+	// httpd_resp_set_hdr(req, "X-Framerate", "60");
+	httpd_resp_set_hdr(req, "X-Framerate", "1");
 	_timestamp.tv_sec = 0;
 	_timestamp.tv_usec = 0;	
 
@@ -294,12 +294,14 @@ static esp_err_t stream_handler(httpd_req_t *req)
 		{
 		#if MICROPY_ENABLE_SENSOR
 			ov2640_fb = esp_camera_fb_get();
+
 			if(ov2640_fb != NULL){
 				res = ESP_OK;
 				_timestamp.tv_sec = ov2640_fb->timestamp.tv_sec;
 				_timestamp.tv_usec = ov2640_fb->timestamp.tv_usec;
 				if (ov2640_fb->format != PIXFORMAT_JPEG){
-					bool jpeg_converted = rgb565_2jpg(ov2640_fb, 50, jpg_len, _jpg_buf, &_jpg_buf_len);
+					bool jpeg_converted =  0;
+					jpeg_converted = rgb565_2jpg(ov2640_fb, 50, jpg_len, _jpg_buf, &_jpg_buf_len);
 					esp_camera_fb_return(ov2640_fb);
 					if (!jpeg_converted){
 						res = ESP_FAIL;

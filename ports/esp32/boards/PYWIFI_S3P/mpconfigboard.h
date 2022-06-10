@@ -58,6 +58,7 @@
 #define CAM_PIN_HREF					(12)
 #define CAM_PIN_PCLK					(18)
 
+#define CONFIG_SCCB_HARDWARE_I2C_PORT1	(1)
 #ifndef CONFIG_OV2640_SUPPORT
 #define CONFIG_OV2640_SUPPORT			(1)
 #endif

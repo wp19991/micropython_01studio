@@ -1,14 +1,13 @@
-/**
-	******************************************************************************
-	* This file is part of the MicroPython project, http://micropython.org/
-	* Copyright (C), 2021 -2023, 01studio Tech. Co., Ltd.http://bbs.01studio.org/
-	* File Name 				 :	modtouch.c
-	* Author						 :	Folktale
-	* Version 					 :	v1.0
-	* date							 :	2021/3/18
-	* Description 			 :	
-	******************************************************************************
-**/
+
+/********************************************************************************
+	* Copyright (C), 2022 -2023, 01studio Tech. Co., Ltd.https://www.01studio.cc/
+	* File Name				:	modtouch.c
+	* Author				:	Folktale
+	* Version				:	v1.0
+	* date					:	2021/3/18
+	* Description			:	
+******************************************************************************/
+
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>

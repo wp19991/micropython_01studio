@@ -1,14 +1,12 @@
-/**
-	******************************************************************************
-	* This file is part of the MicroPython project, http://micropython.org/
-	* Copyright (C), 2021 -2023, 01studio Tech. Co., Ltd.http://bbs.01studio.org/
-	* File Name 				 :	ST7789.c
-	* Author						 :	Folktale
-	* Version 					 :	v1.0
-	* date							 :	2021/9/18
-	* Description 			 :	
-	******************************************************************************
-**/
+
+/********************************************************************************
+	* Copyright (C), 2022 -2023, 01studio Tech. Co., Ltd.https://www.01studio.cc/
+	* File Name				:	ST7735.c
+	* Author				:	Folktale
+	* Version				:	v1.0
+	* date					:	2021/9/18
+	* Description			:	
+******************************************************************************/
 
 #include "mpconfigboard.h"
 #include "freertos/FreeRTOS.h"
@@ -364,7 +362,7 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_KW(ST7735_drawpFull_obj, 1, ST7735_drawpFull);
 //---------------------------华丽的分割线-------------------------------------------------------------------
 STATIC mp_obj_t ST7735_drawLin(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
     static const mp_arg_t drawL_args[] = {
-				{ MP_QSTR_x0,        	MP_ARG_INT, {.u_int = 0} },
+		{ MP_QSTR_x0,        	MP_ARG_INT, {.u_int = 0} },
         { MP_QSTR_y0,       	MP_ARG_INT, {.u_int = 0} },
         { MP_QSTR_x1,       	MP_ARG_INT, {.u_int = 0} },
         { MP_QSTR_y1,       	MP_ARG_INT, {.u_int = 0} },
