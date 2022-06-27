@@ -73,9 +73,13 @@ void anomalDetec(const sensorData_t *sensorData, const state_t *state, const con
 						(sensorData->acc.z*sensorData->acc.z);
 
 		if(detecFreeFall(state->acc.z/980.f, accMAG) == true)/*自由落体检测*/
-		{				
-			setCommanderKeyFlight(true);
-			setFastAdjustPosParam(35, 10, 0.f);	/*设置快速调整位置参数*/
+		{		
+			if(false == getCommanderEmerStop())	
+			{
+				setCommanderKeyFlight(true);
+				setFastAdjustPosParam(35, 10, 0.f);	/*设置快速调整位置参数*/
+			}				
+
 		}
 	}
 	

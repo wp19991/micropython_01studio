@@ -41,6 +41,7 @@
 
 
 void stabilizerInit(void);
+void stabilizerDeInit(void);
 void stabilizerTask(void* param);
 bool stabilizerTest(void);
 

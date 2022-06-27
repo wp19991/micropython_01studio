@@ -380,9 +380,7 @@ void pmInit(void)
 		return;
 	}
 	adcInit();
-	ledseqInit();
-	ledseqRun(SYS_LED, seq_alive);
-	
+
     pmEnableExtBatteryVoltMeasuring(PM_ADC1_PIN, 5); // ADC1 PIN is fixed to ADC channel
 
     pmSyslinkInfo.pgood = false;
@@ -393,5 +391,12 @@ void pmInit(void)
 	// xTaskCreate(pmTask, "pmTask", PM_TASK_STACKSIZE, NULL, PM_TASK_PRI, NULL);
 
     isInit = true;
+}
+
+void pmDeInit(void)
+{
+	
+	isInit = false;
+	
 }
 

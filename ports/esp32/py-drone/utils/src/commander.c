@@ -96,7 +96,8 @@ static void ctrlDataUpdate(void)
 	{
 		isRCLocked = true;			/*锁定*/
 		nowCache = &remoteCache;
-		commanderDropToGround();
+		if(commander.emerStop == false) commanderDropToGround();
+		
 		if(isLastRCLocked == true)
 		{
 			ledseqStop(LINK_LED, seq_linkup);
@@ -396,6 +397,10 @@ void setCommanderFlightmode(bool set)
 void setCommanderEmerStop(bool set)
 {
 	commander.emerStop = set;
+}
+bool getCommanderEmerStop(void)
+{
+	return commander.emerStop;
 }
 
 void print_commander(void)

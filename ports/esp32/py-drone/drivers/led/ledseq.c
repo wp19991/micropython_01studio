@@ -62,8 +62,10 @@ ledseqStep_t const seq_lowbat[] =
 //传感器校准完成序列
 ledseqStep_t const seq_calibrated[] = 
 {
-	{true, LEDSEQ_WAITMS(M2T(50))},
-	{false, LEDSEQ_WAITMS(M2T(450))},
+	// {true, LEDSEQ_WAITMS(M2T(50))},
+	// {false, LEDSEQ_WAITMS(M2T(450))},
+	
+	{true, LEDSEQ_WAITMS(M2T(1000))},
 	{0,LEDSEQ_LOOP},
 };
 //开机序列
@@ -76,8 +78,9 @@ ledseqStep_t const seq_alive[] =
 //通信连接序列
 ledseqStep_t const seq_linkup[] = 
 {
-	{true, LEDSEQ_WAITMS(M2T(20))},
-	{false, LEDSEQ_WAITMS(20)},
+	// {true, LEDSEQ_WAITMS(M2T(20))},
+	// {false, LEDSEQ_WAITMS(20)},
+	{true, LEDSEQ_WAITMS(M2T(100))},
 	{0,LEDSEQ_LOOP},
 };
 //电池充电完成序列
@@ -248,7 +251,25 @@ void ledseqStop(led_t led, const ledseqStep_t *sequence)
 
 	runLedseq(timer[led]);
 }
-
+void ledseqDeInit(void)
+{
+	int i = 0;
+	for(i=0; i<LED_NUM; i++) {
+		activeSeq[i] = LEDSEQ_STOP;
+		for(int j=0;j<SEQ_NUM;j++){
+			state[i][j] = LEDSEQ_STOP;
+		}
+	}
+	ledseqEnable(false);
+	ledDeInit();
+	
+	for(i=0; i<LED_NUM; i++) { 
+		xTimerStop( timer[i], 0 );
+	}
+	vSemaphoreDelete(ledseqSem);
+	
+	isInit = false;
+}
 
 
 

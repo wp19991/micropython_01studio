@@ -159,7 +159,7 @@ void motorsInit(void);
 /**
  * DeInitialisation. Reset to default
  */
-void motorsDeInit(const MotorPerifDef **motorMapSelect);
+void motorsDeInit(void);
 
 /**
  * Test of the motor modules. The test will spin each motor very short in

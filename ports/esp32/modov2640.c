@@ -239,7 +239,46 @@ STATIC mp_obj_t sensor_ov2640_setframesize(size_t n_args, const mp_obj_t *pos_ar
 
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_KW(sensor_ov2640_setframesize_obj, 1, sensor_ov2640_setframesize);
+//----------------------------------------------------------------------------------
+STATIC mp_obj_t sensor_ov2640_hmirror(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
+	static const mp_arg_t hmirror_args[] = {
+			{ MP_QSTR_value,MP_ARG_REQUIRED | MP_ARG_INT, {.u_int = 0} },
+	};
+	mp_arg_val_t args[MP_ARRAY_SIZE(hmirror_args)];
+	mp_arg_parse_all(n_args-1, pos_args+1, kw_args, MP_ARRAY_SIZE(hmirror_args), hmirror_args, args);
 
+	uint8_t direction = args[0].u_int;
+	sensor_t * s = esp_camera_sensor_get();
+	if (!s) {
+		mp_raise_ValueError(MP_ERROR_TEXT("set hmirror Failed"));
+	}
+	if(direction){
+		s->set_hmirror(s, 0);
+	}else{
+		s->set_hmirror(s, 1);
+	}
+	return mp_obj_new_int(direction);
+}
+STATIC MP_DEFINE_CONST_FUN_OBJ_KW(sensor_ov2640_hmirror_obj,0, sensor_ov2640_hmirror);
+
+//----------------------------------------------------------------------------------------------------------
+STATIC mp_obj_t sensor_ov2640_vflip(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
+	static const mp_arg_t vfilp_args[] = {
+		{ MP_QSTR_value,MP_ARG_REQUIRED | MP_ARG_INT, {.u_int = 0} },
+	};
+	mp_arg_val_t args[MP_ARRAY_SIZE(vfilp_args)];
+	mp_arg_parse_all(n_args-1, pos_args+1, kw_args, MP_ARRAY_SIZE(vfilp_args), vfilp_args, args);
+
+	uint8_t direction = args[0].u_int;
+	sensor_t * s = esp_camera_sensor_get();
+	if (!s) {
+			mp_raise_ValueError(MP_ERROR_TEXT("set vflip Failed"));
+		}
+	s->set_vflip(s, direction);
+
+	return mp_obj_new_int(direction);
+}
+STATIC MP_DEFINE_CONST_FUN_OBJ_KW(sensor_ov2640_vflip_obj,0, sensor_ov2640_vflip);
 //----------------------------------------------------------------------------------
 #if MICROPY_ENABLE_TFTLCD
 
@@ -288,46 +327,7 @@ STATIC mp_obj_t sensor_ov2640_display_stop(size_t n_args, const mp_obj_t *pos_ar
 	return mp_obj_new_int(is_display);
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_KW(sensor_ov2640_display_stop_obj,0, sensor_ov2640_display_stop);
-//----------------------------------------------------------------------------------
-STATIC mp_obj_t sensor_ov2640_hmirror(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
-	static const mp_arg_t hmirror_args[] = {
-			{ MP_QSTR_value,MP_ARG_REQUIRED | MP_ARG_INT, {.u_int = 0} },
-	};
-	mp_arg_val_t args[MP_ARRAY_SIZE(hmirror_args)];
-	mp_arg_parse_all(n_args-1, pos_args+1, kw_args, MP_ARRAY_SIZE(hmirror_args), hmirror_args, args);
 
-	uint8_t direction = args[0].u_int;
-	sensor_t * s = esp_camera_sensor_get();
-	if (!s) {
-		mp_raise_ValueError(MP_ERROR_TEXT("set hmirror Failed"));
-	}
-	if(direction){
-		s->set_hmirror(s, 0);
-	}else{
-		s->set_hmirror(s, 1);
-	}
-	return mp_obj_new_int(direction);
-}
-STATIC MP_DEFINE_CONST_FUN_OBJ_KW(sensor_ov2640_hmirror_obj,0, sensor_ov2640_hmirror);
-
-//----------------------------------------------------------------------------------------------------------
-STATIC mp_obj_t sensor_ov2640_vflip(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
-	static const mp_arg_t vfilp_args[] = {
-		{ MP_QSTR_value,MP_ARG_REQUIRED | MP_ARG_INT, {.u_int = 0} },
-	};
-	mp_arg_val_t args[MP_ARRAY_SIZE(vfilp_args)];
-	mp_arg_parse_all(n_args-1, pos_args+1, kw_args, MP_ARRAY_SIZE(vfilp_args), vfilp_args, args);
-
-	uint8_t direction = args[0].u_int;
-	sensor_t * s = esp_camera_sensor_get();
-	if (!s) {
-			mp_raise_ValueError(MP_ERROR_TEXT("set vflip Failed"));
-		}
-	s->set_vflip(s, direction);
-
-	return mp_obj_new_int(direction);
-}
-STATIC MP_DEFINE_CONST_FUN_OBJ_KW(sensor_ov2640_vflip_obj,0, sensor_ov2640_vflip);
 #endif
 //---------------------------------------------------------------------------------
 #if MICROPY_ENABLE_STREAM
@@ -394,9 +394,9 @@ STATIC const mp_rom_map_elem_t sensor_ov2640_locals_dict_table[] = {
 	#if MICROPY_ENABLE_STREAM
 	{ MP_ROM_QSTR(MP_QSTR_stream), MP_ROM_PTR(&sensor_ov2640_stream_obj) },
 	#endif
-	#if MICROPY_ENABLE_TFTLCD
 	{ MP_ROM_QSTR(MP_QSTR_set_hmirror), MP_ROM_PTR(&sensor_ov2640_hmirror_obj) },
 	{ MP_ROM_QSTR(MP_QSTR_set_vflip), MP_ROM_PTR(&sensor_ov2640_vflip_obj) },
+	#if MICROPY_ENABLE_TFTLCD
 	{ MP_ROM_QSTR(MP_QSTR_display), MP_ROM_PTR(&sensor_ov2640_display_obj) },
 	{ MP_ROM_QSTR(MP_QSTR_display_stop), MP_ROM_PTR(&sensor_ov2640_display_stop_obj) },
 	#endif

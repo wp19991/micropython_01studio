@@ -2,7 +2,6 @@
 #
 # This is a simple, convenience wrapper around idf.py (which uses cmake).
 
-# Select the board to build for, defaulting to GENERIC.
 # BOARD ?= PYWIFI_C3
 # BOARD ?= PYWIFI
 # BOARD ?= PYWIFI_P
@@ -13,9 +12,8 @@
 # BOARD ?= PYCONTROLLER
 # BOARD ?= PYCLOCK
 BOARD ?= PYDRONE
-# If the build directory is not given, make it reflect the board name.
-BUILD ?= build-$(BOARD)
 
+BUILD ?= build-$(BOARD)
 ifeq ($(BOARD),PYWIFI_C3)
 MAKEIMG = makeimg_c3.py
 else

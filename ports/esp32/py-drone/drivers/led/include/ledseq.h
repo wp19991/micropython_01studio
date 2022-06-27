@@ -71,5 +71,6 @@ void ledseqEnable(bool enable);
 void ledseqRun(led_t led, const ledseqStep_t * sequence);
 void ledseqStop(led_t led, const ledseqStep_t * sequence);
 void ledseqSetTimes(ledseqStep_t *sequence, int onTime, int offTime);
+void ledseqDeInit(void);
 
 #endif

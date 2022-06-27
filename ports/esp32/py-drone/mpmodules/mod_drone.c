@@ -38,6 +38,7 @@
 #include "state_estimator.h"
 #include "pm_esplane.h"
 #include "ledseq.h"
+#include "sensors_mpu6050_spl06.h"
 
 static bool isOffse = 0;
 static ctrlVal_t wifiCtrl;
@@ -61,24 +62,29 @@ typedef struct _drone_obj_t {
 } drone_obj_t;
 
 STATIC bool is_init = 0;
+
 //====================================================================================================================
 
-STATIC mp_obj_t drone_deinit(mp_obj_t self_in) {
-
-  return mp_const_none;
-}
-STATIC MP_DEFINE_CONST_FUN_OBJ_1(drone_deinit_obj, drone_deinit);
+// STATIC mp_obj_t drone_deinit(mp_obj_t self_in) {
+	// systemDeInit();
+	// is_init = false;
+	// return mp_const_none;
+// }
+// STATIC MP_DEFINE_CONST_FUN_OBJ_1(drone_deinit_obj, drone_deinit);
 
 //==============================================================================================================
 STATIC mp_obj_t drone_stop(mp_obj_t self_in) {
+
+	setCommanderEmerStop(true);
 	setCommanderKeyFlight(false);
 	setCommanderKeyland(false);
-	setCommanderEmerStop(true);
+
 	return mp_const_none;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_1(drone_stop_obj, drone_stop);
 //==============================================================================================================
 STATIC mp_obj_t drone_landing(mp_obj_t self_in) {
+
 	setCommanderKeyFlight(false);
 	setCommanderKeyland(true);
 	return mp_const_none;
@@ -100,7 +106,7 @@ STATIC mp_obj_t drone_take_off(size_t n_args, const mp_obj_t *pos_args, mp_map_t
 			attitude_t attitude;
 			getAttitudeData(&attitude);
 
-			wifiCtrl.trimPitch = (attitude.pitch*0.8);
+			wifiCtrl.trimPitch = (attitude.pitch*0.3);
 			wifiCtrl.trimRoll = (attitude.roll*0.95);
 			
 			isOffse = 1;
@@ -185,7 +191,7 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_KW(drone_control_obj, 1, drone_control);
 
 STATIC mp_obj_t read_states(mp_obj_t self_in)
 {
-	mp_obj_t tuple[8];
+	mp_obj_t tuple[9];
 	
 	attitude_t attitude;
 	getAttitudeData(&attitude);
@@ -198,10 +204,73 @@ STATIC mp_obj_t read_states(mp_obj_t self_in)
 	tuple[3] = mp_obj_new_int(wifiCtrl.roll*100);
 	tuple[4] = mp_obj_new_int(wifiCtrl.pitch*100);
 	tuple[5] = mp_obj_new_int(wifiCtrl.yaw*100);
-	tuple[6] = mp_obj_new_int(bat);
-	tuple[7] = mp_obj_new_int(FusedHeight);
-	return mp_obj_new_tuple(8, tuple);
+	tuple[6] = mp_obj_new_int(((wifiCtrl.thrust/655.35)+0.5));
+	tuple[7] = mp_obj_new_int(bat);
+	tuple[8] = mp_obj_new_int(FusedHeight);
+	
+	return mp_obj_new_tuple(9, tuple);
 }STATIC MP_DEFINE_CONST_FUN_OBJ_1(read_states_obj, read_states);
+
+//----------------------------------------------------------------------------------
+STATIC mp_obj_t read_accelerometer(mp_obj_t self_in)
+{
+	Axis3i16 acc,gyro,mag;
+	mp_obj_t tuple[6];
+	getSensorRawData(&acc, &gyro,&mag);
+	
+	tuple[0] = mp_obj_new_int(gyro.y); 
+	tuple[1] = mp_obj_new_int(gyro.z);
+	tuple[2] = mp_obj_new_int(gyro.z);
+	tuple[3] = mp_obj_new_int(acc.y);
+	tuple[4] = mp_obj_new_int(acc.x);
+	tuple[5] = mp_obj_new_int(acc.z);
+
+	return mp_obj_new_tuple(6, tuple);
+}STATIC MP_DEFINE_CONST_FUN_OBJ_1(read_accelerometer_obj, read_accelerometer);
+
+//----------------------------------------------------------------------------------
+STATIC mp_obj_t read_compass(mp_obj_t self_in)
+{
+	Axis3i16 acc,gyro,mag;
+	mp_obj_t tuple[3];
+	getSensorRawData(&acc, &gyro,&mag);
+
+	tuple[0] = mp_obj_new_int(mag.x); 
+	tuple[1] = mp_obj_new_int(mag.y);
+	tuple[2] = mp_obj_new_int(mag.z);
+
+	return mp_obj_new_tuple(3, tuple);
+}STATIC MP_DEFINE_CONST_FUN_OBJ_1(read_compass_obj, read_compass);
+
+STATIC mp_obj_t read_calibrated(mp_obj_t self_in)
+{
+	return mp_obj_new_int(sensorsAreCalibrated());
+}STATIC MP_DEFINE_CONST_FUN_OBJ_1(read_calibrated_obj, read_calibrated);
+//----------------------------------------------------------------------------------
+STATIC mp_obj_t read_air_pressure(mp_obj_t self_in)
+{
+	float temp,press,asl;
+	mp_obj_t tuple[2];
+	getPressureRawData(&temp, &press, &asl );
+	
+	tuple[0] = mp_obj_new_int(press*100);
+	tuple[1] = mp_obj_new_int((int16_t)(temp*100)); 
+
+	return mp_obj_new_tuple(2, tuple);
+}STATIC MP_DEFINE_CONST_FUN_OBJ_1(read_air_pressure_obj, read_air_pressure);
+//----------------------------------------------------------------------------------
+STATIC mp_obj_t read_cal_data(mp_obj_t self_in)
+{
+	Axis3f variance;
+	mp_obj_t tuple[3];
+	readBiasVlue(&variance);
+
+	tuple[0] = mp_obj_new_int(variance.x);
+	tuple[1] = mp_obj_new_int(variance.y);
+	tuple[2] = mp_obj_new_int(variance.z);
+
+	return mp_obj_new_tuple(3, tuple);
+}STATIC MP_DEFINE_CONST_FUN_OBJ_1(read_cal_data_obj, read_cal_data);
 
 //----------------------------------------------------------------------------------
 static void InitDrone(void)
@@ -230,12 +299,12 @@ static void InitDrone(void)
 	lastThrust = wifiCtrl.thrust;
 
 	flightCtrldataCache(WIFI, wifiCtrl);
-	
 }
 STATIC mp_obj_t drone_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_kw, const mp_obj_t *all_args) {
 
 	static const mp_arg_t allowed_args[] = {
 		{ MP_QSTR_flightmode, MP_ARG_INT, {.u_int = 0} },
+		{ MP_QSTR_debug, MP_ARG_INT, {.u_int = 0} },
 	};
 
 	mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
@@ -246,8 +315,11 @@ STATIC mp_obj_t drone_make_new(const mp_obj_type_t *type, size_t n_args, size_t 
 	}else{
 		setCommanderFlightmode(1);
 	}
+	
+	setPrintf(args[1].u_int);
 
 	InitDrone();
+
 	drone_obj_t *drone_type;
 	drone_type = m_new_obj(drone_obj_t);
 	drone_type->base.type = &drone_drone_type;
@@ -257,13 +329,19 @@ STATIC mp_obj_t drone_make_new(const mp_obj_type_t *type, size_t n_args, size_t 
 /******************************************************************************/
 STATIC const mp_rom_map_elem_t drone_locals_dict_table[] = {
 	{ MP_ROM_QSTR(MP_QSTR__name__), MP_ROM_QSTR(MP_QSTR_DRONE) },
-	{ MP_ROM_QSTR(MP_QSTR_deinit), MP_ROM_PTR(&drone_deinit_obj) },
+	//{ MP_ROM_QSTR(MP_QSTR_deinit), MP_ROM_PTR(&drone_deinit_obj) },
 	{ MP_ROM_QSTR(MP_QSTR_stop), MP_ROM_PTR(&drone_stop_obj) },
 	{ MP_ROM_QSTR(MP_QSTR_landing), MP_ROM_PTR(&drone_landing_obj) },
 	{ MP_ROM_QSTR(MP_QSTR_take_off), MP_ROM_PTR(&drone_take_off_obj) },
 	{ MP_ROM_QSTR(MP_QSTR_control), MP_ROM_PTR(&drone_control_obj) },
 	{ MP_ROM_QSTR(MP_QSTR_read_states), MP_ROM_PTR(&read_states_obj) },
 	{ MP_ROM_QSTR(MP_QSTR_trim), MP_ROM_PTR(&drone_trim_obj) },
+	{ MP_ROM_QSTR(MP_QSTR_read_accelerometer), MP_ROM_PTR(&read_accelerometer_obj) },
+	{ MP_ROM_QSTR(MP_QSTR_read_compass), MP_ROM_PTR(&read_compass_obj) },
+	{ MP_ROM_QSTR(MP_QSTR_read_air_pressure), MP_ROM_PTR(&read_air_pressure_obj) },
+	{ MP_ROM_QSTR(MP_QSTR_read_calibrated), MP_ROM_PTR(&read_calibrated_obj) },
+	{ MP_ROM_QSTR(MP_QSTR_read_cal_data), MP_ROM_PTR(&read_cal_data_obj) },
+
 };
 STATIC MP_DEFINE_CONST_DICT(drone_drone_locals_dict,drone_locals_dict_table);
 

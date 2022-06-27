@@ -177,11 +177,12 @@ void motorsInit(void)
     isInit = true;
 }
 
-void motorsDeInit(const MotorPerifDef **motorMapSelect)
+void motorsDeInit(void)
 {
     for (int i = 0; i < NBR_OF_MOTORS; i++) {
         ledc_stop(motors_channel[i].speed_mode, motors_channel[i].channel, 0);
     }
+	isInit = false;
 }
 
 bool motorsTest(void)

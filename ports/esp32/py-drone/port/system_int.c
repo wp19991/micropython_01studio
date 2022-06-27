@@ -39,16 +39,27 @@ void systemInit(void)
 	
 	//初始化电源管理
 	ledseqInit();
+	ledseqRun(SYS_LED, seq_alive);
 	configParamInit();//初始化参数
 	motorsInit();
-	
 	pmInit();
 	//初始化传感器
 	sensorsMpu6050Spl06Init();
 	//初始化姿态处理
 	stabilizerInit();
 	systemTest();
+}
+void systemDeInit(void)
+{
+	stabilizerDeInit();
 
+	sensorsMpu6050Spl06DeInit();
+	motorsDeInit();
+	pmDeInit();
+	ledseqDeInit();
+	//sensorsI2CdevDeInit();
+	
+	isInit = false;
 }
 
 

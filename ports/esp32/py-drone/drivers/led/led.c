@@ -118,4 +118,17 @@ void ledSet(led_t led, bool value)
     }
 }
 
+void ledDeInit(void)
+{
+	ledClearAll();
+	
+    for (int i = 0; i < LED_NUM; i++) {
+		gpio_pad_select_gpio(led_pin[i]);
+		gpio_matrix_out(led_pin[i], SIG_GPIO_OUT_IDX, false, false);
+		gpio_set_direction(led_pin[i], GPIO_MODE_INPUT);
+    }
+
+	isInit = false;
+}
+
 

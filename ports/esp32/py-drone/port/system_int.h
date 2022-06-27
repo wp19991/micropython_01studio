@@ -5,6 +5,7 @@
 #include <stdint.h>
 
 void systemInit(void);
+void systemDeInit(void);
 
 #endif
 

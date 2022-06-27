@@ -68,7 +68,10 @@ void hmc5883lInit(I2C_Dev *i2cPort)
 	i2cdevWriteByte(I2Cx, devAddr, QMC5883L_RA_CONFIG_2,0x40);
     isInit = true;
 }
-
+void hmc5883lDeInit(void)
+{
+	isInit = false;
+}
 /** Verify the I2C connection.
  * Make sure the device is connected and responds as expected.
  * @return True if connection is valid, false otherwise

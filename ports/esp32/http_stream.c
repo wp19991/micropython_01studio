@@ -262,8 +262,7 @@ static esp_err_t stream_handler(httpd_req_t *req)
 	}
 	
 	httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
-	// httpd_resp_set_hdr(req, "X-Framerate", "60");
-	httpd_resp_set_hdr(req, "X-Framerate", "1");
+	httpd_resp_set_hdr(req, "X-Framerate", "60");
 	_timestamp.tv_sec = 0;
 	_timestamp.tv_usec = 0;	
 

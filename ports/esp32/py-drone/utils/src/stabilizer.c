@@ -18,6 +18,7 @@
 #include "sensors_mpu6050_spl06.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "esp_log.h"
 
 static bool isInit = false;
 
@@ -32,6 +33,8 @@ static float setHeight = 0.f;		/*设定目标高度 单位cm*/
 static float baroLast = 0.f;
 static float baroVelLpf = 0.f;
 
+TaskHandle_t stabilizerHandle = NULL;
+
 void stabilizerTask(void* param);
 
 void stabilizerInit(void)
@@ -39,8 +42,16 @@ void stabilizerInit(void)
 	if(isInit) return;
 	stateControlInit();		/*姿态PID初始化*/
 	powerDistributionInit();		/*电机初始化*/
-	xTaskCreate(stabilizerTask, STABILIZER_TASK_NAME, STABILIZER_TASK_STACKSIZE, NULL, STABILIZER_TASK_PRI, NULL);	
+	xTaskCreate(stabilizerTask, STABILIZER_TASK_NAME, STABILIZER_TASK_STACKSIZE, NULL, STABILIZER_TASK_PRI, &stabilizerHandle);	
 	isInit = true;
+}
+void stabilizerDeInit(void)
+{
+	if( stabilizerHandle != NULL )
+	{
+		vTaskDelete( stabilizerHandle );
+	}
+	isInit = false;
 }
 
 bool stabilizerTest(void)
@@ -53,7 +64,6 @@ bool stabilizerTest(void)
 	return pass;
 }
 
-/*设置快速调整参数*/	
 void setFastAdjustPosParam(uint16_t velTimes, uint16_t absTimes, float height)
 {
 	if(velTimes != 0 && velModeTimes == 0)
@@ -70,7 +80,6 @@ void setFastAdjustPosParam(uint16_t velTimes, uint16_t absTimes, float height)
 	}		
 }
 
-/*快速调整高度*/
 static void fastAdjustPosZ(void)
 {	
 	if(velModeTimes > 0)
@@ -88,10 +97,7 @@ static void fastAdjustPosZ(void)
 		
 		if(velModeTimes == 0)
 		{
-			//if(getModuleID() == OPTICAL_FLOW)
-				//setHeight = getFusedHeight();
-			//else
-				setHeight = state.position.z;
+			setHeight = state.position.z;
 		}		
 	}
 	else if(absModeTimes > 0)
@@ -117,58 +123,38 @@ void stabilizerTask(void* param)
 
 	while(1) 
 	{
-		vTaskDelayUntil(&lastWakeTime, 1);//MAIN_LOOP_DT);		/*1ms周期延时*/
+		vTaskDelayUntil(&lastWakeTime, 1);
 
-		//获取6轴和气压数据（500Hz）
 		if (RATE_DO_EXECUTE(RATE_500_HZ, tick))
 		{
-			sensorsAcquire(&sensorData, tick);				/*获取6轴和气压数据*/
+			sensorsAcquire(&sensorData, tick);
 		}
-
-		//四元数和欧拉角计算（250Hz）
 		if (RATE_DO_EXECUTE(ATTITUDE_ESTIMAT_RATE, tick))
 		{
 			imuUpdate(sensorData.acc, sensorData.gyro, &state, ATTITUDE_ESTIMAT_DT);
-			//printf("state->:roll:%f,pitch:%f,yaw:%f,%d\r\n",state.attitude.roll,state.attitude.pitch,state.attitude.yaw,state.attitude.timestamp);
 		}
-
-		//位置预估计算（250Hz）
 		if (RATE_DO_EXECUTE(POSITION_ESTIMAT_RATE, tick))
 		{
 			positionEstimate(&sensorData, &state, POSITION_ESTIMAT_DT);
 		}
-
-		//目标姿态和飞行模式设定（100Hz）	
+	
 		if (RATE_DO_EXECUTE(RATE_100_HZ, tick) && getIsCalibrated()==true)
 		{
-			commanderGetSetpoint(&setpoint, &state);	/*目标数据和飞行模式设定*/	
+			commanderGetSetpoint(&setpoint, &state);
 		}
 
 		if (RATE_DO_EXECUTE(RATE_250_HZ, tick))
 		{
-			fastAdjustPosZ();	/*快速调整高度*/
+			fastAdjustPosZ();
 		}		
-#if 0
-		/*读取光流数据(100Hz)*/
-		if (RATE_DO_EXECUTE(RATE_100_HZ, tick))
-		{
-			getOpFlowData(&state, 0.01f);	
-		}
-#endif
-		/*翻滚检测(500Hz) 非定点模式*/
+
 		if (RATE_DO_EXECUTE(RATE_500_HZ, tick) && (getCommanderCtrlMode() != 0x03))
 		{
 			flyerFlipCheck(&setpoint, &control, &state);	
 		}
-
-		/*异常检测*/
 		anomalDetec(&sensorData, &state, &control);			
-		
-		/*PID控制*/	
-
 		stateControl(&control, &sensorData, &state, &setpoint, tick);
 
-		//控制电机输出（500Hz）
 		if (RATE_DO_EXECUTE(RATE_500_HZ, tick))
 		{
 			powerDistribution(&control);

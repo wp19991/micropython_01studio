@@ -79,6 +79,6 @@ bool SPL06Init(I2C_Dev *i2cPort);
 bool SPL06GetData(float* pressure, float* temperature, float* asl);
 void pressureFilter(float* in, float* out);/*限幅平均滤波法*/
 float SPL06PressureToAltitude(float pressure/*, float* groundPressure, float* groundTemp*/);
-
+void SPL06DeInit(void);
 
 #endif // SPL06_H

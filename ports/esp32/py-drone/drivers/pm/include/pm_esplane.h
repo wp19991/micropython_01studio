@@ -180,5 +180,5 @@ void pmEnableExtBatteryCurrMeasuring(uint8_t pin, float ampPerVolt);
  * Measure an external current.
  */
 float pmMeasureExtBatteryCurrent(void);
-
+void pmDeInit(void);
 #endif /* PM_H_ */

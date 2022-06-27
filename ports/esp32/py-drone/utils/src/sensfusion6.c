@@ -215,4 +215,9 @@ bool getIsCalibrated(void)
 {
 	return isGravityCalibrated;
 }
+void setCalibrated(bool set)
+{
+	isGravityCalibrated = set;
+}
+
 

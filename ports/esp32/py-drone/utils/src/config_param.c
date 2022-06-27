@@ -138,7 +138,6 @@ void configParamInit(void)	/*参数配置初始化*/
 	{
 		if(configParamCksum(&configParam) == configParam.cksum)	/*校验正确*/
 		{
-
 			ESP_LOGI(TAG,"Version V%1.1f check [OK]\r\n", configParam.version / 10.0f);
 			isConfigParamOK = true;
 		} else

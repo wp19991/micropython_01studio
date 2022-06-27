@@ -55,7 +55,7 @@ extern I2cDrv sensorsBus;
  * Initialize i2c peripheral as defined by static I2cDef structs.
  */
 void i2cdrvInit(I2cDrv *i2c);
-
+void i2cDrvDeInit(I2cDrv *i2c);
 /**
  * Send or receive a message over the I2C bus.
  *

@@ -58,7 +58,7 @@ void ledSetAll(void);
 void ledSet(led_t led, bool value);
 
 void ledTask(void *param);
-
+void ledDeInit(void);
 //Legacy functions
 
 #define ledSetGreen(VALUE) ledSet(LED_GREEN, VALUE)

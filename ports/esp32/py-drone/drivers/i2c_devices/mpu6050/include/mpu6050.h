@@ -425,6 +425,7 @@ THE SOFTWARE.
 // note: DMP code memory blocks defined at end of header file
 
 void mpu6050Init(I2C_Dev *i2cPort);
+void mpu6050DeInit(void);
 bool mpu6050Test(void);
 
 bool mpu6050TestConnection();

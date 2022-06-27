@@ -57,7 +57,10 @@ void mpu6050Init(I2C_Dev *i2cPort)
     isInit = true;
 
 }
-
+void mpu6050DeInit(void)
+{
+	isInit = false;
+}
 bool mpu6050Test(void)
 {
     bool testStatus;
@@ -170,6 +173,7 @@ bool mpu6050SelfTest()
         ESP_LOGI(TAG, "mpu6050 Self test [OK].\n");
     } else {
         testStatus = false;
+		 ESP_LOGI(TAG, "mpu6050 Self test [FALL].\n");
     }
 
     return testStatus;

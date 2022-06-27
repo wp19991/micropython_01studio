@@ -77,4 +77,6 @@ void print_commander(void);
 void setLandingDis(float dis);
 bool getRCLocked(void);
 float getLandingDis(void);
+bool getCommanderEmerStop(void);
+
 #endif /* __COMMANDER_H */

@@ -159,7 +159,10 @@ bool SPL06Init(I2C_Dev *i2cPort)
     isInit = true;
     return true;
 }
-
+void SPL06DeInit(void)
+{
+	isInit = false;
+}
 void SPL06GetPressure(void)
 {
     uint8_t data[SPL06_DATA_FRAME_SIZE];

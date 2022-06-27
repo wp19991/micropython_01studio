@@ -110,6 +110,28 @@ void i2cdrvInit(I2cDrv *i2c)
     i2cdrvInitBus(i2c);
 }
 
+void i2cDrvDeInit(I2cDrv *i2c)
+{
+	if (isinit_i2cPort[i2c->def->i2cPort]) {
+		
+		i2c_driver_delete(i2c->def->i2cPort);
+
+		gpio_pad_select_gpio(i2c->def->gpioSDAPin);
+		gpio_matrix_out(i2c->def->gpioSDAPin, SIG_GPIO_OUT_IDX, false, false);
+		gpio_set_direction(i2c->def->gpioSDAPin, GPIO_MODE_INPUT);
+		
+		gpio_pad_select_gpio(i2c->def->gpioSCLPin);
+		gpio_matrix_out(i2c->def->gpioSCLPin, SIG_GPIO_OUT_IDX, false, false);
+		gpio_set_direction(i2c->def->gpioSCLPin, GPIO_MODE_INPUT);
+		
+		vSemaphoreDelete(i2c->isBusFreeMutex);
+		isinit_i2cPort[i2c->def->i2cPort] = false;
+
+    }
+
+}
+
+
 
 
 
