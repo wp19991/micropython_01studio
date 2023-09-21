@@ -31,4 +31,4 @@ bool wifiGetDataBlocking(UDPPacket *in);
 bool wifiSendData(uint32_t size, uint8_t *data);
 bool getUDPConnectedStatus(void);
 
-#endif // __VIDEO_H__
+#endif // MICROPY_INCLUDED_ESP32_MOD_WIFILINK_H

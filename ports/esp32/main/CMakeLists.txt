@@ -18,7 +18,7 @@ set(MICROPY_QSTRDEFS_PORT
 if(MICROPY_PORT_PICLIB STREQUAL "y")
 	#add_compile_definitions("MICROPY_PORT_PICLIB")
 	#message("\n compile MICROPY_PY_PICLIB \n")
-	
+
 	set(MICROPY_INC_PICTURE
     ${PROJECT_DIR}/picture
 	)
@@ -63,7 +63,7 @@ if(MICROPY_PORT_CAMLIB STREQUAL "y")
 		${CAM_SRCS_DIR}/sensors/private_include
 		${CAM_SRCS_DIR}/target/private_include
 		)
-		
+
 	if(IDF_TARGET STREQUAL "esp32")
 		list(APPEND CAM_SRCS ${CAM_SRCS_DIR}/target/esp32/ll_cam.c)
 		list(APPEND CAM_SRCS ${CAM_SRCS_DIR}/target/xclk.c)
@@ -90,7 +90,7 @@ if(MICROPY_PORT_NESEMU STREQUAL "y")
 		${NESEMU_FILE_DIR}/nofrendo/sndhrdw
 		${NESEMU_FILE_DIR}/nofrendo-esp32
 		)
-	file (GLOB_RECURSE NESEMU_SRCS "${NESEMU_FILE_DIR}/*.c") 
+	file (GLOB_RECURSE NESEMU_SRCS "${NESEMU_FILE_DIR}/*.c")
 	# list(REMOVE_ITEM NESEMU_SRCS "${NESEMU_FILE_DIR}/main/main.c")
 endif()
 #ESP-AI
@@ -103,10 +103,10 @@ if(MICROPY_PORT_EN_ESPAI STREQUAL "y")
 		${ESPAI_FILE_DIR}/fb_gfx
 		${ESPAI_FILE_DIR}/fb_gfx/include
 		)
-	file (GLOB_RECURSE ESPAI_SRCS 
+	file (GLOB_RECURSE ESPAI_SRCS
 			"${ESPAI_FILE_DIR}/ai/*.cpp"
 			"${ESPAI_FILE_DIR}/fb_gfx/*.c"
-			) 
+			)
 	# list(REMOVE_ITEM NESEMU_SRCS "${NESEMU_FILE_DIR}/main/main.c")
 endif()
 
@@ -163,7 +163,7 @@ if(MICROPY_PORT_WEB_STREAM STREQUAL "y")
 	set(WEB_SRCS
 			${PROJECT_DIR}/http_stream.c
 		)
-		
+
 	set(WWW_EMBED_FILES
 			${PROJECT_DIR}/www/index_uvc.html.gz
 		)
@@ -189,9 +189,9 @@ if(MICROPY_PORT_DRONE STREQUAL "y")
 		${DRONE_FILE_DIR}/utils/interface
 		)
 
-	file (GLOB_RECURSE DRONE_SRCS 
+	file (GLOB_RECURSE DRONE_SRCS
 		"${DRONE_FILE_DIR}/*.c"
-		) 
+		)
 endif()
 #-----------------------------------------------------------
 
@@ -355,8 +355,8 @@ elseif(IDF_TARGET STREQUAL "esp32s2")
 elseif(IDF_TARGET STREQUAL "esp32s3")
     list(APPEND IDF_COMPONENTS esp32s3)
     list(APPEND IDF_COMPONENTS tinyusb)
-    #list(APPEND IDF_COMPONENTS esp-dl)
-    #list(APPEND IDF_COMPONENTS esp-code-scanner)
+    # list(APPEND IDF_COMPONENTS esp-dl)
+    # list(APPEND IDF_COMPONENTS esp-code-scanner)
 	# list(APPEND IDF_COMPONENTS usb)
 
 endif()

@@ -1,3 +1,44 @@
+### 编译固件
+```bash
+cd /home/wp/esp32_01studio
+
+# 下载esp-idf 4.4版本，支持esp32s3
+git clone -b v4.4 --recursive https://github.com/espressif/esp-idf.git
+
+cd esp-idf
+./install.sh
+# 激活esp-idf工具
+source export.sh
+
+# 编译micropython固件
+cd /home/wp/esp32_01studio/micropython_01studio
+
+make -C mpy-cross
+
+cd ports/esp32
+
+make submodules
+
+make BOARD=PYDRONE
+
+make BOARD=PYCONTROLLER
+
+# 报错的话把main里面的cmake.txt注释358 359
+
+# 
+ls /dev/tty*
+
+/dev/ttyACM0
+
+sudo /home/wp/.espressif/python_env/idf4.4_py3.9_env/bin/python ../../../esp-idf/components/esptool_py/esptool/esptool.py -p /dev/ttyACM0 -b 460800 --before default_reset --after no_reset --chip esp32s3  write_flash --flash_mode dio --flash_size detect --flash_freq 80m 0x0 build-PYCONTROLLER/bootloader/bootloader.bin 0x8000 build-PYCONTROLLER/partition_table/partition-table.bin 0x10000 build-PYCONTROLLER/micropython.bin
+
+sudo /home/wp/.espressif/python_env/idf4.4_py3.9_env/bin/python ../../../esp-idf/components/esptool_py/esptool/esptool.py -p /dev/ttyACM0 -b 460800 --before default_reset --after no_reset --chip esp32s3  write_flash --flash_mode dio --flash_size detect --flash_freq 80m 0x0 build-PYDRONE/bootloader/bootloader.bin 0x8000 build-PYDRONE/partition_table/partition-table.bin 0x10000 build-PYDRONE/micropython.bin
+
+sudo /home/wp/.espressif/python_env/idf5.0_py3.9_env/bin/python ../esp-idf/components/esptool_py/esptool/esptool.py --port /dev/ttyACM0 -b 460800 --chip esp32s3 write_flash --flash_mode dio --flash_freq 80m 0x0 ESP32_GENERIC_S3-20230426-v1.20.0.bin
+
+sudo /home/wp/.espressif/python_env/idf5.0_py3.9_env/bin/python ../esp-idf/components/esptool_py/esptool/esptool.py --port /dev/ttyACM0 -b 460800 --chip esp32s3 write_flash --flash_mode dio --flash_freq 80m 0x0 01Studio-pyDrone-2022-06-22-1.bin
+```
+
 MicroPython port to the ESP32
 =============================
 
