@@ -44,10 +44,10 @@ typedef enum _mp_token_kind_t {
     MP_TOKEN_INVALID,
     MP_TOKEN_DEDENT_MISMATCH,
     MP_TOKEN_LONELY_STRING_OPEN,
-    #if MICROPY_PY_FSTRINGS
+#if MICROPY_PY_FSTRINGS
     MP_TOKEN_MALFORMED_FSTRING,
     MP_TOKEN_FSTRING_RAW,
-    #endif
+#endif
 
     MP_TOKEN_NEWLINE,
     MP_TOKEN_INDENT,
@@ -68,10 +68,10 @@ typedef enum _mp_token_kind_t {
     MP_TOKEN_KW_AND,
     MP_TOKEN_KW_AS,
     MP_TOKEN_KW_ASSERT,
-    #if MICROPY_PY_ASYNC_AWAIT
+#if MICROPY_PY_ASYNC_AWAIT
     MP_TOKEN_KW_ASYNC,
     MP_TOKEN_KW_AWAIT,
-    #endif
+#endif
     MP_TOKEN_KW_BREAK,
     MP_TOKEN_KW_CLASS,
     MP_TOKEN_KW_CONTINUE,
@@ -162,9 +162,9 @@ typedef struct _mp_lexer_t {
     mp_reader_t reader;         // stream source
 
     unichar chr0, chr1, chr2;   // current cached characters from source
-    #if MICROPY_PY_FSTRINGS
+#if MICROPY_PY_FSTRINGS
     unichar chr0_saved, chr1_saved, chr2_saved; // current cached characters from alt source
-    #endif
+#endif
 
     size_t line;                // current source line
     size_t column;              // current source column
@@ -180,16 +180,18 @@ typedef struct _mp_lexer_t {
     size_t tok_column;          // token source column
     mp_token_kind_t tok_kind;   // token kind
     vstr_t vstr;                // token data
-    #if MICROPY_PY_FSTRINGS
+#if MICROPY_PY_FSTRINGS
     vstr_t fstring_args;        // extracted arguments to pass to .format()
     size_t fstring_args_idx;    // how many bytes of fstring_args have been read
-    #endif
+#endif
 } mp_lexer_t;
 
 mp_lexer_t *mp_lexer_new(qstr src_name, mp_reader_t reader);
+
 mp_lexer_t *mp_lexer_new_from_str_len(qstr src_name, const char *str, size_t len, size_t free_len);
 
 void mp_lexer_free(mp_lexer_t *lex);
+
 void mp_lexer_to_next(mp_lexer_t *lex);
 
 /******************************************************************/
@@ -203,6 +205,7 @@ typedef enum {
 } mp_import_stat_t;
 
 mp_import_stat_t mp_import_stat(const char *path);
+
 mp_lexer_t *mp_lexer_new_from_file(const char *filename);
 
 #if MICROPY_HELPER_LEXER_UNIX

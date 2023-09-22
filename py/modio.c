@@ -209,22 +209,22 @@ STATIC const mp_rom_map_elem_t mp_module_io_globals_table[] = {
     // Note: mp_builtin_open_obj should be defined by port, it's not
     // part of the core.
     { MP_ROM_QSTR(MP_QSTR_open), MP_ROM_PTR(&mp_builtin_open_obj) },
-    #if MICROPY_PY_IO_IOBASE
+#if MICROPY_PY_IO_IOBASE
     { MP_ROM_QSTR(MP_QSTR_IOBase), MP_ROM_PTR(&mp_type_iobase) },
-    #endif
-    #if MICROPY_PY_IO_FILEIO
+#endif
+#if MICROPY_PY_IO_FILEIO
     { MP_ROM_QSTR(MP_QSTR_FileIO), MP_ROM_PTR(&mp_type_fileio) },
-    #if MICROPY_CPYTHON_COMPAT
+#if MICROPY_CPYTHON_COMPAT
     { MP_ROM_QSTR(MP_QSTR_TextIOWrapper), MP_ROM_PTR(&mp_type_textio) },
-    #endif
-    #endif
+#endif
+#endif
     { MP_ROM_QSTR(MP_QSTR_StringIO), MP_ROM_PTR(&mp_type_stringio) },
-    #if MICROPY_PY_IO_BYTESIO
+#if MICROPY_PY_IO_BYTESIO
     { MP_ROM_QSTR(MP_QSTR_BytesIO), MP_ROM_PTR(&mp_type_bytesio) },
-    #endif
-    #if MICROPY_PY_IO_BUFFEREDWRITER
+#endif
+#if MICROPY_PY_IO_BUFFEREDWRITER
     { MP_ROM_QSTR(MP_QSTR_BufferedWriter), MP_ROM_PTR(&mp_type_bufwriter) },
-    #endif
+#endif
 };
 
 STATIC MP_DEFINE_CONST_DICT(mp_module_io_globals, mp_module_io_globals_table);

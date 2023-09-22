@@ -47,14 +47,14 @@ typedef enum {
 // define rules with a compile function
 #define DEF_RULE(rule, comp, kind, ...) PN_##rule,
 #define DEF_RULE_NC(rule, kind, ...)
-    #include "py/grammar.h"
+#include "py/grammar.h"
 #undef DEF_RULE
 #undef DEF_RULE_NC
     PN_const_object, // special node for a constant, generic Python object
 // define rules without a compile function
 #define DEF_RULE(rule, comp, kind, ...)
 #define DEF_RULE_NC(rule, kind, ...) PN_##rule,
-    #include "py/grammar.h"
+#include "py/grammar.h"
 #undef DEF_RULE
 #undef DEF_RULE_NC
 } pn_kind_t;
@@ -186,14 +186,14 @@ typedef struct _compiler_t {
     scope_t *scope_cur;
 
     emit_t *emit;                                   // current emitter
-    #if NEED_METHOD_TABLE
+#if NEED_METHOD_TABLE
     const emit_method_table_t *emit_method_table;   // current emit method table
-    #endif
+#endif
 
-    #if MICROPY_EMIT_INLINE_ASM
+#if MICROPY_EMIT_INLINE_ASM
     emit_inline_asm_t *emit_inline_asm;                                   // current emitter for inline asm
     const emit_inline_asm_method_table_t *emit_inline_asm_method_table;   // current emit method table for inline asm
-    #endif
+#endif
 } compiler_t;
 
 STATIC void compile_error_set_line(compiler_t *comp, mp_parse_node_t pn) {
@@ -291,11 +291,11 @@ STATIC void compile_load_id(compiler_t *comp, qstr qst) {
     if (comp->pass == MP_PASS_SCOPE) {
         mp_emit_common_get_id_for_load(comp->scope_cur, qst);
     } else {
-        #if NEED_METHOD_TABLE
+#if NEED_METHOD_TABLE
         mp_emit_common_id_op(comp->emit, &comp->emit_method_table->load_id, comp->scope_cur, qst);
-        #else
+#else
         mp_emit_common_id_op(comp->emit, &mp_emit_bc_method_table_load_id_ops, comp->scope_cur, qst);
-        #endif
+#endif
     }
 }
 
@@ -303,11 +303,11 @@ STATIC void compile_store_id(compiler_t *comp, qstr qst) {
     if (comp->pass == MP_PASS_SCOPE) {
         mp_emit_common_get_id_for_modification(comp->scope_cur, qst);
     } else {
-        #if NEED_METHOD_TABLE
+#if NEED_METHOD_TABLE
         mp_emit_common_id_op(comp->emit, &comp->emit_method_table->store_id, comp->scope_cur, qst);
-        #else
+#else
         mp_emit_common_id_op(comp->emit, &mp_emit_bc_method_table_store_id_ops, comp->scope_cur, qst);
-        #endif
+#endif
     }
 }
 
@@ -315,11 +315,11 @@ STATIC void compile_delete_id(compiler_t *comp, qstr qst) {
     if (comp->pass == MP_PASS_SCOPE) {
         mp_emit_common_get_id_for_modification(comp->scope_cur, qst);
     } else {
-        #if NEED_METHOD_TABLE
+#if NEED_METHOD_TABLE
         mp_emit_common_id_op(comp->emit, &comp->emit_method_table->delete_id, comp->scope_cur, qst);
-        #else
+#else
         mp_emit_common_id_op(comp->emit, &mp_emit_bc_method_table_delete_id_ops, comp->scope_cur, qst);
-        #endif
+#endif
     }
 }
 
@@ -574,10 +574,10 @@ STATIC void close_over_variables_etc(compiler_t *comp, scope_t *this_scope, int 
     }
     this_scope->num_def_pos_args = n_pos_defaults;
 
-    #if MICROPY_EMIT_NATIVE
+#if MICROPY_EMIT_NATIVE
     // When creating a function/closure it will take a reference to the current globals
     comp->scope_cur->scope_flags |= MP_SCOPE_FLAG_REFGLOBALS | MP_SCOPE_FLAG_HASCONSTS;
-    #endif
+#endif
 
     // make closed over variables, if any
     // ensure they are closed over in the order defined in the outer scope (mainly to agree with CPython)
@@ -798,28 +798,28 @@ STATIC bool compile_built_in_decorator(compiler_t *comp, size_t name_len, mp_par
     qstr attr = MP_PARSE_NODE_LEAF_ARG(name_nodes[1]);
     if (attr == MP_QSTR_bytecode) {
         *emit_options = MP_EMIT_OPT_BYTECODE;
-    #if MICROPY_EMIT_NATIVE
+#if MICROPY_EMIT_NATIVE
     } else if (attr == MP_QSTR_native) {
         *emit_options = MP_EMIT_OPT_NATIVE_PYTHON;
     } else if (attr == MP_QSTR_viper) {
         *emit_options = MP_EMIT_OPT_VIPER;
-    #endif
-        #if MICROPY_EMIT_INLINE_ASM
-    #if MICROPY_DYNAMIC_COMPILER
+#endif
+#if MICROPY_EMIT_INLINE_ASM
+#if MICROPY_DYNAMIC_COMPILER
     } else if (attr == MP_QSTR_asm_thumb) {
         *emit_options = MP_EMIT_OPT_ASM;
     } else if (attr == MP_QSTR_asm_xtensa) {
         *emit_options = MP_EMIT_OPT_ASM;
-    #else
+#else
     } else if (attr == ASM_DECORATOR_QSTR) {
         *emit_options = MP_EMIT_OPT_ASM;
-    #endif
-        #endif
+#endif
+#endif
     } else {
         compile_syntax_error(comp, name_nodes[1], MP_ERROR_TEXT("invalid micropython decorator"));
     }
 
-    #if MICROPY_DYNAMIC_COMPILER
+#if MICROPY_DYNAMIC_COMPILER
     if (*emit_options == MP_EMIT_OPT_NATIVE_PYTHON || *emit_options == MP_EMIT_OPT_VIPER) {
         if (emit_native_table[mp_dynamic_compiler.native_arch] == NULL) {
             compile_syntax_error(comp, name_nodes[1], MP_ERROR_TEXT("invalid arch"));
@@ -829,7 +829,7 @@ STATIC bool compile_built_in_decorator(compiler_t *comp, size_t name_len, mp_par
             compile_syntax_error(comp, name_nodes[1], MP_ERROR_TEXT("invalid arch"));
         }
     }
-    #endif
+#endif
 
     return true;
 }
@@ -880,14 +880,14 @@ STATIC void compile_decorated(compiler_t *comp, mp_parse_node_struct_t *pns) {
     qstr body_name = 0;
     if (MP_PARSE_NODE_STRUCT_KIND(pns_body) == PN_funcdef) {
         body_name = compile_funcdef_helper(comp, pns_body, emit_options);
-    #if MICROPY_PY_ASYNC_AWAIT
+#if MICROPY_PY_ASYNC_AWAIT
     } else if (MP_PARSE_NODE_STRUCT_KIND(pns_body) == PN_async_funcdef) {
         assert(MP_PARSE_NODE_IS_STRUCT(pns_body->nodes[0]));
         mp_parse_node_struct_t *pns0 = (mp_parse_node_struct_t *)pns_body->nodes[0];
         body_name = compile_funcdef_helper(comp, pns0, emit_options);
         scope_t *fscope = (scope_t *)pns0->nodes[4];
         fscope->scope_flags |= MP_SCOPE_FLAG_GENERATOR;
-    #endif
+#endif
     } else {
         assert(MP_PARSE_NODE_STRUCT_KIND(pns_body) == PN_classdef); // should be
         body_name = compile_classdef_helper(comp, pns_body, emit_options);
@@ -983,12 +983,12 @@ STATIC void compile_break_cont_stmt(compiler_t *comp, mp_parse_node_struct_t *pn
 }
 
 STATIC void compile_return_stmt(compiler_t *comp, mp_parse_node_struct_t *pns) {
-    #if MICROPY_CPYTHON_COMPAT
+#if MICROPY_CPYTHON_COMPAT
     if (comp->scope_cur->kind != SCOPE_FUNCTION) {
         compile_syntax_error(comp, (mp_parse_node_t)pns, MP_ERROR_TEXT("'return' outside function"));
         return;
     }
-    #endif
+#endif
     if (MP_PARSE_NODE_IS_NULL(pns->nodes[0])) {
         // no argument to 'return', so return None
         EMIT_ARG(load_const_tok, MP_TOKEN_KW_NONE);
@@ -1141,12 +1141,12 @@ STATIC void compile_import_from(compiler_t *comp, mp_parse_node_struct_t *pns) {
     } while (0);
 
     if (MP_PARSE_NODE_IS_TOKEN_KIND(pns->nodes[1], MP_TOKEN_OP_STAR)) {
-        #if MICROPY_CPYTHON_COMPAT
+#if MICROPY_CPYTHON_COMPAT
         if (comp->scope_cur->kind != SCOPE_MODULE) {
             compile_syntax_error(comp, (mp_parse_node_t)pns, MP_ERROR_TEXT("import * not at module level"));
             return;
         }
-        #endif
+#endif
 
         EMIT_ARG(load_const_small_int, import_level);
 
@@ -1560,9 +1560,9 @@ STATIC void compile_try_except(compiler_t *comp, mp_parse_node_t pn_body, int n_
 
         qstr qstr_exception_local = 0;
         uint end_finally_label = comp_next_label(comp);
-        #if MICROPY_PY_SYS_SETTRACE
+#if MICROPY_PY_SYS_SETTRACE
         EMIT_ARG(set_source_line, pns_except->source_line);
-        #endif
+#endif
 
         if (MP_PARSE_NODE_IS_NULL(pns_except->nodes[0])) {
             // this is a catch all exception handler
@@ -1851,13 +1851,13 @@ STATIC void compile_async_with_stmt_helper(compiler_t *comp, size_t n, mp_parse_
         EMIT(rot_three);
         EMIT(rot_three);
         EMIT(dup_top);
-        #if MICROPY_CPYTHON_COMPAT
+#if MICROPY_CPYTHON_COMPAT
         EMIT_ARG(attr, MP_QSTR___class__, MP_EMIT_ATTR_LOAD); // get type(exc)
-        #else
+#else
         compile_load_id(comp, MP_QSTR_type);
         EMIT(rot_two);
         EMIT_ARG(call_function, 1, 0, 0); // get type(exc)
-        #endif
+#endif
         EMIT(rot_two);
         EMIT_ARG(load_const_tok, MP_TOKEN_KW_NONE); // dummy traceback value
         // Stack: (..., exc, __aexit__, ctx_mgr, type(exc), exc, None)
@@ -1996,7 +1996,7 @@ STATIC void compile_expr_stmt(compiler_t *comp, mp_parse_node_struct_t *pns) {
             }
         } else {
         plain_assign:
-            #if MICROPY_COMP_DOUBLE_TUPLE_ASSIGN
+#if MICROPY_COMP_DOUBLE_TUPLE_ASSIGN
             if (MP_PARSE_NODE_IS_STRUCT_KIND(pn_rhs, PN_testlist_star_expr)
                 && MP_PARSE_NODE_IS_STRUCT_KIND(pns->nodes[0], PN_testlist_star_expr)) {
                 mp_parse_node_struct_t *pns0 = (mp_parse_node_struct_t *)pns->nodes[0];
@@ -2008,37 +2008,37 @@ STATIC void compile_expr_stmt(compiler_t *comp, mp_parse_node_struct_t *pns) {
                 //  - there are no star expressions in the LHS tuple
                 if (n_pns0 == MP_PARSE_NODE_STRUCT_NUM_NODES(pns1)
                     && (n_pns0 == 2
-                        #if MICROPY_COMP_TRIPLE_TUPLE_ASSIGN
+#if MICROPY_COMP_TRIPLE_TUPLE_ASSIGN
                         || n_pns0 == 3
-                        #endif
+#endif
                         )
                     && !MP_PARSE_NODE_IS_STRUCT_KIND(pns0->nodes[0], PN_star_expr)
                     && !MP_PARSE_NODE_IS_STRUCT_KIND(pns0->nodes[1], PN_star_expr)
-                    #if MICROPY_COMP_TRIPLE_TUPLE_ASSIGN
+#if MICROPY_COMP_TRIPLE_TUPLE_ASSIGN
                     && (n_pns0 == 2 || !MP_PARSE_NODE_IS_STRUCT_KIND(pns0->nodes[2], PN_star_expr))
-                    #endif
+#endif
                     ) {
                     // Optimisation for a, b = c, d or a, b, c = d, e, f
                     compile_node(comp, pns1->nodes[0]); // rhs
                     compile_node(comp, pns1->nodes[1]); // rhs
-                    #if MICROPY_COMP_TRIPLE_TUPLE_ASSIGN
+#if MICROPY_COMP_TRIPLE_TUPLE_ASSIGN
                     if (n_pns0 == 3) {
                         compile_node(comp, pns1->nodes[2]); // rhs
                         EMIT(rot_three);
                     }
-                    #endif
+#endif
                     EMIT(rot_two);
                     c_assign(comp, pns0->nodes[0], ASSIGN_STORE); // lhs store
                     c_assign(comp, pns0->nodes[1], ASSIGN_STORE); // lhs store
-                    #if MICROPY_COMP_TRIPLE_TUPLE_ASSIGN
+#if MICROPY_COMP_TRIPLE_TUPLE_ASSIGN
                     if (n_pns0 == 3) {
                         c_assign(comp, pns0->nodes[2], ASSIGN_STORE); // lhs store
                     }
-                    #endif
+#endif
                     return;
                 }
             }
-            #endif
+#endif
 
             compile_node(comp, pn_rhs); // rhs
             c_assign(comp, pns->nodes[0], ASSIGN_STORE); // lhs store
@@ -2273,7 +2273,7 @@ STATIC void compile_atom_expr_normal(compiler_t *comp, mp_parse_node_struct_t *p
             i = 1;
         }
 
-        #if MICROPY_COMP_CONST_LITERAL && MICROPY_PY_COLLECTIONS_ORDEREDDICT
+#if MICROPY_COMP_CONST_LITERAL && MICROPY_PY_COLLECTIONS_ORDEREDDICT
         // handle special OrderedDict constructor
     } else if (MP_PARSE_NODE_IS_ID(pns->nodes[0])
                && MP_PARSE_NODE_LEAF_ARG(pns->nodes[0]) == MP_QSTR_OrderedDict
@@ -2285,7 +2285,7 @@ STATIC void compile_atom_expr_normal(compiler_t *comp, mp_parse_node_struct_t *p
         mp_parse_node_struct_t *pns_dict = (mp_parse_node_struct_t *)pns_trail[0]->nodes[0];
         compile_atom_brace_helper(comp, pns_dict, false);
         i = 1;
-        #endif
+#endif
     }
 
     // compile the remaining trailers
@@ -2344,12 +2344,12 @@ STATIC void compile_trailer_paren_helper(compiler_t *comp, mp_parse_node_t pn_ar
                 star_flags |= MP_EMIT_STAR_FLAG_DOUBLE;
                 dblstar_args_node = pns_arg;
             } else if (MP_PARSE_NODE_STRUCT_KIND(pns_arg) == PN_argument) {
-                #if MICROPY_PY_ASSIGN_EXPR
+#if MICROPY_PY_ASSIGN_EXPR
                 if (MP_PARSE_NODE_IS_STRUCT_KIND(pns_arg->nodes[1], PN_argument_3)) {
                     compile_namedexpr_helper(comp, pns_arg->nodes[0], ((mp_parse_node_struct_t *)pns_arg->nodes[1])->nodes[0]);
                     n_positional++;
                 } else
-                #endif
+#endif
                 if (!MP_PARSE_NODE_IS_STRUCT_KIND(pns_arg->nodes[1], PN_comp_for)) {
                     if (!MP_PARSE_NODE_IS_ID(pns_arg->nodes[0])) {
                         compile_syntax_error(comp, (mp_parse_node_t)pns_arg, MP_ERROR_TEXT("LHS of keyword arg must be an id"));
@@ -2516,32 +2516,32 @@ STATIC void compile_atom_brace_helper(compiler_t *comp, mp_parse_node_struct_t *
                     compile_node(comp, pn_i);
                     if (is_dict) {
                         if (!is_key_value) {
-                            #if MICROPY_ERROR_REPORTING <= MICROPY_ERROR_REPORTING_TERSE
+#if MICROPY_ERROR_REPORTING <= MICROPY_ERROR_REPORTING_TERSE
                             compile_syntax_error(comp, (mp_parse_node_t)pns, MP_ERROR_TEXT("invalid syntax"));
-                            #else
+#else
                             compile_syntax_error(comp, (mp_parse_node_t)pns, MP_ERROR_TEXT("expecting key:value for dict"));
-                            #endif
+#endif
                             return;
                         }
                         EMIT(store_map);
                     } else {
                         if (is_key_value) {
-                            #if MICROPY_ERROR_REPORTING <= MICROPY_ERROR_REPORTING_TERSE
+#if MICROPY_ERROR_REPORTING <= MICROPY_ERROR_REPORTING_TERSE
                             compile_syntax_error(comp, (mp_parse_node_t)pns, MP_ERROR_TEXT("invalid syntax"));
-                            #else
+#else
                             compile_syntax_error(comp, (mp_parse_node_t)pns, MP_ERROR_TEXT("expecting just a value for set"));
-                            #endif
+#endif
                             return;
                         }
                     }
                 }
 
-                #if MICROPY_PY_BUILTINS_SET
+#if MICROPY_PY_BUILTINS_SET
                 // if it's a set, build it
                 if (!is_dict) {
                     EMIT_ARG(build, 1 + n, MP_EMIT_BUILD_SET);
                 }
-                #endif
+#endif
             } else {
                 assert(MP_PARSE_NODE_STRUCT_KIND(pns1) == PN_comp_for); // should be
                 // dict/set comprehension
@@ -2560,12 +2560,12 @@ STATIC void compile_atom_brace_helper(compiler_t *comp, mp_parse_node_struct_t *
     } else {
         // set with one element
     set_with_one_element:
-        #if MICROPY_PY_BUILTINS_SET
+#if MICROPY_PY_BUILTINS_SET
         compile_node(comp, pn);
         EMIT_ARG(build, 1, MP_EMIT_BUILD_SET);
-        #else
+#else
         assert(0);
-        #endif
+#endif
     }
 }
 
@@ -2688,12 +2688,12 @@ STATIC void compile_atom_expr_await(compiler_t *comp, mp_parse_node_struct_t *pn
 #endif
 
 STATIC mp_obj_t get_const_object(mp_parse_node_struct_t *pns) {
-    #if MICROPY_OBJ_REPR == MICROPY_OBJ_REPR_D
+#if MICROPY_OBJ_REPR == MICROPY_OBJ_REPR_D
     // nodes are 32-bit pointers, but need to extract 64-bit object
     return (uint64_t)pns->nodes[0] | ((uint64_t)pns->nodes[1] << 32);
-    #else
+#else
     return (mp_obj_t)pns->nodes[0];
-    #endif
+#endif
 }
 
 STATIC void compile_const_object(compiler_t *comp, mp_parse_node_struct_t *pns) {
@@ -2706,7 +2706,7 @@ STATIC const compile_function_t compile_function[] = {
 #define c(f) compile_##f
 #define DEF_RULE(rule, comp, kind, ...) comp,
 #define DEF_RULE_NC(rule, kind, ...)
-    #include "py/grammar.h"
+#include "py/grammar.h"
 #undef c
 #undef DEF_RULE
 #undef DEF_RULE_NC
@@ -2718,7 +2718,7 @@ STATIC void compile_node(compiler_t *comp, mp_parse_node_t pn) {
         // pass
     } else if (MP_PARSE_NODE_IS_SMALL_INT(pn)) {
         mp_int_t arg = MP_PARSE_NODE_LEAF_SMALL_INT(pn);
-        #if MICROPY_DYNAMIC_COMPILER
+#if MICROPY_DYNAMIC_COMPILER
         mp_uint_t sign_mask = -((mp_uint_t)1 << (mp_dynamic_compiler.small_int_bits - 1));
         if ((arg & sign_mask) == 0 || (arg & sign_mask) == sign_mask) {
             // integer fits in target runtime's small-int
@@ -2732,9 +2732,9 @@ STATIC void compile_node(compiler_t *comp, mp_parse_node_t pn) {
                 EMIT_ARG(load_const_obj, mp_obj_new_int_from_ll(arg));
             }
         }
-        #else
+#else
         EMIT_ARG(load_const_small_int, arg);
-        #endif
+#endif
     } else if (MP_PARSE_NODE_IS_LEAF(pn)) {
         uintptr_t arg = MP_PARSE_NODE_LEAF_ARG(pn);
         switch (MP_PARSE_NODE_LEAF_KIND(pn)) {
@@ -2870,13 +2870,13 @@ STATIC void compile_scope_func_lambda_param(compiler_t *comp, mp_parse_node_t pn
         id_info->kind = ID_INFO_KIND_LOCAL;
         id_info->flags = param_flag;
 
-        #if MICROPY_EMIT_NATIVE
+#if MICROPY_EMIT_NATIVE
         if (comp->scope_cur->emit_options == MP_EMIT_OPT_VIPER && pn_name == PN_typedargslist_name && pns != NULL) {
             id_info->flags |= compile_viper_type_annotation(comp, pns->nodes[1]) << ID_FLAG_VIPER_TYPE_POS;
         }
-        #else
+#else
         (void)pns;
-        #endif
+#endif
     }
 }
 
@@ -2928,7 +2928,7 @@ tail_recursion:
 }
 
 STATIC void check_for_doc_string(compiler_t *comp, mp_parse_node_t pn) {
-    #if MICROPY_ENABLE_DOC_STRING
+#if MICROPY_ENABLE_DOC_STRING
     // see http://www.python.org/dev/peps/pep-0257/
 
     // look for the first statement
@@ -2966,10 +2966,10 @@ STATIC void check_for_doc_string(compiler_t *comp, mp_parse_node_t pn) {
             compile_store_id(comp, MP_QSTR___doc__);
         }
     }
-    #else
+#else
     (void)comp;
     (void)pn;
-    #endif
+#endif
 }
 
 STATIC void compile_scope(compiler_t *comp, scope_t *scope, pass_kind_t pass) {
@@ -3010,12 +3010,12 @@ STATIC void compile_scope(compiler_t *comp, scope_t *scope, pass_kind_t pass) {
             comp->have_star = false;
             apply_to_single_or_list(comp, pns->nodes[1], PN_typedargslist, compile_scope_func_param);
 
-            #if MICROPY_EMIT_NATIVE
+#if MICROPY_EMIT_NATIVE
             if (scope->emit_options == MP_EMIT_OPT_VIPER) {
                 // Compile return type; pns->nodes[2] is return/whole function annotation
                 scope->scope_flags |= compile_viper_type_annotation(comp, pns->nodes[2]) << MP_SCOPE_FLAG_VIPERRET_POS;
             }
-            #endif // MICROPY_EMIT_NATIVE
+#endif // MICROPY_EMIT_NATIVE
         }
 
         compile_node(comp, pns->nodes[3]); // 3 is function body
@@ -3073,10 +3073,10 @@ STATIC void compile_scope(compiler_t *comp, scope_t *scope, pass_kind_t pass) {
             EMIT_ARG(build, 0, MP_EMIT_BUILD_LIST);
         } else if (scope->kind == SCOPE_DICT_COMP) {
             EMIT_ARG(build, 0, MP_EMIT_BUILD_MAP);
-        #if MICROPY_PY_BUILTINS_SET
+#if MICROPY_PY_BUILTINS_SET
         } else if (scope->kind == SCOPE_SET_COMP) {
             EMIT_ARG(build, 0, MP_EMIT_BUILD_SET);
-        #endif
+#endif
         }
 
         // There are 4 slots on the stack for the iterator, and the first one is
@@ -3108,9 +3108,9 @@ STATIC void compile_scope(compiler_t *comp, scope_t *scope, pass_kind_t pass) {
             scope_find_or_add_id(scope, MP_QSTR___class__, ID_INFO_KIND_LOCAL);
         }
 
-        #if MICROPY_PY_SYS_SETTRACE
+#if MICROPY_PY_SYS_SETTRACE
         EMIT_ARG(set_source_line, pns->source_line);
-        #endif
+#endif
         compile_load_id(comp, MP_QSTR___name__);
         compile_store_id(comp, MP_QSTR___module__);
         EMIT_ARG(load_const_str, MP_PARSE_NODE_LEAF_ARG(pns->nodes[0])); // 0 is class name
@@ -3295,9 +3295,9 @@ STATIC void compile_scope_inline_asm(compiler_t *comp, scope_t *scope, pass_kind
             mp_emit_glue_assign_native(comp->scope_cur->raw_code, MP_CODE_NATIVE_ASM,
                 f, mp_asm_base_get_code_size((mp_asm_base_t *)comp->emit_inline_asm),
                 NULL,
-                #if MICROPY_PERSISTENT_CODE_SAVE
+#if MICROPY_PERSISTENT_CODE_SAVE
                 0, 0, 0, 0, NULL,
-                #endif
+#endif
                 comp->scope_cur->num_pos_args, 0, type_sig);
         }
     }
@@ -3342,7 +3342,7 @@ STATIC void scope_compute_things(scope_t *scope) {
         if (SCOPE_IS_FUNC_LIKE(scope->kind) && id->kind == ID_INFO_KIND_GLOBAL_IMPLICIT) {
             id->kind = ID_INFO_KIND_GLOBAL_EXPLICIT;
         }
-        #if MICROPY_EMIT_NATIVE
+#if MICROPY_EMIT_NATIVE
         if (id->kind == ID_INFO_KIND_GLOBAL_EXPLICIT) {
             // This function makes a reference to a global variable
             if (scope->emit_options == MP_EMIT_OPT_VIPER
@@ -3352,7 +3352,7 @@ STATIC void scope_compute_things(scope_t *scope) {
                 scope->scope_flags |= MP_SCOPE_FLAG_REFGLOBALS;
             }
         }
-        #endif
+#endif
         // params always count for 1 local, even if they are a cell
         if (id->kind == ID_INFO_KIND_LOCAL || (id->flags & ID_FLAG_IS_PARAM)) {
             id->local_num = scope->num_locals++;
@@ -3417,11 +3417,11 @@ mp_raw_code_t *mp_compile_to_raw_code(mp_parse_tree_t *parse_tree, qstr source_f
     comp->continue_label = INVALID_LABEL;
 
     // create the module scope
-    #if MICROPY_EMIT_NATIVE
+#if MICROPY_EMIT_NATIVE
     const uint emit_opt = MP_STATE_VM(default_emit_opt);
-    #else
+#else
     const uint emit_opt = MP_EMIT_OPT_NONE;
-    #endif
+#endif
     scope_t *module_scope = scope_new_and_link(comp, SCOPE_MODULE, parse_tree->root, emit_opt);
 
     // create standard emitter; it's used at least for MP_PASS_SCOPE
@@ -3429,16 +3429,16 @@ mp_raw_code_t *mp_compile_to_raw_code(mp_parse_tree_t *parse_tree, qstr source_f
 
     // compile pass 1
     comp->emit = emit_bc;
-    #if MICROPY_EMIT_NATIVE
+#if MICROPY_EMIT_NATIVE
     comp->emit_method_table = &emit_bc_method_table;
-    #endif
+#endif
     uint max_num_labels = 0;
     for (scope_t *s = comp->scope_head; s != NULL && comp->compile_error == MP_OBJ_NULL; s = s->next) {
-        #if MICROPY_EMIT_INLINE_ASM
+#if MICROPY_EMIT_INLINE_ASM
         if (s->emit_options == MP_EMIT_OPT_ASM) {
             compile_scope_inline_asm(comp, s, MP_PASS_SCOPE);
         } else
-        #endif
+#endif
         {
             compile_scope(comp, s, MP_PASS_SCOPE);
 
@@ -3466,11 +3466,11 @@ mp_raw_code_t *mp_compile_to_raw_code(mp_parse_tree_t *parse_tree, qstr source_f
     emit_bc_set_max_num_labels(emit_bc, max_num_labels);
 
     // compile pass 2 and 3
-    #if MICROPY_EMIT_NATIVE
+#if MICROPY_EMIT_NATIVE
     emit_t *emit_native = NULL;
-    #endif
+#endif
     for (scope_t *s = comp->scope_head; s != NULL && comp->compile_error == MP_OBJ_NULL; s = s->next) {
-        #if MICROPY_EMIT_INLINE_ASM
+#if MICROPY_EMIT_INLINE_ASM
         if (s->emit_options == MP_EMIT_OPT_ASM) {
             // inline assembly
             if (comp->emit_inline_asm == NULL) {
@@ -3479,29 +3479,29 @@ mp_raw_code_t *mp_compile_to_raw_code(mp_parse_tree_t *parse_tree, qstr source_f
             comp->emit = NULL;
             comp->emit_inline_asm_method_table = ASM_EMITTER_TABLE;
             compile_scope_inline_asm(comp, s, MP_PASS_CODE_SIZE);
-            #if MICROPY_EMIT_INLINE_XTENSA
+#if MICROPY_EMIT_INLINE_XTENSA
             // Xtensa requires an extra pass to compute size of l32r const table
             // TODO this can be improved by calculating it during SCOPE pass
             // but that requires some other structural changes to the asm emitters
-            #if MICROPY_DYNAMIC_COMPILER
+#if MICROPY_DYNAMIC_COMPILER
             if (mp_dynamic_compiler.native_arch == MP_NATIVE_ARCH_XTENSA)
-            #endif
+#endif
             {
                 compile_scope_inline_asm(comp, s, MP_PASS_CODE_SIZE);
             }
-            #endif
+#endif
             if (comp->compile_error == MP_OBJ_NULL) {
                 compile_scope_inline_asm(comp, s, MP_PASS_EMIT);
             }
         } else
-        #endif
+#endif
         {
 
             // choose the emit type
 
             switch (s->emit_options) {
 
-                #if MICROPY_EMIT_NATIVE
+#if MICROPY_EMIT_NATIVE
                 case MP_EMIT_OPT_NATIVE_PYTHON:
                 case MP_EMIT_OPT_VIPER:
                     if (emit_native == NULL) {
@@ -3510,13 +3510,13 @@ mp_raw_code_t *mp_compile_to_raw_code(mp_parse_tree_t *parse_tree, qstr source_f
                     comp->emit_method_table = NATIVE_EMITTER_TABLE;
                     comp->emit = emit_native;
                     break;
-                #endif // MICROPY_EMIT_NATIVE
+#endif // MICROPY_EMIT_NATIVE
 
                 default:
                     comp->emit = emit_bc;
-                    #if MICROPY_EMIT_NATIVE
+#if MICROPY_EMIT_NATIVE
                     comp->emit_method_table = &emit_bc_method_table;
-                    #endif
+#endif
                     break;
             }
 
@@ -3547,16 +3547,16 @@ mp_raw_code_t *mp_compile_to_raw_code(mp_parse_tree_t *parse_tree, qstr source_f
     // free the emitters
 
     emit_bc_free(emit_bc);
-    #if MICROPY_EMIT_NATIVE
+#if MICROPY_EMIT_NATIVE
     if (emit_native != NULL) {
         NATIVE_EMITTER(free)(emit_native);
     }
-    #endif
-    #if MICROPY_EMIT_INLINE_ASM
+#endif
+#if MICROPY_EMIT_INLINE_ASM
     if (comp->emit_inline_asm != NULL) {
         ASM_EMITTER(free)(comp->emit_inline_asm);
     }
-    #endif
+#endif
 
     // free the parse tree
     mp_parse_tree_clear(parse_tree);

@@ -38,7 +38,7 @@
 #include "py/stream.h" // for mp_obj_print
 
 const mp_obj_type_t *MICROPY_WRAP_MP_OBJ_GET_TYPE(mp_obj_get_type)(mp_const_obj_t o_in) {
-    #if MICROPY_OBJ_IMMEDIATE_OBJS && MICROPY_OBJ_REPR == MICROPY_OBJ_REPR_A
+#if MICROPY_OBJ_IMMEDIATE_OBJS && MICROPY_OBJ_REPR == MICROPY_OBJ_REPR_A
 
     if (mp_obj_is_obj(o_in)) {
         const mp_obj_base_t *o = MP_OBJ_TO_PTR(o_in);
@@ -53,17 +53,17 @@ const mp_obj_type_t *MICROPY_WRAP_MP_OBJ_GET_TYPE(mp_obj_get_type)(mp_const_obj_
         return types[(uintptr_t)o_in & 0xf];
     }
 
-    #elif MICROPY_OBJ_IMMEDIATE_OBJS && MICROPY_OBJ_REPR == MICROPY_OBJ_REPR_C
+#elif MICROPY_OBJ_IMMEDIATE_OBJS && MICROPY_OBJ_REPR == MICROPY_OBJ_REPR_C
 
     if (mp_obj_is_small_int(o_in)) {
         return &mp_type_int;
     } else if (mp_obj_is_obj(o_in)) {
         const mp_obj_base_t *o = MP_OBJ_TO_PTR(o_in);
         return o->type;
-    #if MICROPY_PY_BUILTINS_FLOAT
+#if MICROPY_PY_BUILTINS_FLOAT
     } else if ((((mp_uint_t)(o_in)) & 0xff800007) != 0x00000006) {
         return &mp_type_float;
-    #endif
+#endif
     } else {
         static const mp_obj_type_t *const types[] = {
             &mp_type_str, &mp_type_NoneType, &mp_type_str, &mp_type_bool,
@@ -71,28 +71,28 @@ const mp_obj_type_t *MICROPY_WRAP_MP_OBJ_GET_TYPE(mp_obj_get_type)(mp_const_obj_
         return types[((uintptr_t)o_in >> 3) & 3];
     }
 
-    #else
+#else
 
     if (mp_obj_is_small_int(o_in)) {
         return &mp_type_int;
     } else if (mp_obj_is_qstr(o_in)) {
         return &mp_type_str;
-        #if MICROPY_PY_BUILTINS_FLOAT && ( \
+#if MICROPY_PY_BUILTINS_FLOAT && (\
             MICROPY_OBJ_REPR == MICROPY_OBJ_REPR_C || MICROPY_OBJ_REPR == MICROPY_OBJ_REPR_D)
-    } else if (mp_obj_is_float(o_in)) {
-        return &mp_type_float;
-        #endif
-    #if MICROPY_OBJ_IMMEDIATE_OBJS
-    } else if (mp_obj_is_immediate_obj(o_in)) {
-        static const mp_obj_type_t *const types[2] = {&mp_type_NoneType, &mp_type_bool};
-        return types[MP_OBJ_IMMEDIATE_OBJ_VALUE(o_in) & 1];
-    #endif
+        } else if (mp_obj_is_float(o_in)) {
+            return &mp_type_float;
+#endif
+#if MICROPY_OBJ_IMMEDIATE_OBJS
+        } else if (mp_obj_is_immediate_obj(o_in)) {
+            static const mp_obj_type_t *const types[2] = {&mp_type_NoneType, &mp_type_bool};
+            return types[MP_OBJ_IMMEDIATE_OBJ_VALUE(o_in) & 1];
+#endif
     } else {
         const mp_obj_base_t *o = MP_OBJ_TO_PTR(o_in);
         return o->type;
     }
 
-    #endif
+#endif
 }
 
 const char *mp_obj_get_type_str(mp_const_obj_t o_in) {
@@ -102,15 +102,15 @@ const char *mp_obj_get_type_str(mp_const_obj_t o_in) {
 void mp_obj_print_helper(const mp_print_t *print, mp_obj_t o_in, mp_print_kind_t kind) {
     // There can be data structures nested too deep, or just recursive
     MP_STACK_CHECK();
-    #ifndef NDEBUG
+#ifndef NDEBUG
     if (o_in == MP_OBJ_NULL) {
         mp_print_str(print, "(nil)");
         return;
     }
-    #endif
+#endif
     const mp_obj_type_t *type = mp_obj_get_type(o_in);
     if (type->print != NULL) {
-        type->print((mp_print_t *)print, o_in, kind);
+        type->print((mp_print_t *) print, o_in, kind);
     } else {
         mp_printf(print, "<%q>", type->name);
     }
@@ -129,11 +129,11 @@ void mp_obj_print_exception(const mp_print_t *print, mp_obj_t exc) {
             assert(n % 3 == 0);
             mp_print_str(print, "Traceback (most recent call last):\n");
             for (int i = n - 3; i >= 0; i -= 3) {
-                #if MICROPY_ENABLE_SOURCE_LINE
+#if MICROPY_ENABLE_SOURCE_LINE
                 mp_printf(print, "  File \"%q\", line %d", values[i], (int)values[i + 1]);
-                #else
+#else
                 mp_printf(print, "  File \"%q\"", values[i]);
-                #endif
+#endif
                 // the block name can be NULL if it's unknown
                 qstr block = values[i + 2];
                 if (block == MP_QSTRnull) {
@@ -218,20 +218,20 @@ mp_obj_t mp_obj_equal_not_equal(mp_binary_op_t op, mp_obj_t o1, mp_obj_t o2) {
         if (mp_obj_is_str(o2)) {
             // both strings, use special function
             return mp_obj_str_equal(o1, o2) ? local_true : local_false;
-        #if MICROPY_PY_STR_BYTES_CMP_WARN
-        } else if (mp_obj_is_type(o2, &mp_type_bytes)) {
-        str_bytes_cmp:
-            mp_warning(MP_WARN_CAT(BytesWarning), "Comparison between bytes and str");
-            return local_false;
-        #endif
+#if MICROPY_PY_STR_BYTES_CMP_WARN
+            } else if (mp_obj_is_type(o2, &mp_type_bytes)) {
+            str_bytes_cmp:
+                mp_warning(MP_WARN_CAT(BytesWarning), "Comparison between bytes and str");
+                return local_false;
+#endif
         } else {
             goto skip_one_pass;
         }
-    #if MICROPY_PY_STR_BYTES_CMP_WARN
-    } else if (mp_obj_is_str(o2) && mp_obj_is_type(o1, &mp_type_bytes)) {
-        // o1 is not a string (else caught above), so the objects are not equal
-        goto str_bytes_cmp;
-    #endif
+#if MICROPY_PY_STR_BYTES_CMP_WARN
+        } else if (mp_obj_is_str(o2) && mp_obj_is_type(o1, &mp_type_bytes)) {
+            // o1 is not a string (else caught above), so the objects are not equal
+            goto str_bytes_cmp;
+#endif
     }
 
     // fast path for small ints
@@ -271,7 +271,7 @@ mp_obj_t mp_obj_equal_not_equal(mp_binary_op_t op, mp_obj_t o1, mp_obj_t o2) {
             }
         }
 
-    skip_one_pass:
+        skip_one_pass:
         // Try the other way around if none of the above worked
         ++pass_number;
         mp_obj_t temp = o1;
@@ -300,7 +300,7 @@ mp_int_t mp_obj_get_int(mp_const_obj_t arg) {
     } else if (mp_obj_is_type(arg, &mp_type_int)) {
         return mp_obj_int_get_checked(arg);
     } else {
-        mp_obj_t res = mp_unary_op(MP_UNARY_OP_INT, (mp_obj_t)arg);
+        mp_obj_t res = mp_unary_op(MP_UNARY_OP_INT, (mp_obj_t) arg);
         return mp_obj_int_get_checked(res);
     }
 }
@@ -341,10 +341,10 @@ bool mp_obj_get_float_maybe(mp_obj_t arg, mp_float_t *value) {
         val = 1;
     } else if (mp_obj_is_small_int(arg)) {
         val = (mp_float_t)MP_OBJ_SMALL_INT_VALUE(arg);
-    #if MICROPY_LONGINT_IMPL != MICROPY_LONGINT_IMPL_NONE
+#if MICROPY_LONGINT_IMPL != MICROPY_LONGINT_IMPL_NONE
     } else if (mp_obj_is_type(arg, &mp_type_int)) {
         val = mp_obj_int_as_float_impl(arg);
-    #endif
+#endif
     } else if (mp_obj_is_float(arg)) {
         val = mp_obj_float_get(arg);
     } else {
@@ -359,12 +359,12 @@ mp_float_t mp_obj_get_float(mp_obj_t arg) {
     mp_float_t val;
 
     if (!mp_obj_get_float_maybe(arg, &val)) {
-        #if MICROPY_ERROR_REPORTING <= MICROPY_ERROR_REPORTING_TERSE
+#if MICROPY_ERROR_REPORTING <= MICROPY_ERROR_REPORTING_TERSE
         mp_raise_TypeError(MP_ERROR_TEXT("can't convert to float"));
-        #else
+#else
         mp_raise_msg_varg(&mp_type_TypeError,
             MP_ERROR_TEXT("can't convert %s to float"), mp_obj_get_type_str(arg));
-        #endif
+#endif
     }
 
     return val;
@@ -381,11 +381,11 @@ bool mp_obj_get_complex_maybe(mp_obj_t arg, mp_float_t *real, mp_float_t *imag) 
     } else if (mp_obj_is_small_int(arg)) {
         *real = (mp_float_t)MP_OBJ_SMALL_INT_VALUE(arg);
         *imag = 0;
-    #if MICROPY_LONGINT_IMPL != MICROPY_LONGINT_IMPL_NONE
+#if MICROPY_LONGINT_IMPL != MICROPY_LONGINT_IMPL_NONE
     } else if (mp_obj_is_type(arg, &mp_type_int)) {
         *real = mp_obj_int_as_float_impl(arg);
         *imag = 0;
-    #endif
+#endif
     } else if (mp_obj_is_float(arg)) {
         *real = mp_obj_float_get(arg);
         *imag = 0;
@@ -399,12 +399,12 @@ bool mp_obj_get_complex_maybe(mp_obj_t arg, mp_float_t *real, mp_float_t *imag) 
 
 void mp_obj_get_complex(mp_obj_t arg, mp_float_t *real, mp_float_t *imag) {
     if (!mp_obj_get_complex_maybe(arg, real, imag)) {
-        #if MICROPY_ERROR_REPORTING <= MICROPY_ERROR_REPORTING_TERSE
+#if MICROPY_ERROR_REPORTING <= MICROPY_ERROR_REPORTING_TERSE
         mp_raise_TypeError(MP_ERROR_TEXT("can't convert to complex"));
-        #else
+#else
         mp_raise_msg_varg(&mp_type_TypeError,
             MP_ERROR_TEXT("can't convert %s to complex"), mp_obj_get_type_str(arg));
-        #endif
+#endif
     }
 }
 #endif
@@ -417,12 +417,12 @@ void mp_obj_get_array(mp_obj_t o, size_t *len, mp_obj_t **items) {
     } else if (mp_obj_is_type(o, &mp_type_list)) {
         mp_obj_list_get(o, len, items);
     } else {
-        #if MICROPY_ERROR_REPORTING <= MICROPY_ERROR_REPORTING_TERSE
+#if MICROPY_ERROR_REPORTING <= MICROPY_ERROR_REPORTING_TERSE
         mp_raise_TypeError(MP_ERROR_TEXT("expected tuple/list"));
-        #else
+#else
         mp_raise_msg_varg(&mp_type_TypeError,
             MP_ERROR_TEXT("object '%s' isn't a tuple or list"), mp_obj_get_type_str(o));
-        #endif
+#endif
     }
 }
 
@@ -431,12 +431,12 @@ void mp_obj_get_array_fixed_n(mp_obj_t o, size_t len, mp_obj_t **items) {
     size_t seq_len;
     mp_obj_get_array(o, &seq_len, items);
     if (seq_len != len) {
-        #if MICROPY_ERROR_REPORTING <= MICROPY_ERROR_REPORTING_TERSE
+#if MICROPY_ERROR_REPORTING <= MICROPY_ERROR_REPORTING_TERSE
         mp_raise_ValueError(MP_ERROR_TEXT("tuple/list has wrong length"));
-        #else
+#else
         mp_raise_msg_varg(&mp_type_ValueError,
             MP_ERROR_TEXT("requested length %d but object has length %d"), (int)len, (int)seq_len);
-        #endif
+#endif
     }
 }
 
@@ -446,13 +446,13 @@ size_t mp_get_index(const mp_obj_type_t *type, size_t len, mp_obj_t index, bool 
     if (mp_obj_is_small_int(index)) {
         i = MP_OBJ_SMALL_INT_VALUE(index);
     } else if (!mp_obj_get_int_maybe(index, &i)) {
-        #if MICROPY_ERROR_REPORTING <= MICROPY_ERROR_REPORTING_TERSE
+#if MICROPY_ERROR_REPORTING <= MICROPY_ERROR_REPORTING_TERSE
         mp_raise_TypeError(MP_ERROR_TEXT("indices must be integers"));
-        #else
+#else
         mp_raise_msg_varg(&mp_type_TypeError,
             MP_ERROR_TEXT("%q indices must be integers, not %s"),
             type->name, mp_obj_get_type_str(index));
-        #endif
+#endif
     }
 
     if (i < 0) {
@@ -461,25 +461,25 @@ size_t mp_get_index(const mp_obj_type_t *type, size_t len, mp_obj_t index, bool 
     if (is_slice) {
         if (i < 0) {
             i = 0;
-        } else if ((mp_uint_t)i > len) {
+        } else if ((mp_uint_t) i > len) {
             i = len;
         }
     } else {
-        if (i < 0 || (mp_uint_t)i >= len) {
-            #if MICROPY_ERROR_REPORTING <= MICROPY_ERROR_REPORTING_TERSE
+        if (i < 0 || (mp_uint_t) i >= len) {
+#if MICROPY_ERROR_REPORTING <= MICROPY_ERROR_REPORTING_TERSE
             mp_raise_msg(&mp_type_IndexError, MP_ERROR_TEXT("index out of range"));
-            #else
+#else
             mp_raise_msg_varg(&mp_type_IndexError, MP_ERROR_TEXT("%q index out of range"), type->name);
-            #endif
+#endif
         }
     }
 
     // By this point 0 <= i <= len and so fits in a size_t
-    return (size_t)i;
+    return (size_t) i;
 }
 
 mp_obj_t mp_obj_id(mp_obj_t o_in) {
-    mp_int_t id = (mp_int_t)o_in;
+    mp_int_t id = (mp_int_t) o_in;
     if (!mp_obj_is_obj(o_in)) {
         return mp_obj_new_int(id);
     } else if (id >= 0) {
@@ -492,7 +492,7 @@ mp_obj_t mp_obj_id(mp_obj_t o_in) {
         // If that didn't work, well, let's return long int, just as
         // a (big) positive value, so it will never clash with the range
         // of small int returned in previous case.
-        return mp_obj_new_int_from_uint((mp_uint_t)id);
+        return mp_obj_new_int_from_uint((mp_uint_t) id);
     }
 }
 
@@ -500,12 +500,12 @@ mp_obj_t mp_obj_id(mp_obj_t o_in) {
 mp_obj_t mp_obj_len(mp_obj_t o_in) {
     mp_obj_t len = mp_obj_len_maybe(o_in);
     if (len == MP_OBJ_NULL) {
-        #if MICROPY_ERROR_REPORTING <= MICROPY_ERROR_REPORTING_TERSE
+#if MICROPY_ERROR_REPORTING <= MICROPY_ERROR_REPORTING_TERSE
         mp_raise_TypeError(MP_ERROR_TEXT("object has no len"));
-        #else
+#else
         mp_raise_msg_varg(&mp_type_TypeError,
             MP_ERROR_TEXT("object of type '%s' has no len()"), mp_obj_get_type_str(o_in));
-        #endif
+#endif
     } else {
         return len;
     }
@@ -514,11 +514,11 @@ mp_obj_t mp_obj_len(mp_obj_t o_in) {
 // may return MP_OBJ_NULL
 mp_obj_t mp_obj_len_maybe(mp_obj_t o_in) {
     if (
-        #if !MICROPY_PY_BUILTINS_STR_UNICODE
-        // It's simple - unicode is slow, non-unicode is fast
-        mp_obj_is_str(o_in) ||
-        #endif
-        mp_obj_is_type(o_in, &mp_type_bytes)) {
+#if !MICROPY_PY_BUILTINS_STR_UNICODE
+// It's simple - unicode is slow, non-unicode is fast
+mp_obj_is_str(o_in) ||
+#endif
+mp_obj_is_type(o_in, &mp_type_bytes)) {
         GET_STR_LEN(o_in, l);
         return MP_OBJ_NEW_SMALL_INT(l);
     } else {
@@ -541,26 +541,26 @@ mp_obj_t mp_obj_subscr(mp_obj_t base, mp_obj_t index, mp_obj_t value) {
         // TODO: call base classes here?
     }
     if (value == MP_OBJ_NULL) {
-        #if MICROPY_ERROR_REPORTING <= MICROPY_ERROR_REPORTING_TERSE
+#if MICROPY_ERROR_REPORTING <= MICROPY_ERROR_REPORTING_TERSE
         mp_raise_TypeError(MP_ERROR_TEXT("object doesn't support item deletion"));
-        #else
+#else
         mp_raise_msg_varg(&mp_type_TypeError,
             MP_ERROR_TEXT("'%s' object doesn't support item deletion"), mp_obj_get_type_str(base));
-        #endif
+#endif
     } else if (value == MP_OBJ_SENTINEL) {
-        #if MICROPY_ERROR_REPORTING <= MICROPY_ERROR_REPORTING_TERSE
+#if MICROPY_ERROR_REPORTING <= MICROPY_ERROR_REPORTING_TERSE
         mp_raise_TypeError(MP_ERROR_TEXT("object isn't subscriptable"));
-        #else
+#else
         mp_raise_msg_varg(&mp_type_TypeError,
             MP_ERROR_TEXT("'%s' object isn't subscriptable"), mp_obj_get_type_str(base));
-        #endif
+#endif
     } else {
-        #if MICROPY_ERROR_REPORTING <= MICROPY_ERROR_REPORTING_TERSE
+#if MICROPY_ERROR_REPORTING <= MICROPY_ERROR_REPORTING_TERSE
         mp_raise_TypeError(MP_ERROR_TEXT("object doesn't support item assignment"));
-        #else
+#else
         mp_raise_msg_varg(&mp_type_TypeError,
             MP_ERROR_TEXT("'%s' object doesn't support item assignment"), mp_obj_get_type_str(base));
-        #endif
+#endif
     }
 }
 
@@ -569,10 +569,12 @@ mp_obj_t mp_obj_subscr(mp_obj_t base, mp_obj_t index, mp_obj_t value) {
 mp_obj_t mp_identity(mp_obj_t self) {
     return self;
 }
-MP_DEFINE_CONST_FUN_OBJ_1(mp_identity_obj, mp_identity);
+
+MP_DEFINE_CONST_FUN_OBJ_1(mp_identity_obj, mp_identity
+);
 
 mp_obj_t mp_identity_getiter(mp_obj_t self, mp_obj_iter_buf_t *iter_buf) {
-    (void)iter_buf;
+    (void) iter_buf;
     return self;
 }
 
@@ -597,7 +599,7 @@ void mp_get_buffer_raise(mp_obj_t obj, mp_buffer_info_t *bufinfo, mp_uint_t flag
 mp_obj_t mp_generic_unary_op(mp_unary_op_t op, mp_obj_t o_in) {
     switch (op) {
         case MP_UNARY_OP_HASH:
-            return MP_OBJ_NEW_SMALL_INT((mp_uint_t)o_in);
+            return MP_OBJ_NEW_SMALL_INT((mp_uint_t) o_in);
         default:
             return MP_OBJ_NULL;      // op not supported
     }

@@ -74,11 +74,11 @@ mp_import_stat_t mp_find_frozen_module(const char *str, int *frozen_type, void *
 
     // Count the number of str lengths we have to find how many str entries.
     size_t num_str = 0;
-    #if MICROPY_MODULE_FROZEN_STR && MICROPY_MODULE_FROZEN_MPY
+#if MICROPY_MODULE_FROZEN_STR && MICROPY_MODULE_FROZEN_MPY
     for (const uint32_t *s = mp_frozen_str_sizes; *s != 0; ++s) {
         ++num_str;
     }
-    #endif
+#endif
 
     for (size_t i = 0; *name != 0; i++) {
         size_t entry_len = strlen(name);
@@ -88,7 +88,7 @@ mp_import_stat_t mp_find_frozen_module(const char *str, int *frozen_type, void *
                 // Exact match --> file.
 
                 if (frozen_type != NULL) {
-                    #if MICROPY_MODULE_FROZEN_STR
+#if MICROPY_MODULE_FROZEN_STR
                     if (i < num_str) {
                         *frozen_type = MP_FROZEN_STR;
                         // Use the size table to figure out where this index starts.
@@ -106,16 +106,16 @@ mp_import_stat_t mp_find_frozen_module(const char *str, int *frozen_type, void *
                         mp_lexer_t *lex = MICROPY_MODULE_FROZEN_LEXER(source, content, content_len, 0);
                         *data = lex;
                     }
-                    #endif
+#endif
 
-                    #if MICROPY_MODULE_FROZEN_MPY
+#if MICROPY_MODULE_FROZEN_MPY
                     if (i >= num_str) {
                         *frozen_type = MP_FROZEN_MPY;
                         // Load the corresponding index as a raw_code, taking
                         // into account any string entries to offset by.
                         *data = (void *)mp_frozen_mpy_content[i - num_str];
                     }
-                    #endif
+#endif
                 }
 
                 return MP_IMPORT_STAT_FILE;

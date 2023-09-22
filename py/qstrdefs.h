@@ -32,10 +32,13 @@
 // That is, they are in ROM and you can reference them simply as MP_QSTR_xxxx.
 
 // qstr configuration passed to makeqstrdata.py of the form QCFG(key, value)
-QCFG(BYTES_IN_LEN, MICROPY_QSTR_BYTES_IN_LEN)
-QCFG(BYTES_IN_HASH, MICROPY_QSTR_BYTES_IN_HASH)
+QCFG(BYTES_IN_LEN, MICROPY_QSTR_BYTES_IN_LEN
+)
+QCFG(BYTES_IN_HASH, MICROPY_QSTR_BYTES_IN_HASH
+)
 
 Q()
+
 Q(*)
 Q(_)
 Q(/)
@@ -43,13 +46,20 @@ Q(/)
 Q(%#o)
 Q(%#x)
 #else
-Q({:#o})
-Q({:#x})
+Q({
+:#o})
+Q({
+:#x})
 #endif
-Q({:#b})
-Q( )
+Q({
+:#b})
+
+Q()
+
 Q(\n)
-Q(maximum recursion depth exceeded)
+Q(maximum
+recursion depth
+exceeded)
 Q(<module>)
 Q(<lambda>)
 Q(<listcomp>)
@@ -58,7 +68,8 @@ Q(<setcomp>)
 Q(<genexpr>)
 Q(<string>)
 Q(<stdin>)
-Q(utf-8)
+Q(utf
+-8)
 
 #if MICROPY_MODULE_FROZEN
 Q(.frozen)

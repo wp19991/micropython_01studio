@@ -43,7 +43,7 @@ void *mp_pystack_alloc(size_t n_bytes);
 static inline void mp_pystack_free(void *ptr) {
     assert((uint8_t *)ptr >= MP_STATE_THREAD(pystack_start));
     assert((uint8_t *)ptr <= MP_STATE_THREAD(pystack_cur));
-    #if MP_PYSTACK_DEBUG
+#if MP_PYSTACK_DEBUG
     size_t n_bytes_to_free = MP_STATE_THREAD(pystack_cur) - (uint8_t *)ptr;
     size_t n_bytes = *(size_t *)(MP_STATE_THREAD(pystack_cur) - MICROPY_PYSTACK_ALIGN);
     while (n_bytes < n_bytes_to_free) {
@@ -54,7 +54,7 @@ static inline void mp_pystack_free(void *ptr) {
             (uint)*(size_t *)(MP_STATE_THREAD(pystack_cur) - MICROPY_PYSTACK_ALIGN));
         assert(0);
     }
-    #endif
+#endif
     MP_STATE_THREAD(pystack_cur) = (uint8_t *)ptr;
 }
 
@@ -78,7 +78,7 @@ static inline size_t mp_pystack_limit(void) {
 #define mp_local_alloc(n_bytes) alloca(n_bytes)
 
 static inline void mp_local_free(void *ptr) {
-    (void)ptr;
+    (void) ptr;
 }
 
 static inline void *mp_nonlocal_alloc(size_t n_bytes) {

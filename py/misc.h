@@ -89,18 +89,27 @@ typedef unsigned int uint;
 #define m_del_obj(type, ptr) (m_del(type, ptr, 1))
 
 void *m_malloc(size_t num_bytes);
+
 void *m_malloc_maybe(size_t num_bytes);
+
 void *m_malloc_with_finaliser(size_t num_bytes);
+
 void *m_malloc0(size_t num_bytes);
+
 #if MICROPY_MALLOC_USES_ALLOCATED_SIZE
 void *m_realloc(void *ptr, size_t old_num_bytes, size_t new_num_bytes);
 void *m_realloc_maybe(void *ptr, size_t old_num_bytes, size_t new_num_bytes, bool allow_move);
 void m_free(void *ptr, size_t num_bytes);
 #else
+
 void *m_realloc(void *ptr, size_t new_num_bytes);
+
 void *m_realloc_maybe(void *ptr, size_t new_num_bytes, bool allow_move);
+
 void m_free(void *ptr);
+
 #endif
+
 NORETURN void m_malloc_fail(size_t num_bytes);
 
 #if MICROPY_MEM_STATS
@@ -133,30 +142,46 @@ unichar utf8_get_char(const byte *s);
 const byte *utf8_next_char(const byte *s);
 size_t utf8_charlen(const byte *str, size_t len);
 #else
+
 static inline unichar utf8_get_char(const byte *s) {
     return *s;
 }
+
 static inline const byte *utf8_next_char(const byte *s) {
     return s + 1;
 }
+
 static inline size_t utf8_charlen(const byte *str, size_t len) {
-    (void)str;
+    (void) str;
     return len;
 }
+
 #endif
 
 bool unichar_isspace(unichar c);
+
 bool unichar_isalpha(unichar c);
+
 bool unichar_isprint(unichar c);
+
 bool unichar_isdigit(unichar c);
+
 bool unichar_isxdigit(unichar c);
+
 bool unichar_isident(unichar c);
+
 bool unichar_isalnum(unichar c);
+
 bool unichar_isupper(unichar c);
+
 bool unichar_islower(unichar c);
+
 unichar unichar_tolower(unichar c);
+
 unichar unichar_toupper(unichar c);
+
 mp_uint_t unichar_xdigit_value(unichar c);
+
 #define UTF8_IS_NONASCII(ch) ((ch) & 0x80)
 #define UTF8_IS_CONT(ch) (((ch) & 0xC0) == 0x80)
 
@@ -166,42 +191,66 @@ typedef struct _vstr_t {
     size_t alloc;
     size_t len;
     char *buf;
-    bool fixed_buf : 1;
+    bool fixed_buf: 1;
 } vstr_t;
 
 // convenience macro to declare a vstr with a fixed size buffer on the stack
 #define VSTR_FIXED(vstr, alloc) vstr_t vstr; char vstr##_buf[(alloc)]; vstr_init_fixed_buf(&vstr, (alloc), vstr##_buf);
 
 void vstr_init(vstr_t *vstr, size_t alloc);
+
 void vstr_init_len(vstr_t *vstr, size_t len);
+
 void vstr_init_fixed_buf(vstr_t *vstr, size_t alloc, char *buf);
+
 struct _mp_print_t;
+
 void vstr_init_print(vstr_t *vstr, size_t alloc, struct _mp_print_t *print);
+
 void vstr_clear(vstr_t *vstr);
+
 vstr_t *vstr_new(size_t alloc);
+
 void vstr_free(vstr_t *vstr);
+
 static inline void vstr_reset(vstr_t *vstr) {
     vstr->len = 0;
 }
+
 static inline char *vstr_str(vstr_t *vstr) {
     return vstr->buf;
 }
+
 static inline size_t vstr_len(vstr_t *vstr) {
     return vstr->len;
 }
+
 void vstr_hint_size(vstr_t *vstr, size_t size);
+
 char *vstr_extend(vstr_t *vstr, size_t size);
+
 char *vstr_add_len(vstr_t *vstr, size_t len);
+
 char *vstr_null_terminated_str(vstr_t *vstr);
+
 void vstr_add_byte(vstr_t *vstr, byte v);
+
 void vstr_add_char(vstr_t *vstr, unichar chr);
+
 void vstr_add_str(vstr_t *vstr, const char *str);
+
 void vstr_add_strn(vstr_t *vstr, const char *str, size_t len);
+
 void vstr_ins_byte(vstr_t *vstr, size_t byte_pos, byte b);
+
 void vstr_ins_char(vstr_t *vstr, size_t char_pos, unichar chr);
+
 void vstr_cut_head_bytes(vstr_t *vstr, size_t bytes_to_cut);
+
 void vstr_cut_tail_bytes(vstr_t *vstr, size_t bytes_to_cut);
+
 void vstr_cut_out_bytes(vstr_t *vstr, size_t byte_pos, size_t bytes_to_cut);
+
 void vstr_printf(vstr_t *vstr, const char *fmt, ...);
 
 /** non-dynamic size-bounded variable buffer/string *************/
@@ -243,19 +292,19 @@ typedef uint32_t mp_float_uint_t;
 
 typedef union _mp_float_union_t {
     mp_float_t f;
-    #if MP_ENDIANNESS_LITTLE
+#if MP_ENDIANNESS_LITTLE
     struct {
         mp_float_uint_t frc : MP_FLOAT_FRAC_BITS;
         mp_float_uint_t exp : MP_FLOAT_EXP_BITS;
         mp_float_uint_t sgn : 1;
     } p;
-    #else
+#else
     struct {
         mp_float_uint_t sgn : 1;
         mp_float_uint_t exp : MP_FLOAT_EXP_BITS;
         mp_float_uint_t frc : MP_FLOAT_FRAC_BITS;
     } p;
-    #endif
+#endif
     mp_float_uint_t i;
 } mp_float_union_t;
 
@@ -281,10 +330,10 @@ typedef union _mp_float_union_t {
 
 // Force usage of the MP_ERROR_TEXT macro by requiring an opaque type.
 typedef struct {
-    #ifdef __clang__
+#ifdef __clang__
     // Fix "error: empty struct has size 0 in C, size 1 in C++".
     char dummy;
-    #endif
+#endif
 } *mp_rom_error_text_t;
 
 #include <string.h>
@@ -292,12 +341,12 @@ typedef struct {
 inline __attribute__((always_inline)) const char *MP_COMPRESSED_ROM_TEXT(const char *msg) {
     // "genhdr/compressed.data.h" contains an invocation of the MP_MATCH_COMPRESSED macro for each compressed string.
     // The giant if(strcmp) tree is optimized by the compiler, which turns this into a direct return of the compressed data.
-    #define MP_MATCH_COMPRESSED(a, b) if (strcmp(msg, a) == 0) { return b; } else
+#define MP_MATCH_COMPRESSED(a, b) if (strcmp(msg, a) == 0) { return b; } else
 
     // It also contains a single invocation of the MP_COMPRESSED_DATA macro, we don't need that here.
-    #define MP_COMPRESSED_DATA(x)
+#define MP_COMPRESSED_DATA(x)
 
-    #include "genhdr/compressed.data.h"
+#include "genhdr/compressed.data.h"
 
 #undef MP_COMPRESSED_DATA
 #undef MP_MATCH_COMPRESSED

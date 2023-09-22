@@ -39,7 +39,7 @@ void mp_seq_multiply(const void *items, size_t item_sz, size_t len, size_t times
     for (size_t i = 0; i < times; i++) {
         size_t copy_sz = item_sz * len;
         memcpy(dest, items, copy_sz);
-        dest = (char *)dest + copy_sz;
+        dest = (char *) dest + copy_sz;
     }
 }
 
@@ -66,7 +66,7 @@ bool mp_seq_get_fast_slice_indexes(mp_uint_t len, mp_obj_t slice, mp_bound_slice
 #endif
 
 mp_obj_t mp_seq_extract_slice(size_t len, const mp_obj_t *seq, mp_bound_slice_t *indexes) {
-    (void)len; // TODO can we remove len from the arg list?
+    (void) len; // TODO can we remove len from the arg list?
 
     mp_int_t start = indexes->start, stop = indexes->stop;
     mp_int_t step = indexes->step;

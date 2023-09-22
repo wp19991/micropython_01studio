@@ -59,7 +59,9 @@
 #ifdef MP_CONFIGFILE
 #include MP_CONFIGFILE
 #else
+
 #include <mpconfigport.h>
+
 #endif
 
 // Disable all optional features (i.e. minimal port).
@@ -1689,26 +1691,28 @@ typedef double mp_float_t;
 #define MP_ENDIANNESS_LITTLE (!MP_ENDIANNESS_BIG)
 #else
 // Endianness not defined by port so try to autodetect it.
-  #if defined(__BYTE_ORDER__)
-    #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-      #define MP_ENDIANNESS_LITTLE (1)
-    #elif __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
-      #define MP_ENDIANNESS_LITTLE (0)
-    #endif
-  #else
-    #include <endian.h>
-      #if defined(__BYTE_ORDER)
-        #if __BYTE_ORDER == __LITTLE_ENDIAN
-          #define MP_ENDIANNESS_LITTLE (1)
-        #elif __BYTE_ORDER == __BIG_ENDIAN
-          #define MP_ENDIANNESS_LITTLE (0)
-        #endif
-      #endif
-  #endif
-  #ifndef MP_ENDIANNESS_LITTLE
-    #error endianness not defined and cannot detect it
-  #endif
-  #define MP_ENDIANNESS_BIG (!MP_ENDIANNESS_LITTLE)
+#if defined(__BYTE_ORDER__)
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+#define MP_ENDIANNESS_LITTLE (1)
+#elif __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+#define MP_ENDIANNESS_LITTLE (0)
+#endif
+#else
+
+#include <endian.h>
+
+#if defined(__BYTE_ORDER)
+#if __BYTE_ORDER == __LITTLE_ENDIAN
+#define MP_ENDIANNESS_LITTLE (1)
+#elif __BYTE_ORDER == __BIG_ENDIAN
+#define MP_ENDIANNESS_LITTLE (0)
+#endif
+#endif
+#endif
+#ifndef MP_ENDIANNESS_LITTLE
+#error endianness not defined and cannot detect it
+#endif
+#define MP_ENDIANNESS_BIG (!MP_ENDIANNESS_LITTLE)
 #endif
 
 // Make a pointer to RAM callable (eg set lower bit for Thumb code)

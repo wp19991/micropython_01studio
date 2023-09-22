@@ -33,11 +33,11 @@
 // collect(): run a garbage collection
 STATIC mp_obj_t py_gc_collect(void) {
     gc_collect();
-    #if MICROPY_PY_GC_COLLECT_RETVAL
+#if MICROPY_PY_GC_COLLECT_RETVAL
     return MP_OBJ_NEW_SMALL_INT(MP_STATE_MEM(gc_collected));
-    #else
+#else
     return mp_const_none;
-    #endif
+#endif
 }
 MP_DEFINE_CONST_FUN_OBJ_0(gc_collect_obj, py_gc_collect);
 
@@ -103,9 +103,9 @@ STATIC const mp_rom_map_elem_t mp_module_gc_globals_table[] = {
     { MP_ROM_QSTR(MP_QSTR_isenabled), MP_ROM_PTR(&gc_isenabled_obj) },
     { MP_ROM_QSTR(MP_QSTR_mem_free), MP_ROM_PTR(&gc_mem_free_obj) },
     { MP_ROM_QSTR(MP_QSTR_mem_alloc), MP_ROM_PTR(&gc_mem_alloc_obj) },
-    #if MICROPY_GC_ALLOC_THRESHOLD
+#if MICROPY_GC_ALLOC_THRESHOLD
     { MP_ROM_QSTR(MP_QSTR_threshold), MP_ROM_PTR(&gc_threshold_obj) },
-    #endif
+#endif
 };
 
 STATIC MP_DEFINE_CONST_DICT(mp_module_gc_globals, mp_module_gc_globals_table);

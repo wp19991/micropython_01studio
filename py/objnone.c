@@ -35,7 +35,7 @@ typedef struct _mp_obj_none_t {
 #endif
 
 STATIC void none_print(const mp_print_t *print, mp_obj_t self_in, mp_print_kind_t kind) {
-    (void)self_in;
+    (void) self_in;
     if (MICROPY_PY_UJSON && kind == PRINT_JSON) {
         mp_print_str(print, "null");
     } else {
@@ -44,10 +44,10 @@ STATIC void none_print(const mp_print_t *print, mp_obj_t self_in, mp_print_kind_
 }
 
 const mp_obj_type_t mp_type_NoneType = {
-    { &mp_type_type },
-    .name = MP_QSTR_NoneType,
-    .print = none_print,
-    .unary_op = mp_generic_unary_op,
+        {&mp_type_type},
+        .name = MP_QSTR_NoneType,
+        .print = none_print,
+        .unary_op = mp_generic_unary_op,
 };
 
 #if !MICROPY_OBJ_IMMEDIATE_OBJS

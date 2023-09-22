@@ -121,9 +121,9 @@ STATIC const mp_rom_map_elem_t mp_module_cmath_globals_table[] = {
     { MP_ROM_QSTR(MP_QSTR_rect), MP_ROM_PTR(&mp_cmath_rect_obj) },
     { MP_ROM_QSTR(MP_QSTR_exp), MP_ROM_PTR(&mp_cmath_exp_obj) },
     { MP_ROM_QSTR(MP_QSTR_log), MP_ROM_PTR(&mp_cmath_log_obj) },
-    #if MICROPY_PY_MATH_SPECIAL_FUNCTIONS
+#if MICROPY_PY_MATH_SPECIAL_FUNCTIONS
     { MP_ROM_QSTR(MP_QSTR_log10), MP_ROM_PTR(&mp_cmath_log10_obj) },
-    #endif
+#endif
     { MP_ROM_QSTR(MP_QSTR_sqrt), MP_ROM_PTR(&mp_cmath_sqrt_obj) },
     // { MP_ROM_QSTR(MP_QSTR_acos), MP_ROM_PTR(&mp_cmath_acos_obj) },
     // { MP_ROM_QSTR(MP_QSTR_asin), MP_ROM_PTR(&mp_cmath_asin_obj) },

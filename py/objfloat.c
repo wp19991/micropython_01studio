@@ -97,17 +97,17 @@ mp_int_t mp_float_hash(mp_float_t src) {
 STATIC void float_print(const mp_print_t *print, mp_obj_t o_in, mp_print_kind_t kind) {
     (void)kind;
     mp_float_t o_val = mp_obj_float_get(o_in);
-    #if MICROPY_FLOAT_IMPL == MICROPY_FLOAT_IMPL_FLOAT
+#if MICROPY_FLOAT_IMPL == MICROPY_FLOAT_IMPL_FLOAT
     char buf[16];
-    #if MICROPY_OBJ_REPR == MICROPY_OBJ_REPR_C
+#if MICROPY_OBJ_REPR == MICROPY_OBJ_REPR_C
     const int precision = 6;
-    #else
+#else
     const int precision = 7;
-    #endif
-    #else
+#endif
+#else
     char buf[32];
     const int precision = 16;
-    #endif
+#endif
     mp_format_float(o_val, buf, sizeof(buf), 'g', precision, '\0');
     mp_print_str(print, buf);
     if (strchr(buf, '.') == NULL && strchr(buf, 'e') == NULL && strchr(buf, 'n') == NULL) {
@@ -166,11 +166,11 @@ STATIC mp_obj_t float_unary_op(mp_unary_op_t op, mp_obj_t o_in) {
 
 STATIC mp_obj_t float_binary_op(mp_binary_op_t op, mp_obj_t lhs_in, mp_obj_t rhs_in) {
     mp_float_t lhs_val = mp_obj_float_get(lhs_in);
-    #if MICROPY_PY_BUILTINS_COMPLEX
+#if MICROPY_PY_BUILTINS_COMPLEX
     if (mp_obj_is_type(rhs_in, &mp_type_complex)) {
         return mp_obj_complex_binary_op(op, lhs_val, 0, rhs_in);
     }
-    #endif
+#endif
     return mp_obj_float_binary_op(op, lhs_val, rhs_in);
 }
 
@@ -294,18 +294,18 @@ mp_obj_t mp_obj_float_binary_op(mp_binary_op_t op, mp_float_t lhs_val, mp_obj_t 
                 goto zero_division_error;
             }
             if (lhs_val < 0 && rhs_val != MICROPY_FLOAT_C_FUN(floor)(rhs_val) && !isnan(rhs_val)) {
-                #if MICROPY_PY_BUILTINS_COMPLEX
+#if MICROPY_PY_BUILTINS_COMPLEX
                 return mp_obj_complex_binary_op(MP_BINARY_OP_POWER, lhs_val, 0, rhs_in);
-                #else
+#else
                 mp_raise_ValueError(MP_ERROR_TEXT("complex values not supported"));
-                #endif
+#endif
             }
-            #if MICROPY_PY_MATH_POW_FIX_NAN // Also see modmath.c.
+#if MICROPY_PY_MATH_POW_FIX_NAN // Also see modmath.c.
             if (lhs_val == MICROPY_FLOAT_CONST(1.0) || rhs_val == MICROPY_FLOAT_CONST(0.0)) {
                 lhs_val = MICROPY_FLOAT_CONST(1.0);
                 break;
             }
-            #endif
+#endif
             lhs_val = MICROPY_FLOAT_C_FUN(pow)(lhs_val, rhs_val);
             break;
         case MP_BINARY_OP_DIVMOD: {

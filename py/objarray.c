@@ -96,13 +96,13 @@ STATIC void array_print(const mp_print_t *print, mp_obj_t o_in, mp_print_kind_t 
 STATIC mp_obj_array_t *array_new(char typecode, size_t n) {
     int typecode_size = mp_binary_get_size('@', typecode, NULL);
     mp_obj_array_t *o = m_new_obj(mp_obj_array_t);
-    #if MICROPY_PY_BUILTINS_BYTEARRAY && MICROPY_PY_ARRAY
+#if MICROPY_PY_BUILTINS_BYTEARRAY && MICROPY_PY_ARRAY
     o->base.type = (typecode == BYTEARRAY_TYPECODE) ? &mp_type_bytearray : &mp_type_array;
-    #elif MICROPY_PY_BUILTINS_BYTEARRAY
+#elif MICROPY_PY_BUILTINS_BYTEARRAY
     o->base.type = &mp_type_bytearray;
-    #else
+#else
     o->base.type = &mp_type_array;
-    #endif
+#endif
     o->typecode = typecode;
     o->free = 0;
     o->len = n;
@@ -295,17 +295,17 @@ STATIC mp_obj_t array_binary_op(mp_binary_op_t op, mp_obj_t lhs_in, mp_obj_t rhs
         }
 
         case MP_BINARY_OP_INPLACE_ADD: {
-            #if MICROPY_PY_BUILTINS_MEMORYVIEW
+#if MICROPY_PY_BUILTINS_MEMORYVIEW
             if (lhs->base.type == &mp_type_memoryview) {
                 return MP_OBJ_NULL; // op not supported
             }
-            #endif
+#endif
             array_extend(lhs_in, rhs_in);
             return lhs_in;
         }
 
         case MP_BINARY_OP_CONTAINS: {
-            #if MICROPY_PY_BUILTINS_BYTEARRAY
+#if MICROPY_PY_BUILTINS_BYTEARRAY
             // Can search string only in bytearray
             mp_buffer_info_t lhs_bufinfo;
             mp_buffer_info_t rhs_bufinfo;
@@ -317,7 +317,7 @@ STATIC mp_obj_t array_binary_op(mp_binary_op_t op, mp_obj_t lhs_in, mp_obj_t rhs
                 return mp_obj_new_bool(
                     find_subbytes(lhs_bufinfo.buf, lhs_bufinfo.len, rhs_bufinfo.buf, rhs_bufinfo.len, 1) != NULL);
             }
-            #endif
+#endif
 
             // Otherwise, can only look for a scalar numeric value in an array
             if (mp_obj_is_int(rhs_in) || mp_obj_is_float(rhs_in)) {
@@ -425,14 +425,14 @@ STATIC mp_obj_t array_subscr(mp_obj_t self_in, mp_obj_t index_in, mp_obj_t value
         return MP_OBJ_NULL; // op not supported
     } else {
         mp_obj_array_t *o = MP_OBJ_TO_PTR(self_in);
-        #if MICROPY_PY_BUILTINS_SLICE
+#if MICROPY_PY_BUILTINS_SLICE
         if (mp_obj_is_type(index_in, &mp_type_slice)) {
             mp_bound_slice_t slice;
             if (!mp_seq_get_fast_slice_indexes(o->len, index_in, &slice)) {
                 mp_raise_NotImplementedError(MP_ERROR_TEXT("only slices with step=1 (aka None) are supported"));
             }
             if (value != MP_OBJ_SENTINEL) {
-                #if MICROPY_PY_ARRAY_SLICE_ASSIGN
+#if MICROPY_PY_ARRAY_SLICE_ASSIGN
                 // Assign
                 size_t src_len;
                 void *src_items;
@@ -446,11 +446,11 @@ STATIC mp_obj_t array_subscr(mp_obj_t self_in, mp_obj_t index_in, mp_obj_t value
                     }
                     src_len = src_slice->len;
                     src_items = src_slice->items;
-                    #if MICROPY_PY_BUILTINS_MEMORYVIEW
+#if MICROPY_PY_BUILTINS_MEMORYVIEW
                     if (mp_obj_is_type(value, &mp_type_memoryview)) {
                         src_items = (uint8_t *)src_items + (src_slice->memview_offset * item_sz);
                     }
-                    #endif
+#endif
                 } else if (mp_obj_is_type(value, &mp_type_bytes)) {
                     if (item_sz != 1) {
                         goto compat_error;
@@ -466,7 +466,7 @@ STATIC mp_obj_t array_subscr(mp_obj_t self_in, mp_obj_t index_in, mp_obj_t value
                 // TODO: check src/dst compat
                 mp_int_t len_adj = src_len - (slice.stop - slice.start);
                 uint8_t *dest_items = o->items;
-                #if MICROPY_PY_BUILTINS_MEMORYVIEW
+#if MICROPY_PY_BUILTINS_MEMORYVIEW
                 if (o->base.type == &mp_type_memoryview) {
                     if (!(o->typecode & MP_OBJ_ARRAY_TYPECODE_FLAG_RW)) {
                         // store to read-only memoryview not allowed
@@ -477,7 +477,7 @@ STATIC mp_obj_t array_subscr(mp_obj_t self_in, mp_obj_t index_in, mp_obj_t value
                     }
                     dest_items += o->memview_offset * item_sz;
                 }
-                #endif
+#endif
                 if (len_adj > 0) {
                     if ((size_t)len_adj > o->free) {
                         // TODO: alloc policy; at the moment we go conservative
@@ -498,32 +498,32 @@ STATIC mp_obj_t array_subscr(mp_obj_t self_in, mp_obj_t index_in, mp_obj_t value
                 o->free -= len_adj;
                 o->len += len_adj;
                 return mp_const_none;
-                #else
+#else
                 return MP_OBJ_NULL; // op not supported
-                #endif
+#endif
             }
 
             mp_obj_array_t *res;
             size_t sz = mp_binary_get_size('@', o->typecode & TYPECODE_MASK, NULL);
             assert(sz > 0);
-            #if MICROPY_PY_BUILTINS_MEMORYVIEW
+#if MICROPY_PY_BUILTINS_MEMORYVIEW
             if (o->base.type == &mp_type_memoryview) {
                 res = m_new_obj(mp_obj_array_t);
                 *res = *o;
                 res->memview_offset += slice.start;
                 res->len = slice.stop - slice.start;
             } else
-            #endif
+#endif
             {
                 res = array_new(o->typecode, slice.stop - slice.start);
                 memcpy(res->items, (uint8_t *)o->items + slice.start * sz, (slice.stop - slice.start) * sz);
             }
             return MP_OBJ_FROM_PTR(res);
         } else
-        #endif
+#endif
         {
             size_t index = mp_get_index(o->base.type, o->len, index_in, false);
-            #if MICROPY_PY_BUILTINS_MEMORYVIEW
+#if MICROPY_PY_BUILTINS_MEMORYVIEW
             if (o->base.type == &mp_type_memoryview) {
                 index += o->memview_offset;
                 if (value != MP_OBJ_SENTINEL && !(o->typecode & MP_OBJ_ARRAY_TYPECODE_FLAG_RW)) {
@@ -531,7 +531,7 @@ STATIC mp_obj_t array_subscr(mp_obj_t self_in, mp_obj_t index_in, mp_obj_t value
                     return MP_OBJ_NULL;
                 }
             }
-            #endif
+#endif
             if (value == MP_OBJ_SENTINEL) {
                 // load
                 return mp_binary_get_val_array(o->typecode & TYPECODE_MASK, o->items, index);
@@ -550,7 +550,7 @@ STATIC mp_int_t array_get_buffer(mp_obj_t o_in, mp_buffer_info_t *bufinfo, mp_ui
     bufinfo->buf = o->items;
     bufinfo->len = o->len * sz;
     bufinfo->typecode = o->typecode & TYPECODE_MASK;
-    #if MICROPY_PY_BUILTINS_MEMORYVIEW
+#if MICROPY_PY_BUILTINS_MEMORYVIEW
     if (o->base.type == &mp_type_memoryview) {
         if (!(o->typecode & MP_OBJ_ARRAY_TYPECODE_FLAG_RW) && (flags & MP_BUFFER_WRITE)) {
             // read-only memoryview
@@ -558,9 +558,9 @@ STATIC mp_int_t array_get_buffer(mp_obj_t o_in, mp_buffer_info_t *bufinfo, mp_ui
         }
         bufinfo->buf = (uint8_t *)bufinfo->buf + (size_t)o->memview_offset * sz;
     }
-    #else
+#else
     (void)flags;
-    #endif
+#endif
     return 0;
 }
 
@@ -568,9 +568,9 @@ STATIC mp_int_t array_get_buffer(mp_obj_t o_in, mp_buffer_info_t *bufinfo, mp_ui
 STATIC const mp_rom_map_elem_t array_locals_dict_table[] = {
     { MP_ROM_QSTR(MP_QSTR_append), MP_ROM_PTR(&array_append_obj) },
     { MP_ROM_QSTR(MP_QSTR_extend), MP_ROM_PTR(&array_extend_obj) },
-    #if MICROPY_CPYTHON_COMPAT
+#if MICROPY_CPYTHON_COMPAT
     { MP_ROM_QSTR(MP_QSTR_decode), MP_ROM_PTR(&bytes_decode_obj) },
-    #endif
+#endif
 };
 
 STATIC MP_DEFINE_CONST_DICT(array_locals_dict, array_locals_dict_table);
@@ -616,9 +616,9 @@ const mp_obj_type_t mp_type_memoryview = {
     .getiter = array_iterator_new,
     .unary_op = array_unary_op,
     .binary_op = array_binary_op,
-    #if MICROPY_PY_BUILTINS_MEMORYVIEW_ITEMSIZE
+#if MICROPY_PY_BUILTINS_MEMORYVIEW_ITEMSIZE
     .attr = memoryview_attr,
-    #endif
+#endif
     .subscr = array_subscr,
     .buffer_p = { .get_buffer = array_get_buffer },
 };
@@ -683,11 +683,11 @@ STATIC mp_obj_t array_iterator_new(mp_obj_t array_in, mp_obj_iter_buf_t *iter_bu
     o->array = array;
     o->offset = 0;
     o->cur = 0;
-    #if MICROPY_PY_BUILTINS_MEMORYVIEW
+#if MICROPY_PY_BUILTINS_MEMORYVIEW
     if (array->base.type == &mp_type_memoryview) {
         o->offset = array->memview_offset;
     }
-    #endif
+#endif
     return MP_OBJ_FROM_PTR(o);
 }
 

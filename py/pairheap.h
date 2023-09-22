@@ -55,31 +55,33 @@ typedef int (*mp_pairheap_lt_t)(mp_pairheap_t *, mp_pairheap_t *);
 
 // Core functions.
 mp_pairheap_t *mp_pairheap_meld(mp_pairheap_lt_t lt, mp_pairheap_t *heap1, mp_pairheap_t *heap2);
+
 mp_pairheap_t *mp_pairheap_pairing(mp_pairheap_lt_t lt, mp_pairheap_t *child);
+
 mp_pairheap_t *mp_pairheap_delete(mp_pairheap_lt_t lt, mp_pairheap_t *heap, mp_pairheap_t *node);
 
 // Create a new heap.
 static inline mp_pairheap_t *mp_pairheap_new(mp_pairheap_lt_t lt) {
-    (void)lt;
+    (void) lt;
     return NULL;
 }
 
 // Initialise a single pairing-heap node so it is ready to push on to a heap.
 static inline void mp_pairheap_init_node(mp_pairheap_lt_t lt, mp_pairheap_t *node) {
-    (void)lt;
+    (void) lt;
     node->child = NULL;
     node->next = NULL;
 }
 
 // Test if the heap is empty.
 static inline bool mp_pairheap_is_empty(mp_pairheap_lt_t lt, mp_pairheap_t *heap) {
-    (void)lt;
+    (void) lt;
     return heap == NULL;
 }
 
 // Peek at the top of the heap.  Will return NULL if empty.
 static inline mp_pairheap_t *mp_pairheap_peek(mp_pairheap_lt_t lt, mp_pairheap_t *heap) {
-    (void)lt;
+    (void) lt;
     return heap;
 }
 

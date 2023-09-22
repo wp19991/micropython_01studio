@@ -32,8 +32,10 @@
 // On these 32-bit platforms make sure nlr_push_tail doesn't have a leading underscore
 unsigned int nlr_push_tail(nlr_buf_t *nlr) asm ("nlr_push_tail");
 #else
+
 // LTO can't see inside inline asm functions so explicitly mark nlr_push_tail as used
 __attribute__((used)) unsigned int nlr_push_tail(nlr_buf_t *nlr);
+
 #endif
 #endif
 
