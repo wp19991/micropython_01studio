@@ -1,29 +1,13 @@
 /**
  *
- * ESP-Drone Firmware
- *
- * Copyright 2019-2020  Espressif Systems (Shanghai)
- * Copyright (C) 2011-2012 Bitcraze AB
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, in version 3.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program. If not, see <http://www.gnu.org/licenses/>.
- *
- * motors.c - Motor driver
+ * ESP-无人机固件
+ * motors.c - 电机驱动程序
  *
  */
 
 #include <stdbool.h>
 
-//FreeRTOS includes
+// FreeRTOS 包含
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "motors.h"
@@ -34,116 +18,123 @@
 #define TAG "MOTORS"
 
 static uint16_t motorsConvBitsTo16(uint16_t bits);
+
 static uint16_t motorsConv16ToBits(uint16_t bits);
 
+// 电机比例数组，用于存储各电机的比例
 uint32_t motor_ratios[] = {0, 0, 0, 0};
 
 void motorsPlayTone(uint16_t frequency, uint16_t duration_msec);
+
 void motorsPlayMelody(uint16_t *notes);
+
 void motorsBeep(int id, bool enable, uint16_t frequency, uint16_t ratio);
 
-const MotorPerifDef **motorMap; /* Current map configuration */
+// 当前映射配置的指针数组
+const MotorPerifDef **motorMap;
 
+// 各电机对应的 GPIO 引脚常量数组
 const uint32_t MOTORS[] = {MOTOR_M1, MOTOR_M2, MOTOR_M3, MOTOR_M4};
 
+// 用于测试的音符频率数组
 const uint16_t testsound[NBR_OF_MOTORS] = {A4, A5, F5, D5};
 
-static bool isInit = false;
-static bool isTimerInit = false;
+static bool isInit = false; // 是否已初始化标志
+static bool isTimerInit = false; // 定时器是否已初始化标志
 
 //---------------------------------------------
 static const MotorPerifDef CONN_M1 = {
-    .drvType = BRUSHED,
+        .drvType = BRUSHED,
 };
 
-// Connector M2, PB11, TIM2_CH4
+// 连接器 M2, PB11, TIM2_CH4
 static const MotorPerifDef CONN_M2 = {
-    .drvType = BRUSHED,
+        .drvType = BRUSHED,
 };
 
-// Connector M3, PA15, TIM2_CH1
+// 连接器 M3, PA15, TIM2_CH1
 static const MotorPerifDef CONN_M3 = {
-    .drvType = BRUSHED,
+        .drvType = BRUSHED,
 };
 
-// Connector M4, PB9, TIM4_CH4
+// 连接器 M4, PB9, TIM4_CH4
 static const MotorPerifDef CONN_M4 = {
-    .drvType = BRUSHED,
+        .drvType = BRUSHED,
 };
 
 /**
- * Default brushed mapping to M1-M4 connectors.
+ * 默认的刷子映射到 M1-M4 连接器。
  */
 const MotorPerifDef *motorMapDefaultBrushed[NBR_OF_MOTORS] = {
-    &CONN_M1,
-    &CONN_M2,
-    &CONN_M3,
-    &CONN_M4
+        &CONN_M1,
+        &CONN_M2,
+        &CONN_M3,
+        &CONN_M4
 };
 //---------------------------------------------
 
+// 电机 PWM 通道配置数组
 ledc_channel_config_t motors_channel[NBR_OF_MOTORS] = {
-    {
-        .channel = MOT_PWM_CH1,
-        .duty = 0,
-        .gpio_num = MOTOR1_GPIO,
-        .speed_mode = LEDC_LOW_SPEED_MODE,
-        .timer_sel = LEDC_TIMER_0
-    },
-    {
-        .channel = MOT_PWM_CH2,
-        .duty = 0,
-        .gpio_num = MOTOR2_GPIO,
-        .speed_mode = LEDC_LOW_SPEED_MODE,
-        .timer_sel = LEDC_TIMER_0
-    },
-    {
-        .channel = MOT_PWM_CH3,
-        .duty = 0,
-        .gpio_num = MOTOR3_GPIO,
-        .speed_mode = LEDC_LOW_SPEED_MODE,
-        .timer_sel = LEDC_TIMER_0
-    },
-    {
-        .channel = MOT_PWM_CH4,
-        .duty = 0,
-        .gpio_num = MOTOR4_GPIO,
-        .speed_mode = LEDC_LOW_SPEED_MODE,
-        .timer_sel = LEDC_TIMER_0
-    },
+        {
+                .channel = MOT_PWM_CH1,
+                .duty = 0,
+                .gpio_num = MOTOR1_GPIO,
+                .speed_mode = LEDC_LOW_SPEED_MODE,
+                .timer_sel = LEDC_TIMER_0
+        },
+        {
+                .channel = MOT_PWM_CH2,
+                .duty = 0,
+                .gpio_num = MOTOR2_GPIO,
+                .speed_mode = LEDC_LOW_SPEED_MODE,
+                .timer_sel = LEDC_TIMER_0
+        },
+        {
+                .channel = MOT_PWM_CH3,
+                .duty = 0,
+                .gpio_num = MOTOR3_GPIO,
+                .speed_mode = LEDC_LOW_SPEED_MODE,
+                .timer_sel = LEDC_TIMER_0
+        },
+        {
+                .channel = MOT_PWM_CH4,
+                .duty = 0,
+                .gpio_num = MOTOR4_GPIO,
+                .speed_mode = LEDC_LOW_SPEED_MODE,
+                .timer_sel = LEDC_TIMER_0
+        },
 };
-/* Private functions */
+/* 私有函数 */
 
-static uint16_t motorsConvBitsTo16(uint16_t bits)
-{
+// 将 PWM 位值转换为 16 位值
+static uint16_t motorsConvBitsTo16(uint16_t bits) {
     return ((bits) << (16 - MOTORS_PWM_BITS));
 }
 
-static uint16_t motorsConv16ToBits(uint16_t bits)
-{
+// 将 16 位值转换为 PWM 位值
+static uint16_t motorsConv16ToBits(uint16_t bits) {
     return ((bits) >> (16 - MOTORS_PWM_BITS) & ((1 << MOTORS_PWM_BITS) - 1));
 }
 
-bool pwm_timmer_init()
-{
+// 初始化 PWM 定时器
+bool pwm_timmer_init() {
     if (isTimerInit) {
-        // First to init will configure it
+        // 第一个初始化将会配置它
         return TRUE;
     }
 
     /*
-     * Prepare and set configuration of timers
-     * that will be used by MOTORS Controller
+     * 准备和设置将由 MOTORS 控制器使用的计时器的配置
      */
     ledc_timer_config_t ledc_timer = {
-        .duty_resolution = MOTORS_PWM_BITS, // resolution of PWM duty
-        .freq_hz = 15000,					// frequency of PWM signal
-        .speed_mode = LEDC_LOW_SPEED_MODE, // timer mode
-        .timer_num = LEDC_TIMER_0,			// timer index
-        // .clk_cfg = LEDC_AUTO_CLK,              // Auto select the source clock
+            .duty_resolution = MOTORS_PWM_BITS, // PWM 占空比的分辨率
+            .freq_hz = 15000,                  // PWM 信号的频率
+            .speed_mode = LEDC_LOW_SPEED_MODE, // 计时器模式
+            .timer_num = LEDC_TIMER_0,         // 计时器索引
+            // .clk_cfg = LEDC_AUTO_CLK,              // 自动选择源时钟
     };
 
-    // Set configuration of timer0 for high speed channels
+    // 设置计时器0的配置，用于高速通道
     if (ledc_timer_config(&ledc_timer) == ESP_OK) {
         isTimerInit = TRUE;
         return TRUE;
@@ -152,15 +143,14 @@ bool pwm_timmer_init()
     return FALSE;
 }
 
-/* Public functions */
+/* 公共函数 */
 
-//Initialization. Will set all motors ratio to 0%
-void motorsInit(void)
-{
+// 初始化电机。将所有电机比例设置为 0%
+void motorsInit(void) {
     int i;
 
     if (isInit) {
-        // First to init will configure it
+        // 第一个初始化将会配置它
         return;
     }
 
@@ -177,21 +167,21 @@ void motorsInit(void)
     isInit = true;
 }
 
-void motorsDeInit(void)
-{
+// 停止电机并反初始化
+void motorsDeInit(void) {
     for (int i = 0; i < NBR_OF_MOTORS; i++) {
         ledc_stop(motors_channel[i].speed_mode, motors_channel[i].channel, 0);
     }
-	isInit = false;
+    isInit = false;
 }
 
-bool motorsTest(void)
-{
+// 测试电机是否正常工作
+bool motorsTest(void) {
     int i;
 
     for (i = 0; i < sizeof(MOTORS) / sizeof(*MOTORS); i++) {
-        //if (motorMap[i]->drvType == BRUSHED) 
-		{
+        //if (motorMap[i]->drvType == BRUSHED)
+        {
 #ifdef ACTIVATE_STARTUP_SOUND
             motorsBeep(MOTORS[i], true, testsound[i], (uint16_t)(MOTORS_TIM_BEEP_CLK_FREQ / A4) / 20);
             vTaskDelay(M2T(MOTORS_TEST_ON_TIME_MS));
@@ -209,9 +199,8 @@ bool motorsTest(void)
     return isInit;
 }
 
-// Ithrust is thrust mapped for 65536 <==> 60 grams
-void motorsSetRatio(uint32_t id, uint16_t ithrust)
-{
+// 设置电机的比例（功率）
+void motorsSetRatio(uint32_t id, uint16_t ithrust) {
     if (isInit) {
         uint16_t ratio;
 
@@ -222,7 +211,7 @@ void motorsSetRatio(uint32_t id, uint16_t ithrust)
 #ifdef ENABLE_THRUST_BAT_COMPENSATED
 
         if (motorMap[id]->drvType == BRUSHED) {
-            float thrust = ((float)ithrust / 65536.0f) * 40; //根据实际重量修改
+            float thrust = ((float)ithrust / 65536.0f) * 40; // 根据实际重量修改
             float volts = -0.0006239f * thrust * thrust + 0.088f * thrust;
             float supply_voltage = pmGetBatteryVoltage();
             float percentage = volts / supply_voltage;
@@ -232,7 +221,7 @@ void motorsSetRatio(uint32_t id, uint16_t ithrust)
         }
 
 #endif
-        ledc_set_duty(motors_channel[id].speed_mode, motors_channel[id].channel, (uint32_t)motorsConv16ToBits(ratio));
+        ledc_set_duty(motors_channel[id].speed_mode, motors_channel[id].channel, (uint32_t) motorsConv16ToBits(ratio));
         ledc_update_duty(motors_channel[id].speed_mode, motors_channel[id].channel);
         motor_ratios[id] = ratio;
 #ifdef DEBUG_EP2
@@ -241,34 +230,33 @@ void motorsSetRatio(uint32_t id, uint16_t ithrust)
     }
 }
 
-int motorsGetRatio(uint32_t id)
-{
+// 获取电机的比例（功率）
+int motorsGetRatio(uint32_t id) {
     int ratio;
     //ASSERT(id < NBR_OF_MOTORS);
-    ratio = motorsConvBitsTo16((uint16_t)ledc_get_duty(motors_channel[id].speed_mode, motors_channel[id].channel));
+    ratio = motorsConvBitsTo16((uint16_t) ledc_get_duty(motors_channel[id].speed_mode, motors_channel[id].channel));
     return ratio;
 }
 
-void motorsBeep(int id, bool enable, uint16_t frequency, uint16_t ratio)
-{
+// 产生蜂鸣声或关闭蜂鸣器
+void motorsBeep(int id, bool enable, uint16_t frequency, uint16_t ratio) {
     uint32_t freq_hz = 15000;
     //ASSERT(id < NBR_OF_MOTORS);
     if (ratio != 0) {
-        ratio = (uint16_t)(0.05*(1<<16));
+        ratio = (uint16_t)(0.05 * (1 << 16));
     }
-    
+
     if (enable) {
         freq_hz = frequency;
     }
-    
-    ledc_set_freq(LEDC_LOW_SPEED_MODE,LEDC_TIMER_0,freq_hz);
-    ledc_set_duty(motors_channel[id].speed_mode, motors_channel[id].channel, (uint32_t)motorsConv16ToBits(ratio));
+
+    ledc_set_freq(LEDC_LOW_SPEED_MODE, LEDC_TIMER_0, freq_hz);
+    ledc_set_duty(motors_channel[id].speed_mode, motors_channel[id].channel, (uint32_t) motorsConv16ToBits(ratio));
     ledc_update_duty(motors_channel[id].speed_mode, motors_channel[id].channel);
 }
 
-// Play a tone with a given frequency and a specific duration in milliseconds (ms)
-void motorsPlayTone(uint16_t frequency, uint16_t duration_msec)
-{
+// 播放具有给定频率和特定持续时间（毫秒）的音调
+void motorsPlayTone(uint16_t frequency, uint16_t duration_msec) {
     motorsBeep(MOTOR_M1, true, frequency, (uint16_t)(MOTORS_TIM_BEEP_CLK_FREQ / frequency) / 20);
     motorsBeep(MOTOR_M2, true, frequency, (uint16_t)(MOTORS_TIM_BEEP_CLK_FREQ / frequency) / 20);
     motorsBeep(MOTOR_M3, true, frequency, (uint16_t)(MOTORS_TIM_BEEP_CLK_FREQ / frequency) / 20);
@@ -280,18 +268,15 @@ void motorsPlayTone(uint16_t frequency, uint16_t duration_msec)
     motorsBeep(MOTOR_M4, false, frequency, 0);
 }
 
-// Plays a melody from a note array
-void motorsPlayMelody(uint16_t *notes)
-{
+// 播放音符数组的旋律
+void motorsPlayMelody(uint16_t *notes) {
     int i = 0;
-    uint16_t note;     // Note in hz
-    uint16_t duration; // Duration in ms
+    uint16_t note;     // 音符的频率
+    uint16_t duration; // 持续时间（毫秒）
 
-    do
-    {
-      note = notes[i++];
-      duration = notes[i++];
-      motorsPlayTone(note, duration);
+    do {
+        note = notes[i++];
+        duration = notes[i++];
+        motorsPlayTone(note, duration);
     } while (duration != 0);
 }
-
