@@ -34,13 +34,18 @@ void gc_init(void *start, void *end);
 // These lock/unlock functions can be nested.
 // They can be used to prevent the GC from allocating/freeing.
 void gc_lock(void);
+
 void gc_unlock(void);
+
 bool gc_is_locked(void);
 
 // A given port must implement gc_collect by using the other collect functions.
 void gc_collect(void);
+
 void gc_collect_start(void);
+
 void gc_collect_root(void **ptrs, size_t len);
+
 void gc_collect_end(void);
 
 // Use this function to sweep the whole heap and run all finalisers
@@ -51,8 +56,10 @@ enum {
 };
 
 void *gc_alloc(size_t n_bytes, unsigned int alloc_flags);
+
 void gc_free(void *ptr); // does not call finaliser
 size_t gc_nbytes(const void *ptr);
+
 void *gc_realloc(void *ptr, size_t n_bytes, bool allow_move);
 
 typedef struct _gc_info_t {
@@ -66,7 +73,9 @@ typedef struct _gc_info_t {
 } gc_info_t;
 
 void gc_info(gc_info_t *info);
+
 void gc_dump_info(void);
+
 void gc_dump_alloc_table(void);
 
 #endif // MICROPY_INCLUDED_PY_GC_H

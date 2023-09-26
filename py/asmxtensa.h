@@ -121,12 +121,15 @@ typedef struct _asm_xtensa_t {
 void asm_xtensa_end_pass(asm_xtensa_t *as);
 
 void asm_xtensa_entry(asm_xtensa_t *as, int num_locals);
+
 void asm_xtensa_exit(asm_xtensa_t *as);
 
 void asm_xtensa_entry_win(asm_xtensa_t *as, int num_locals);
+
 void asm_xtensa_exit_win(asm_xtensa_t *as);
 
 void asm_xtensa_op16(asm_xtensa_t *as, uint16_t op);
+
 void asm_xtensa_op24(asm_xtensa_t *as, uint32_t op);
 
 // raw instructions
@@ -269,16 +272,27 @@ static inline void asm_xtensa_op_xor(asm_xtensa_t *as, uint reg_dest, uint reg_s
 
 // convenience functions
 void asm_xtensa_j_label(asm_xtensa_t *as, uint label);
+
 void asm_xtensa_bccz_reg_label(asm_xtensa_t *as, uint cond, uint reg, uint label);
+
 void asm_xtensa_bcc_reg_reg_label(asm_xtensa_t *as, uint cond, uint reg1, uint reg2, uint label);
+
 void asm_xtensa_setcc_reg_reg_reg(asm_xtensa_t *as, uint cond, uint reg_dest, uint reg_src1, uint reg_src2);
+
 size_t asm_xtensa_mov_reg_i32(asm_xtensa_t *as, uint reg_dest, uint32_t i32);
+
 void asm_xtensa_mov_reg_i32_optimised(asm_xtensa_t *as, uint reg_dest, uint32_t i32);
+
 void asm_xtensa_mov_local_reg(asm_xtensa_t *as, int local_num, uint reg_src);
+
 void asm_xtensa_mov_reg_local(asm_xtensa_t *as, uint reg_dest, int local_num);
+
 void asm_xtensa_mov_reg_local_addr(asm_xtensa_t *as, uint reg_dest, int local_num);
+
 void asm_xtensa_mov_reg_pcrel(asm_xtensa_t *as, uint reg_dest, uint label);
+
 void asm_xtensa_call_ind(asm_xtensa_t *as, uint idx);
+
 void asm_xtensa_call_ind_win(asm_xtensa_t *as, uint idx);
 
 // Holds a pointer to mp_fun_table

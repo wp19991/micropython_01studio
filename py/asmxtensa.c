@@ -42,7 +42,7 @@ void asm_xtensa_end_pass(asm_xtensa_t *as) {
     as->num_const = as->cur_const;
     as->cur_const = 0;
 
-    #if 0
+#if 0
     // make a hex dump of the machine code
     if (as->base.pass == MP_ASM_PASS_EMIT) {
         uint8_t *d = as->base.code_base;
@@ -58,7 +58,7 @@ void asm_xtensa_end_pass(asm_xtensa_t *as) {
         }
         printf("\n");
     }
-    #endif
+#endif
 }
 
 void asm_xtensa_entry(asm_xtensa_t *as, int num_locals) {

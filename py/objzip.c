@@ -36,7 +36,9 @@ typedef struct _mp_obj_zip_t {
     mp_obj_t iters[];
 } mp_obj_zip_t;
 
-STATIC mp_obj_t zip_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_kw, const mp_obj_t *args) {
+STATIC mp_obj_t
+
+zip_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_kw, const mp_obj_t *args) {
     mp_arg_check_num(n_args, n_kw, 0, MP_OBJ_FUN_ARGS_MAX, false);
 
     mp_obj_zip_t *o = m_new_obj_var(mp_obj_zip_t, mp_obj_t, n_args);
@@ -48,29 +50,42 @@ STATIC mp_obj_t zip_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_
     return MP_OBJ_FROM_PTR(o);
 }
 
-STATIC mp_obj_t zip_iternext(mp_obj_t self_in) {
-    mp_check_self(mp_obj_is_type(self_in, &mp_type_zip));
-    mp_obj_zip_t *self = MP_OBJ_TO_PTR(self_in);
-    if (self->n_iters == 0) {
-        return MP_OBJ_STOP_ITERATION;
-    }
-    mp_obj_tuple_t *tuple = MP_OBJ_TO_PTR(mp_obj_new_tuple(self->n_iters, NULL));
+STATIC mp_obj_t
+zip_iternext(mp_obj_t
+self_in) {
+mp_check_self (mp_obj_is_type(self_in,
 
-    for (size_t i = 0; i < self->n_iters; i++) {
-        mp_obj_t next = mp_iternext(self->iters[i]);
-        if (next == MP_OBJ_STOP_ITERATION) {
-            mp_obj_tuple_del(MP_OBJ_FROM_PTR(tuple));
-            return MP_OBJ_STOP_ITERATION;
-        }
-        tuple->items[i] = next;
-    }
-    return MP_OBJ_FROM_PTR(tuple);
+&mp_type_zip));
+mp_obj_zip_t *self = MP_OBJ_TO_PTR(self_in);
+if (self->n_iters == 0) {
+return
+MP_OBJ_STOP_ITERATION;
+}
+mp_obj_tuple_t *tuple = MP_OBJ_TO_PTR(mp_obj_new_tuple(self->n_iters, NULL));
+
+for (
+size_t i = 0;
+i < self->
+n_iters;
+i++) {
+mp_obj_t next = mp_iternext(self->iters[i]);
+if (next == MP_OBJ_STOP_ITERATION) {
+mp_obj_tuple_del (MP_OBJ_FROM_PTR(tuple));
+
+return
+MP_OBJ_STOP_ITERATION;
+}
+tuple->items[i] =
+next;
+}
+return
+MP_OBJ_FROM_PTR(tuple);
 }
 
 const mp_obj_type_t mp_type_zip = {
-    { &mp_type_type },
-    .name = MP_QSTR_zip,
-    .make_new = zip_make_new,
-    .getiter = mp_identity_getiter,
-    .iternext = zip_iternext,
+        {&mp_type_type},
+        .name = MP_QSTR_zip,
+        .make_new = zip_make_new,
+        .getiter = mp_identity_getiter,
+        .iternext = zip_iternext,
 };

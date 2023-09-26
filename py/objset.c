@@ -47,9 +47,9 @@ typedef struct _mp_obj_set_it_t {
 
 STATIC bool is_set_or_frozenset(mp_obj_t o) {
     return mp_obj_is_type(o, &mp_type_set)
-           #if MICROPY_PY_BUILTINS_FROZENSET
+#if MICROPY_PY_BUILTINS_FROZENSET
            || mp_obj_is_type(o, &mp_type_frozenset)
-           #endif
+#endif
     ;
 }
 
@@ -63,24 +63,24 @@ STATIC bool is_set_or_frozenset(mp_obj_t o) {
 STATIC void set_print(const mp_print_t *print, mp_obj_t self_in, mp_print_kind_t kind) {
     (void)kind;
     mp_obj_set_t *self = MP_OBJ_TO_PTR(self_in);
-    #if MICROPY_PY_BUILTINS_FROZENSET
+#if MICROPY_PY_BUILTINS_FROZENSET
     bool is_frozen = mp_obj_is_type(self_in, &mp_type_frozenset);
-    #endif
+#endif
     if (self->set.used == 0) {
-        #if MICROPY_PY_BUILTINS_FROZENSET
+#if MICROPY_PY_BUILTINS_FROZENSET
         if (is_frozen) {
             mp_print_str(print, "frozen");
         }
-        #endif
+#endif
         mp_print_str(print, "set()");
         return;
     }
     bool first = true;
-    #if MICROPY_PY_BUILTINS_FROZENSET
+#if MICROPY_PY_BUILTINS_FROZENSET
     if (is_frozen) {
         mp_print_str(print, "frozenset(");
     }
-    #endif
+#endif
     mp_print_str(print, "{");
     for (size_t i = 0; i < self->set.alloc; i++) {
         if (mp_set_slot_is_filled(&self->set, i)) {
@@ -92,11 +92,11 @@ STATIC void set_print(const mp_print_t *print, mp_obj_t self_in, mp_print_kind_t
         }
     }
     mp_print_str(print, "}");
-    #if MICROPY_PY_BUILTINS_FROZENSET
+#if MICROPY_PY_BUILTINS_FROZENSET
     if (is_frozen) {
         mp_print_str(print, ")");
     }
-    #endif
+#endif
 }
 
 STATIC mp_obj_t set_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_kw, const mp_obj_t *args) {
@@ -430,7 +430,7 @@ STATIC mp_obj_t set_unary_op(mp_unary_op_t op, mp_obj_t self_in) {
             return mp_obj_new_bool(self->set.used != 0);
         case MP_UNARY_OP_LEN:
             return MP_OBJ_NEW_SMALL_INT(self->set.used);
-        #if MICROPY_PY_BUILTINS_FROZENSET
+#if MICROPY_PY_BUILTINS_FROZENSET
         case MP_UNARY_OP_HASH:
             if (mp_obj_is_type(self_in, &mp_type_frozenset)) {
                 // start hash with unique value
@@ -446,7 +446,7 @@ STATIC mp_obj_t set_unary_op(mp_unary_op_t op, mp_obj_t self_in) {
                 return MP_OBJ_NEW_SMALL_INT(hash);
             }
             MP_FALLTHROUGH
-        #endif
+#endif
         default:
             return MP_OBJ_NULL;      // op not supported
     }
@@ -454,11 +454,11 @@ STATIC mp_obj_t set_unary_op(mp_unary_op_t op, mp_obj_t self_in) {
 
 STATIC mp_obj_t set_binary_op(mp_binary_op_t op, mp_obj_t lhs, mp_obj_t rhs) {
     mp_obj_t args[] = {lhs, rhs};
-    #if MICROPY_PY_BUILTINS_FROZENSET
+#if MICROPY_PY_BUILTINS_FROZENSET
     bool update = mp_obj_is_type(lhs, &mp_type_set);
-    #else
+#else
     bool update = true;
-    #endif
+#endif
     if (op != MP_BINARY_OP_CONTAINS && !is_set_or_frozenset(rhs)) {
         // For all ops except containment the RHS must be a set/frozenset
         return MP_OBJ_NULL;

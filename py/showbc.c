@@ -85,14 +85,14 @@ void mp_bytecode_print(const mp_print_t *print, const void *descr, const byte *i
     MP_BC_PRELUDE_SIZE_DECODE(ip);
     const byte *code_info = ip;
 
-    #if MICROPY_PERSISTENT_CODE
+#if MICROPY_PERSISTENT_CODE
     qstr block_name = code_info[0] | (code_info[1] << 8);
     qstr source_file = code_info[2] | (code_info[3] << 8);
     code_info += 4;
-    #else
+#else
     qstr block_name = mp_decode_uint(&code_info);
     qstr source_file = mp_decode_uint(&code_info);
-    #endif
+#endif
     mp_printf(print, "File %s, code block '%s' (descriptor: %p, bytecode @%p " UINT_FMT " bytes)\n",
         qstr_str(source_file), qstr_str(block_name), descr, mp_showbc_code_start, len);
 
@@ -407,12 +407,12 @@ const byte *mp_bytecode_print_str(const mp_print_t *print, const byte *ip) {
             mp_printf(print, "BUILD_SET " UINT_FMT, unum);
             break;
 
-        #if MICROPY_PY_BUILTINS_SLICE
+#if MICROPY_PY_BUILTINS_SLICE
         case MP_BC_BUILD_SLICE:
             DECODE_UINT;
             mp_printf(print, "BUILD_SLICE " UINT_FMT, unum);
             break;
-        #endif
+#endif
 
         case MP_BC_STORE_COMP:
             DECODE_UINT;

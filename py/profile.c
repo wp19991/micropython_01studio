@@ -769,13 +769,13 @@ STATIC const byte *mp_prof_opcode_decode(const byte *ip, const mp_uint_t *const_
             instruction->arg = unum;
             break;
 
-        #if MICROPY_PY_BUILTINS_SLICE
+#if MICROPY_PY_BUILTINS_SLICE
         case MP_BC_BUILD_SLICE:
             DECODE_UINT;
             instruction->qstr_opname = MP_QSTR_BUILD_SLICE;
             instruction->arg = unum;
             break;
-        #endif
+#endif
 
         case MP_BC_STORE_COMP:
             DECODE_UINT;

@@ -62,7 +62,9 @@
 #define MP_SMALL_INT_MAX ((mp_int_t)(~(MP_SMALL_INT_MIN)))
 
 bool mp_small_int_mul_overflow(mp_int_t x, mp_int_t y);
+
 mp_int_t mp_small_int_modulo(mp_int_t dividend, mp_int_t divisor);
+
 mp_int_t mp_small_int_floor_divide(mp_int_t num, mp_int_t denom);
 
 #endif // MICROPY_INCLUDED_PY_SMALLINT_H

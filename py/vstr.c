@@ -44,7 +44,8 @@ void vstr_init(vstr_t *vstr, size_t alloc) {
     }
     vstr->alloc = alloc;
     vstr->len = 0;
-    vstr->buf = m_new(char, vstr->alloc);
+    vstr->buf = m_new(
+    char, vstr->alloc);
     vstr->fixed_buf = false;
 }
 
@@ -65,12 +66,13 @@ void vstr_init_fixed_buf(vstr_t *vstr, size_t alloc, char *buf) {
 void vstr_init_print(vstr_t *vstr, size_t alloc, mp_print_t *print) {
     vstr_init(vstr, alloc);
     print->data = vstr;
-    print->print_strn = (mp_print_strn_t)vstr_add_strn;
+    print->print_strn = (mp_print_strn_t) vstr_add_strn;
 }
 
 void vstr_clear(vstr_t *vstr) {
     if (!vstr->fixed_buf) {
-        m_del(char, vstr->buf, vstr->alloc);
+        m_del(
+        char, vstr->buf, vstr->alloc);
     }
     vstr->buf = NULL;
 }
@@ -84,7 +86,8 @@ vstr_t *vstr_new(size_t alloc) {
 void vstr_free(vstr_t *vstr) {
     if (vstr != NULL) {
         if (!vstr->fixed_buf) {
-            m_del(char, vstr->buf, vstr->alloc);
+            m_del(
+            char, vstr->buf, vstr->alloc);
         }
         m_del_obj(vstr_t, vstr);
     }
@@ -97,7 +100,8 @@ char *vstr_extend(vstr_t *vstr, size_t size) {
         // be there, so the only safe option is to raise an exception.
         mp_raise_msg(&mp_type_RuntimeError, NULL);
     }
-    char *new_buf = m_renew(char, vstr->buf, vstr->alloc, vstr->alloc + size);
+    char *new_buf = m_renew(
+    char, vstr->buf, vstr->alloc, vstr->alloc + size);
     char *p = new_buf + vstr->alloc;
     vstr->alloc += size;
     vstr->buf = new_buf;
@@ -112,7 +116,8 @@ STATIC void vstr_ensure_extra(vstr_t *vstr, size_t size) {
             mp_raise_msg(&mp_type_RuntimeError, NULL);
         }
         size_t new_alloc = ROUND_ALLOC((vstr->len + size) + 16);
-        char *new_buf = m_renew(char, vstr->buf, vstr->alloc, new_alloc);
+        char *new_buf = m_renew(
+        char, vstr->buf, vstr->alloc, new_alloc);
         vstr->alloc = new_alloc;
         vstr->buf = new_buf;
     }
@@ -140,12 +145,12 @@ char *vstr_null_terminated_str(vstr_t *vstr) {
 }
 
 void vstr_add_byte(vstr_t *vstr, byte b) {
-    byte *buf = (byte *)vstr_add_len(vstr, 1);
+    byte *buf = (byte *) vstr_add_len(vstr, 1);
     buf[0] = b;
 }
 
 void vstr_add_char(vstr_t *vstr, unichar c) {
-    #if MICROPY_PY_BUILTINS_STR_UNICODE
+#if MICROPY_PY_BUILTINS_STR_UNICODE
     // TODO: Can this be simplified and deduplicated?
     // Is it worth just calling vstr_add_len(vstr, 4)?
     if (c < 0x80) {
@@ -168,9 +173,9 @@ void vstr_add_char(vstr_t *vstr, unichar c) {
         buf[2] = ((c >> 6) & 0x3F) | 0x80;
         buf[3] = (c & 0x3F) | 0x80;
     }
-    #else
+#else
     vstr_add_byte(vstr, c);
-    #endif
+#endif
 }
 
 void vstr_add_str(vstr_t *vstr, const char *str) {
@@ -241,6 +246,6 @@ void vstr_printf(vstr_t *vstr, const char *fmt, ...) {
 }
 
 void vstr_vprintf(vstr_t *vstr, const char *fmt, va_list ap) {
-    mp_print_t print = {vstr, (mp_print_strn_t)vstr_add_strn};
+    mp_print_t print = {vstr, (mp_print_strn_t) vstr_add_strn};
     mp_vprintf(&print, fmt, ap);
 }

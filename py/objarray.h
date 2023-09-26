@@ -37,14 +37,14 @@
 // see comment at the beginning of objarray.c.
 typedef struct _mp_obj_array_t {
     mp_obj_base_t base;
-    size_t typecode : 8;
+    size_t typecode: 8;
     // free is number of unused elements after len used elements
     // alloc size = len + free
     // But for memoryview, 'free' is reused as offset (in elements) into the
     // parent object. (Union is not used to not go into a complication of
     // union-of-bitfields with different toolchains). See comments in
     // objarray.c.
-    size_t free : (8 * sizeof(size_t) - 8);
+    size_t free: (8 * sizeof(size_t) - 8);
     size_t len; // in elements
     void *items;
 } mp_obj_array_t;

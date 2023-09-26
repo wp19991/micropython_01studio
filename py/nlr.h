@@ -54,45 +54,47 @@
 #define MICROPY_NLR_OS_WINDOWS 0
 #endif
 #if defined(__i386__)
-    #define MICROPY_NLR_X86 (1)
-    #define MICROPY_NLR_NUM_REGS (MICROPY_NLR_NUM_REGS_X86)
+#define MICROPY_NLR_X86 (1)
+#define MICROPY_NLR_NUM_REGS (MICROPY_NLR_NUM_REGS_X86)
 #elif defined(__x86_64__)
-    #define MICROPY_NLR_X64 (1)
-    #if MICROPY_NLR_OS_WINDOWS
-        #define MICROPY_NLR_NUM_REGS (MICROPY_NLR_NUM_REGS_X64_WIN)
-    #else
-        #define MICROPY_NLR_NUM_REGS (MICROPY_NLR_NUM_REGS_X64)
-    #endif
-#elif defined(__thumb2__) || defined(__thumb__) || defined(__arm__)
-    #define MICROPY_NLR_THUMB (1)
-    #if defined(__SOFTFP__)
-        #define MICROPY_NLR_NUM_REGS (MICROPY_NLR_NUM_REGS_ARM_THUMB)
-    #else
-        // With hardware FP registers s16-s31 are callee save so in principle
-        // should be saved and restored by the NLR code.  gcc only uses s16-s21
-        // so only save/restore those as an optimisation.
-        #define MICROPY_NLR_NUM_REGS (MICROPY_NLR_NUM_REGS_ARM_THUMB_FP)
-    #endif
-#elif defined(__aarch64__)
-    #define MICROPY_NLR_AARCH64 (1)
-    #define MICROPY_NLR_NUM_REGS (MICROPY_NLR_NUM_REGS_AARCH64)
-#elif defined(__xtensa__)
-    #define MICROPY_NLR_XTENSA (1)
-    #define MICROPY_NLR_NUM_REGS (MICROPY_NLR_NUM_REGS_XTENSA)
-#elif defined(__powerpc__)
-    #define MICROPY_NLR_POWERPC (1)
-    // this could be less but using 128 for safety
-    #define MICROPY_NLR_NUM_REGS (128)
+#define MICROPY_NLR_X64 (1)
+#if MICROPY_NLR_OS_WINDOWS
+#define MICROPY_NLR_NUM_REGS (MICROPY_NLR_NUM_REGS_X64_WIN)
 #else
-    #define MICROPY_NLR_SETJMP (1)
-    //#warning "No native NLR support for this arch, using setjmp implementation"
+#define MICROPY_NLR_NUM_REGS (MICROPY_NLR_NUM_REGS_X64)
+#endif
+#elif defined(__thumb2__) || defined(__thumb__) || defined(__arm__)
+#define MICROPY_NLR_THUMB (1)
+#if defined(__SOFTFP__)
+#define MICROPY_NLR_NUM_REGS (MICROPY_NLR_NUM_REGS_ARM_THUMB)
+#else
+// With hardware FP registers s16-s31 are callee save so in principle
+// should be saved and restored by the NLR code.  gcc only uses s16-s21
+// so only save/restore those as an optimisation.
+#define MICROPY_NLR_NUM_REGS (MICROPY_NLR_NUM_REGS_ARM_THUMB_FP)
+#endif
+#elif defined(__aarch64__)
+#define MICROPY_NLR_AARCH64 (1)
+#define MICROPY_NLR_NUM_REGS (MICROPY_NLR_NUM_REGS_AARCH64)
+#elif defined(__xtensa__)
+#define MICROPY_NLR_XTENSA (1)
+#define MICROPY_NLR_NUM_REGS (MICROPY_NLR_NUM_REGS_XTENSA)
+#elif defined(__powerpc__)
+#define MICROPY_NLR_POWERPC (1)
+// this could be less but using 128 for safety
+#define MICROPY_NLR_NUM_REGS (128)
+#else
+#define MICROPY_NLR_SETJMP (1)
+//#warning "No native NLR support for this arch, using setjmp implementation"
 #endif
 #endif
 
 // *FORMAT-ON*
 
 #if MICROPY_NLR_SETJMP
+
 #include <setjmp.h>
+
 #endif
 
 typedef struct _nlr_buf_t nlr_buf_t;
@@ -101,15 +103,15 @@ struct _nlr_buf_t {
     nlr_buf_t *prev;
     void *ret_val; // always a concrete object (an exception instance)
 
-    #if MICROPY_NLR_SETJMP
+#if MICROPY_NLR_SETJMP
     jmp_buf jmpbuf;
-    #else
+#else
     void *regs[MICROPY_NLR_NUM_REGS];
-    #endif
+#endif
 
-    #if MICROPY_ENABLE_PYSTACK
+#if MICROPY_ENABLE_PYSTACK
     void *pystack;
-    #endif
+#endif
 };
 
 // Helper macros to save/restore the pystack state
@@ -142,7 +144,9 @@ unsigned int nlr_push(nlr_buf_t *);
 #endif
 
 unsigned int nlr_push_tail(nlr_buf_t *top);
+
 void nlr_pop(void);
+
 NORETURN void nlr_jump(void *val);
 
 // This must be implemented by a port.  It's called by nlr_jump

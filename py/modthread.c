@@ -165,11 +165,11 @@ STATIC void *thread_entry(void *args_in) {
     mp_stack_set_top(&ts + 1); // need to include ts in root-pointer scan
     mp_stack_set_limit(args->stack_size);
 
-    #if MICROPY_ENABLE_PYSTACK
+#if MICROPY_ENABLE_PYSTACK
     // TODO threading and pystack is not fully supported, for now just make a small stack
     mp_obj_t mini_pystack[128];
     mp_pystack_init(mini_pystack, &mini_pystack[128]);
-    #endif
+#endif
 
     // The GC starts off unlocked on this thread.
     ts.gc_lock_depth = 0;

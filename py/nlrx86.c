@@ -59,9 +59,9 @@ unsigned int nlr_push(nlr_buf_t *nlr) {
     (void)nlr;
 
     __asm volatile (
-        #if UNDO_PRELUDE
+#if UNDO_PRELUDE
         "pop    %ebp                \n" // undo function's prelude
-        #endif
+#endif
         "mov    4(%esp), %edx       \n" // load nlr_buf
         "mov    (%esp), %eax        \n" // load return %eip
         "mov    %eax, 8(%edx)       \n" // store %eip into nlr_buf
@@ -73,9 +73,9 @@ unsigned int nlr_push(nlr_buf_t *nlr) {
         "jmp    nlr_push_tail       \n" // do the rest in C
         );
 
-    #if !USE_NAKED
+#if !USE_NAKED
     return 0; // needed to silence compiler warning
-    #endif
+#endif
 }
 
 NORETURN void nlr_jump(void *val) {

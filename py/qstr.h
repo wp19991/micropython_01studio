@@ -37,11 +37,13 @@
 
 // first entry in enum will be MP_QSTRnull=0, which indicates invalid/no qstr
 enum {
-    #ifndef NO_QSTR
+#ifndef NO_QSTR
 #define QDEF(id, str) id,
-    #include "genhdr/qstrdefs.generated.h"
+
+#include "genhdr/qstrdefs.generated.h"
+
 #undef QDEF
-    #endif
+#endif
     MP_QSTRnumber_of, // no underscore so it can't clash with any of the above
 };
 
@@ -61,17 +63,23 @@ typedef struct _qstr_pool_t {
 void qstr_init(void);
 
 mp_uint_t qstr_compute_hash(const byte *data, size_t len);
+
 qstr qstr_find_strn(const char *str, size_t str_len); // returns MP_QSTRnull if not found
 
 qstr qstr_from_str(const char *str);
+
 qstr qstr_from_strn(const char *str, size_t len);
 
 mp_uint_t qstr_hash(qstr q);
+
 const char *qstr_str(qstr q);
+
 size_t qstr_len(qstr q);
+
 const byte *qstr_data(qstr q, size_t *len);
 
 void qstr_pool_info(size_t *n_pool, size_t *n_qstr, size_t *n_str_data_bytes, size_t *n_total_bytes);
+
 void qstr_dump_data(void);
 
 #if MICROPY_ROM_TEXT_COMPRESSION
