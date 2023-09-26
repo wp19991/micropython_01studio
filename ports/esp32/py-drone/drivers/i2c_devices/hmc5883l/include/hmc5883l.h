@@ -1,44 +1,19 @@
-// I2Cdev library collection - HMC5883L I2C device class header file
-// Based on Honeywell HMC5883L datasheet, 10/2010 (Form #900405 Rev B)
-// 6/12/2012 by Jeff Rowberg <jeff@rowberg.net>
-// Updates should (hopefully) always be available at https://github.com/jrowberg/i2cdevlib
-
-/* ============================================
-I2Cdev device library code is placed under the MIT license
-Copyright (c) 2011 Jeff Rowberg
-Adapted to Crazyflie FW by Bitcraze
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-THE SOFTWARE.
-===============================================
-*/
+// I2Cdev库集合 - HMC5883L I2C设备类头文件
+// 基于Honeywell HMC5883L数据手册，10/2010（Form #900405 Rev B）
+// 由Jeff Rowberg <jeff@rowberg.net>于6/12/2012编写
+// 更新应始终可在https://github.com/jrowberg/i2cdevlib获得
 
 #ifndef HMC5883L_H_
 #define HMC5883L_H_
+
 #include <stdbool.h>
 #include "i2cdev.h"
 
-// #define HMC5883L_ADDRESS            0x1E // this device only has one address
-// #define HMC5883L_DEFAULT_ADDRESS    0x1E
-
+// 设备地址
 #define HMC5883L_ADDRESS            0x0D
 #define HMC5883L_DEFAULT_ADDRESS    0xFF
 
+// 寄存器地址
 #define QMC5883L_RA_DATAX_L         0x00
 #define QMC5883L_RA_DATAX_H         0x01
 #define QMC5883L_RA_DATAY_L         0x02
@@ -46,31 +21,33 @@ THE SOFTWARE.
 #define QMC5883L_RA_DATAZ_L         0x04
 #define QMC5883L_RA_DATAZ_H         0x05
 #define QMC5883L_RA_STATUS          0x06
-#define QMC5883L_RA_DATA_TEMP_L		0x07
-#define QMC5883L_RA_DATA_TEMP_H		0x08
+#define QMC5883L_RA_DATA_TEMP_L     0x07
+#define QMC5883L_RA_DATA_TEMP_H     0x08
 #define QMC5883L_RA_CONFIG_1        0x09
 #define QMC5883L_RA_CONFIG_2        0x0A
-#define QMC5883L_RA_MODE	        0x0B
-#define QMC5883L_CHIP_ID			0x0D
+#define QMC5883L_RA_MODE            0x0B
+#define QMC5883L_CHIP_ID            0x0D
 
-#define QMC5883L_MODE_STANDBY		0x00
-#define QMC5883L_MODE_CONTINUOUS	0x01
+// 模式
+#define QMC5883L_MODE_STANDBY       0x00
+#define QMC5883L_MODE_CONTINUOUS    0x01
 
-#define QMC5883L_OUTPUT_10HZ		0x00
-#define QMC5883L_OUTPUT_50HZ		0x04
-#define QMC5883L_OUTPUT_100HZ		0x08
-#define QMC5883L_OUTPUT_200HZ		0x0C
+// 数据输出速率
+#define QMC5883L_OUTPUT_10HZ        0x00
+#define QMC5883L_OUTPUT_50HZ        0x04
+#define QMC5883L_OUTPUT_100HZ       0x08
+#define QMC5883L_OUTPUT_200HZ       0x0C
 
-#define QMC5883L_OUTPUT_2G			0x00
-#define QMC5883L_OUTPUT_8G			0x10
+// 增益
+#define QMC5883L_OUTPUT_2G          0x00
+#define QMC5883L_OUTPUT_8G          0x10
 
-#define QMC5883L_SAMPLE_64			0xC0
-#define QMC5883L_SAMPLE_128			0x80
-#define QMC5883L_SAMPLE_256			0x40
-#define QMC5883L_SAMPLE_512			0x00
-#define QMC5883L_STATUS_DRDY_BIT	0x01
-
-
+// 采样数
+#define QMC5883L_SAMPLE_64          0xC0
+#define QMC5883L_SAMPLE_128         0x80
+#define QMC5883L_SAMPLE_256         0x40
+#define QMC5883L_SAMPLE_512         0x00
+#define QMC5883L_STATUS_DRDY_BIT    0x01
 
 #define HMC5883L_RA_CONFIG_A        0x00
 #define HMC5883L_RA_CONFIG_B        0x01
@@ -86,6 +63,7 @@ THE SOFTWARE.
 #define HMC5883L_RA_ID_B            0x0B
 #define HMC5883L_RA_ID_C            0x0C
 
+// CONFIG_A寄存器位
 #define HMC5883L_CRA_AVERAGE_BIT    6
 #define HMC5883L_CRA_AVERAGE_LENGTH 2
 #define HMC5883L_CRA_RATE_BIT       4
@@ -93,6 +71,7 @@ THE SOFTWARE.
 #define HMC5883L_CRA_BIAS_BIT       1
 #define HMC5883L_CRA_BIAS_LENGTH    2
 
+// 数据输出速率选项
 #define HMC5883L_AVERAGING_1        0x00
 #define HMC5883L_AVERAGING_2        0x01
 #define HMC5883L_AVERAGING_4        0x02
@@ -106,13 +85,16 @@ THE SOFTWARE.
 #define HMC5883L_RATE_30            0x05
 #define HMC5883L_RATE_75            0x06
 
+// 偏差选项
 #define HMC5883L_BIAS_NORMAL        0x00
 #define HMC5883L_BIAS_POSITIVE      0x01
 #define HMC5883L_BIAS_NEGATIVE      0x02
 
+// CONFIG_B寄存器位
 #define HMC5883L_CRB_GAIN_BIT       7
 #define HMC5883L_CRB_GAIN_LENGTH    3
 
+// 增益选项
 #define HMC5883L_GAIN_1370          0x00
 #define HMC5883L_GAIN_1090          0x01
 #define HMC5883L_GAIN_820           0x02
@@ -122,20 +104,24 @@ THE SOFTWARE.
 #define HMC5883L_GAIN_330           0x06
 #define HMC5883L_GAIN_220           0x07
 
+// MODE寄存器位
 #define HMC5883L_MODEREG_BIT        1
 #define HMC5883L_MODEREG_LENGTH     2
 
+// 测量模式选项
 #define HMC5883L_MODE_CONTINUOUS    0x00
 #define HMC5883L_MODE_SINGLE        0x01
 #define HMC5883L_MODE_IDLE          0x02
 
+// STATUS寄存器位
 #define HMC5883L_STATUS_LOCK_BIT    1
 #define HMC5883L_STATUS_READY_BIT   0
 
-#define HMC5883L_ST_GAIN            HMC5883L_GAIN_440  // Gain value during self-test
+// 自测试参数
+#define HMC5883L_ST_GAIN            HMC5883L_GAIN_440  // 自测试时的增益值
 #define HMC5883L_ST_GAIN_NBR        440
-#define HMC5883L_ST_ERROR           0.2                // Max error
-#define HMC5883L_ST_DELAY_MS        250                // delay in millisec during self test */
+#define HMC5883L_ST_ERROR           0.2                // 最大误差
+#define HMC5883L_ST_DELAY_MS        250                // 自测试延迟时间（毫秒）
 #define HMC5883L_ST_X_NORM          (int32_t)(1.16 * HMC5883L_ST_GAIN_NBR)
 #define HMC5883L_ST_X_MIN           (int32_t)(HMC5883L_ST_X_NORM - (HMC5883L_ST_X_NORM * HMC5883L_ST_ERROR))
 #define HMC5883L_ST_X_MAX           (int32_t)(HMC5883L_ST_X_NORM + (HMC5883L_ST_X_NORM * HMC5883L_ST_ERROR))
@@ -146,37 +132,52 @@ THE SOFTWARE.
 #define HMC5883L_ST_Z_MIN           (int32_t)(HMC5883L_ST_Z_NORM - (HMC5883L_ST_Z_NORM * HMC5883L_ST_ERROR))
 #define HMC5883L_ST_Z_MAX           (int32_t)(HMC5883L_ST_Z_NORM + (HMC5883L_ST_Z_NORM * HMC5883L_ST_ERROR))
 
+// 函数声明
 void hmc5883lInit(I2C_Dev *i2cPort);
+
 void hmc5883lDeInit(void);
+
 bool hmc5883lTestConnection();
+
 bool hmc5883lSelfTest();
+
 bool hmc5883lEvaluateSelfTest(int16_t min, int16_t max, int16_t value, char *string);
 
-// CONFIG_A register
+// CONFIG_A寄存器函数
 uint8_t hmc5883lGetSampleAveraging();
+
 void hmc5883lSetSampleAveraging(uint8_t averaging);
+
 uint8_t hmc5883lGetDataRate();
+
 void hmc5883lSetDataRate(uint8_t rate);
+
 uint8_t hmc5883lGetMeasurementBias();
+
 void hmc5883lSetMeasurementBias(uint8_t bias);
 
-// CONFIG_B register
+// CONFIG_B寄存器函数
 uint8_t hmc5883lGetGain();
+
 void hmc5883lSetGain(uint8_t gain);
 
-// MODE register
+// MODE寄存器函数
 uint8_t hmc5883lGetMode();
+
 void hmc5883lSetMode(uint8_t mode);
 
-// DATA* registers
+// DATA*寄存器函数
 void hmc5883lGetHeading(int16_t *x, int16_t *y, int16_t *z);
+
 int16_t hmc5883lGetHeadingX();
+
 int16_t hmc5883lGetHeadingY();
+
 int16_t hmc5883lGetHeadingZ();
 
-// STATUS register
+// STATUS寄存器函数
 bool hmc5883lGetLockStatus();
-bool hmc5883lGetReadyStatus();
 
+bool hmc5883lGetReadyStatus();
 
 #endif /* HMC5883L_H_ */
