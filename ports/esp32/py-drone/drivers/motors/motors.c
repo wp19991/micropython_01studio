@@ -238,7 +238,6 @@ int motorsGetRatio(uint32_t id) {
     return ratio;
 }
 
-// 产生蜂鸣声或关闭蜂鸣器
 void motorsBeep(int id, bool enable, uint16_t frequency, uint16_t ratio) {
     uint32_t freq_hz = 15000;
     //ASSERT(id < NBR_OF_MOTORS);
