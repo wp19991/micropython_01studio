@@ -150,7 +150,8 @@ bool i2cdevReadReg16(I2C_Dev *dev, uint8_t devAddress, uint16_t memAddress, uint
             sprintf(str + i * 5, "0x%s%X ", (data[i] < 0x10 ? "0" : ""), data[i]);
         }
 
-        I2CBUS_LOG_RW("[port:%d, slave:0x%X] 从寄存器0x%X读取了%d字节数据：%s", dev->def->i2cPort, devAddress, memAddress, len, str);
+        I2CBUS_LOG_RW("[port:%d, slave:0x%X] 从寄存器0x%X读取了%d字节数据：%s",
+                      dev->def->i2cPort, devAddress, memAddress, len, str);
     }
 #endif
 #if defined CONFIG_I2CBUS_LOG_ERRORS
@@ -159,7 +160,8 @@ bool i2cdevReadReg16(I2C_Dev *dev, uint8_t devAddress, uint16_t memAddress, uint
 #else
     if (err) {
 #endif
-        I2CBUS_LOGE("[port:%d, slave:0x%X] 读取寄存器0x%X失败，错误码：0x%X", dev->def->i2cPort, devAddress, memAddress, err);
+        I2CBUS_LOGE("[port:%d, slave:0x%X] 读取寄存器0x%X失败，错误码：0x%X",
+                    dev->def->i2cPort, devAddress, memAddress, err);
     }
 #endif
 
@@ -188,8 +190,8 @@ bool i2cdevWriteBit(I2C_Dev *dev, uint8_t devAddress, uint8_t memAddress, uint8_
 }
 
 // 向I2C设备写入指定位数的数据
-bool
-i2cdevWriteBits(I2C_Dev *dev, uint8_t devAddress, uint8_t memAddress, uint8_t bitStart, uint8_t length, uint8_t data) {
+bool i2cdevWriteBits(I2C_Dev *dev, uint8_t devAddress, uint8_t memAddress,
+                     uint8_t bitStart, uint8_t length, uint8_t data) {
     bool status;
     uint8_t byte;
 
@@ -239,7 +241,8 @@ bool i2cdevWriteReg8(I2C_Dev *dev, uint8_t devAddress, uint8_t memAddress, uint1
             sprintf(str + i * 5, "0x%s%X ", (data[i] < 0x10 ? "0" : ""), data[i]);
         }
 
-        I2CBUS_LOG_RW("[port:%d, slave:0x%X] 写入了%d字节数据到寄存器0x%X：%s", dev->def->i2cPort, devAddress, len, memAddress, str);
+        I2CBUS_LOG_RW("[port:%d, slave:0x%X] 写入了%d字节数据到寄存器0x%X：%s",
+                      dev->def->i2cPort, devAddress, len, memAddress, str);
     }
 #endif
 #if defined CONFIG_I2CBUS_LOG_ERRORS
@@ -248,7 +251,8 @@ bool i2cdevWriteReg8(I2C_Dev *dev, uint8_t devAddress, uint8_t memAddress, uint1
 #else
     if (err) {
 #endif
-        I2CBUS_LOGE("[port:%d, slave:0x%X] 写入%d字节数据到寄存器0x%X失败，错误码：0x%X", dev->def->i2cPort, devAddress, len, memAddress, err);
+        I2CBUS_LOGE("[port:%d, slave:0x%X] 写入%d字节数据到寄存器0x%X失败，错误码：0x%X",
+                    dev->def->i2cPort, devAddress, len, memAddress, err);
     }
 #endif
 
